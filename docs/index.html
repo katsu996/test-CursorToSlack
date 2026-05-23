@@ -36,6 +36,27 @@
     .meta dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; }
     .meta dt { color: var(--muted); }
     .meta dd { margin: 0; word-break: break-all; }
+    .sortbar {
+      display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      margin-bottom: 0.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .sortbar label { font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+    .sortbar select {
+      padding: 0.4rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.88rem;
+      min-width: 10rem;
+      background: #fff;
+    }
     .toolbar {
       display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
       margin-bottom: 0.75rem;
@@ -91,11 +112,22 @@
   <div class="wrap">
     <h1>難易度表（songdata 突合・一覧）</h1>
     <p class="lead">
-      Actions で <code>songdata.db</code> の条件（現在: 等速 BPM = <code>minbpm = maxbpm</code>）に合う行だけに絞った難易度表と、ローカル DB の <code>song</code> 列を可能な限り並べています。
+      Actions で <code>songdata.db</code> の条件（現在: 等速 BPM = <code>minbpm = maxbpm</code>）に合う行だけに絞った難易度表と、ローカル DB の <code>song</code> 列を表示します。
       beatoraja の Table URL には <code>table/filtered_header.json</code> を登録してください。
     </p>
     <div id="meta" class="meta" hidden>
       <dl id="meta-dl"></dl>
+    </div>
+    <div class="sortbar">
+      <label for="sort-col">並び替え列</label>
+      <select id="sort-col" disabled>
+        <option value="">元の順（難易度表 JSON の並び）</option>
+      </select>
+      <label for="sort-dir">順序</label>
+      <select id="sort-dir" disabled>
+        <option value="asc">昇順（A→Z / 小→大）</option>
+        <option value="desc">降順（Z→A / 大→小）</option>
+      </select>
     </div>
     <div class="toolbar">
       <label for="q">絞り込み</label>
@@ -115,15 +147,28 @@
   </div>
   <script>
 (function () {
-  const LABELS = {
+  /** 画面上から隠す列（難易度表 JSON / DB 共通キー名） */
+  var HIDDEN_KEYS = {
+    path: true, preview: true, banner: true, stagefile: true, backbmp: true,
+    tag: true, parent: true, mode: true, judge: true, feature: true, content: true,
+    favorite: true, adddate: true
+  };
+
+  var LABELS = {
     id: "表 ID", md5: "MD5", sha256: "SHA256", title: "表タイトル", artist: "表アーティスト",
     level: "表レベル", url: "リンク", url_diff: "差分URL",
-    subtitle: "サブタイトル", genre: "ジャンル", subartist: "サブアーティスト", tag: "タグ",
-    path: "譜面パス", folder: "フォルダID", stagefile: "ステージ", banner: "バナー", backbmp: "背景",
-    preview: "プレビュー", parent: "親ID", difficulty: "difficulty", maxbpm: "max BPM", minbpm: "min BPM",
-    length: "長さ(秒?)", mode: "mode", judge: "judge", feature: "feature", content: "content",
-    date: "ファイル日時", favorite: "お気に入り", adddate: "DB登録日時", notes: "ノーツ数", charthash: "charthash"
+    subtitle: "サブタイトル", genre: "ジャンル", subartist: "サブアーティスト",
+    folder: "フォルダID", difficulty: "difficulty", maxbpm: "max BPM", minbpm: "min BPM",
+    length: "長さ(秒?)", notes: "ノーツ数", charthash: "charthash", date: "ファイル日時"
   };
+
+  function tableColTitle(k) {
+    return LABELS[k] || ("表: " + k);
+  }
+
+  function dbColTitle(k) {
+    return LABELS[k] || ("DB: " + k);
+  }
 
   function fmt(val) {
     if (val === null || val === undefined) return "";
@@ -139,43 +184,79 @@
     return typeof val === "number" && Number.isFinite(val);
   }
 
-  function collectKeys(rows, key) {
-    const s = new Set();
-    for (const r of rows) {
-      const o = r[key];
-      if (o && typeof o === "object") Object.keys(o).forEach(k => s.add(k));
+  function collectVisibleKeys(rows, key) {
+    var s = {};
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var o = r[key];
+      if (o && typeof o === "object") {
+        var ks = Object.keys(o);
+        for (var j = 0; j < ks.length; j++) {
+          var k = ks[j];
+          if (!HIDDEN_KEYS[k]) s[k] = true;
+        }
+      }
     }
-    const arr = Array.from(s);
-    const pri = key === "table"
-      ? ["id", "title", "artist", "level", "md5", "sha256", "url", "url_diff"]
-      : ["title", "subtitle", "artist", "genre", "path", "minbpm", "maxbpm", "notes", "length", "level", "difficulty", "md5", "sha256", "folder", "preview", "banner", "stagefile", "backbmp", "tag", "subartist", "parent", "mode", "judge", "feature", "content", "date", "adddate", "favorite", "charthash"];
-    const first = pri.filter(k => s.has(k));
-    const rest = arr.filter(k => pri.indexOf(k) < 0).sort();
-    return first.concat(rest);
+    var arr = Object.keys(s);
+    arr.sort(function (a, b) {
+      var la = key === "table" ? tableColTitle(a) : dbColTitle(a);
+      var lb = key === "table" ? tableColTitle(b) : dbColTitle(b);
+      return la.localeCompare(lb, "ja", { sensitivity: "base", numeric: true });
+    });
+    return arr;
   }
 
   function esc(s) {
-    const d = document.createElement("div");
+    var d = document.createElement("div");
     d.textContent = s;
     return d.innerHTML;
   }
 
   function cellHtml(val) {
-    const t = fmt(val);
+    var t = fmt(val);
     if (!t) return '<td class="empty">—</td>';
     if (/^https?:\/\//i.test(t)) return '<td><a href="' + esc(t) + '" rel="noopener noreferrer">' + esc(t) + '</a></td>';
-    const num = isNumericLike(val);
-    return '<td class="' + (num ? "num" : "") + '">' + esc(t) + '</td>';
+    var num = isNumericLike(val);
+    return '<td class="' + (num ? "num" : "") + '">' + esc(t) + "</td>";
   }
 
-  const metaEl = document.getElementById("meta");
-  const metaDl = document.getElementById("meta-dl");
-  const errEl = document.getElementById("err");
-  const scrollEl = document.getElementById("scroll");
-  const thead = document.getElementById("thead");
-  const tbody = document.getElementById("tbody");
-  const q = document.getElementById("q");
-  const countEl = document.getElementById("count");
+  function getSortValue(r, spec) {
+    if (!spec) return null;
+    var parts = spec.split(":");
+    if (parts.length < 2) return null;
+    var grp = parts[0];
+    var col = parts.slice(1).join(":");
+    var o = grp === "table" ? r.table : r.db;
+    if (!o || typeof o !== "object") return null;
+    return o[col];
+  }
+
+  function compareVals(a, b) {
+    var ae = a === null || a === undefined || a === "";
+    var be = b === null || b === undefined || b === "";
+    if (ae && be) return 0;
+    if (ae) return 1;
+    if (be) return -1;
+    if (typeof a === "number" && typeof b === "number" && Number.isFinite(a) && Number.isFinite(b)) {
+      if (a < b) return -1;
+      if (a > b) return 1;
+      return 0;
+    }
+    var sa = typeof a === "object" ? JSON.stringify(a) : String(a);
+    var sb = typeof b === "object" ? JSON.stringify(b) : String(b);
+    return sa.localeCompare(sb, "ja", { numeric: true, sensitivity: "base" });
+  }
+
+  var metaEl = document.getElementById("meta");
+  var metaDl = document.getElementById("meta-dl");
+  var errEl = document.getElementById("err");
+  var scrollEl = document.getElementById("scroll");
+  var thead = document.getElementById("thead");
+  var tbody = document.getElementById("tbody");
+  var q = document.getElementById("q");
+  var countEl = document.getElementById("count");
+  var sortCol = document.getElementById("sort-col");
+  var sortDir = document.getElementById("sort-dir");
 
   fetch("./table/browser_rows.json", { cache: "no-store" })
     .then(function (r) {
@@ -183,84 +264,110 @@
       return r.json();
     })
     .then(function (data) {
-      const meta = data.meta || {};
-      const rows = Array.isArray(data.rows) ? data.rows : [];
+      var meta = data.meta || {};
+      var rows = Array.isArray(data.rows) ? data.rows : [];
       metaDl.innerHTML = "";
+      var urls = meta.source_header_urls;
+      var urlLine = "";
+      if (Array.isArray(urls) && urls.length) {
+        urlLine = urls.join(", ");
+      } else if (meta.source_header_url) {
+        urlLine = String(meta.source_header_url);
+      }
       [
         ["行数", meta.row_count],
         ["songdata と一致", meta.matched_songdata],
         ["SQL 条件", meta.sql_where],
-        ["元ヘッダー URL", meta.source_header_url],
+        ["元ヘッダー URL", urlLine],
         ["備考", meta.reason]
       ].forEach(function (pair) {
         if (pair[1] === undefined || pair[1] === null || pair[1] === "") return;
-        const dt = document.createElement("dt");
+        var dt = document.createElement("dt");
         dt.textContent = pair[0];
-        const dd = document.createElement("dd");
+        var dd = document.createElement("dd");
         dd.textContent = String(pair[1]);
         metaDl.appendChild(dt);
         metaDl.appendChild(dd);
       });
       metaEl.hidden = metaDl.children.length === 0;
 
-      const tKeys = collectKeys(rows, "table");
-      const dKeys = collectKeys(rows, "db");
+      var tKeys = collectVisibleKeys(rows, "table");
+      var dKeys = collectVisibleKeys(rows, "db");
 
-      const trh1 = document.createElement("tr");
-      const thT = document.createElement("th");
+      var trh1 = document.createElement("tr");
+      var thT = document.createElement("th");
       thT.colSpan = Math.max(1, tKeys.length);
       thT.className = "group-t";
       thT.textContent = "難易度表 JSON の列";
       trh1.appendChild(thT);
-      const thD = document.createElement("th");
+      var thD = document.createElement("th");
       thD.colSpan = Math.max(1, dKeys.length);
       thD.className = "group-d";
       thD.textContent = "songdata.db（song）の列";
       trh1.appendChild(thD);
       thead.appendChild(trh1);
 
-      const trh2 = document.createElement("tr");
+      var trh2 = document.createElement("tr");
       tKeys.forEach(function (k) {
-        const th = document.createElement("th");
+        var th = document.createElement("th");
         th.className = "group-t";
-        th.textContent = LABELS[k] || ("表: " + k);
+        th.textContent = tableColTitle(k);
         trh2.appendChild(th);
       });
       if (!tKeys.length) {
-        const th = document.createElement("th");
-        th.className = "group-t";
-        th.textContent = "（表データなし）";
-        trh2.appendChild(th);
+        var th0 = document.createElement("th");
+        th0.className = "group-t";
+        th0.textContent = "（表データなし）";
+        trh2.appendChild(th0);
       }
       dKeys.forEach(function (k) {
-        const th = document.createElement("th");
+        var th = document.createElement("th");
         th.className = "group-d";
-        th.textContent = LABELS[k] || ("DB: " + k);
+        th.textContent = dbColTitle(k);
         trh2.appendChild(th);
       });
       if (!dKeys.length) {
-        const th = document.createElement("th");
-        th.className = "group-d";
-        th.textContent = "（DB列なし）";
-        trh2.appendChild(th);
+        var th1 = document.createElement("th");
+        th1.className = "group-d";
+        th1.textContent = "（DB列なし）";
+        trh2.appendChild(th1);
       }
       thead.appendChild(trh2);
 
       function rowText(r) {
-        const t = r.table || {};
-        const d = r.db || {};
+        var t = r.table || {};
+        var d = r.db || {};
         return tKeys.concat(dKeys).map(function (k) {
           if (tKeys.indexOf(k) >= 0) return fmt(t[k]);
           return fmt(d[k]);
         }).join(" ") + " " + JSON.stringify(t) + " " + JSON.stringify(d);
       }
 
-      function render(filtered) {
+      function fillSortSelect() {
+        while (sortCol.options.length > 1) sortCol.remove(1);
+        tKeys.forEach(function (k) {
+          var opt = document.createElement("option");
+          opt.value = "table:" + k;
+          opt.textContent = "表: " + tableColTitle(k);
+          sortCol.appendChild(opt);
+        });
+        dKeys.forEach(function (k) {
+          var opt = document.createElement("option");
+          opt.value = "db:" + k;
+          opt.textContent = "DB: " + dbColTitle(k);
+          sortCol.appendChild(opt);
+        });
+      }
+      fillSortSelect();
+      sortCol.disabled = false;
+      sortDir.disabled = false;
+
+      function render(list) {
         tbody.innerHTML = "";
-        filtered.forEach(function (r) {
-          const tr = document.createElement("tr");
-          const t = r.table || {};
-          const d = r.db || {};
+        list.forEach(function (r) {
+          var tr = document.createElement("tr");
+          var t = r.table || {};
+          var d = r.db || {};
           tKeys.forEach(function (k) {
             tr.insertAdjacentHTML("beforeend", cellHtml(t[k]));
           });
@@ -271,23 +378,35 @@
           if (!dKeys.length) tr.insertAdjacentHTML("beforeend", "<td class=\"empty\">—</td>");
           tbody.appendChild(tr);
         });
-        countEl.textContent = filtered.length + " / " + rows.length + " 行を表示";
+        countEl.textContent = list.length + " / " + rows.length + " 行を表示";
       }
 
-      let filtered = rows.slice();
-      render(filtered);
+      function applySearch() {
+        var needle = (q.value || "").trim().toLowerCase();
+        if (!needle) return rows.slice();
+        return rows.filter(function (r) {
+          return rowText(r).toLowerCase().indexOf(needle) >= 0;
+        });
+      }
+
+      function applySort(base) {
+        var spec = (sortCol.value || "").trim();
+        if (!spec) return base.slice();
+        var dir = sortDir.value === "desc" ? -1 : 1;
+        return base.slice().sort(function (r1, r2) {
+          return dir * compareVals(getSortValue(r1, spec), getSortValue(r2, spec));
+        });
+      }
+
+      function refresh() {
+        render(applySort(applySearch()));
+      }
+
+      refresh();
       q.disabled = false;
-      q.addEventListener("input", function () {
-        const needle = (q.value || "").trim().toLowerCase();
-        if (!needle) {
-          filtered = rows.slice();
-        } else {
-          filtered = rows.filter(function (r) {
-            return rowText(r).toLowerCase().indexOf(needle) >= 0;
-          });
-        }
-        render(filtered);
-      });
+      q.addEventListener("input", refresh);
+      sortCol.addEventListener("change", refresh);
+      sortDir.addEventListener("change", refresh);
 
       scrollEl.hidden = false;
     })

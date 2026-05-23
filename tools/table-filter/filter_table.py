@@ -47,6 +47,70 @@ def _fetch_url(url: str, timeout: float = 120.0) -> bytes:
         return resp.read()
 
 
+def _normalize_cfg_header_urls(cfg: Mapping[str, Any]) -> list[str]:
+    urls_raw = cfg.get("source_header_urls")
+    if isinstance(urls_raw, list):
+        out = [str(u).strip() for u in urls_raw if str(u).strip()]
+        if out:
+            return out
+    single = str(cfg.get("source_header_url") or "").strip()
+    return [single] if single else []
+
+
+def _resolve_bmstable_header_url(page_or_json_url: str) -> str:
+    """
+    難易度表登録用 HTML（<meta name="bmstable" content="header.json">）または
+    ヘッダー JSON の URL を受け取り、ヘッダー JSON の絶対 URL を返す。
+    """
+    u = page_or_json_url.strip()
+    low = u.lower()
+    if low.endswith(".htm") or low.endswith(".html"):
+        raw = _fetch_url(u).decode("utf-8", errors="replace")
+        m = re.search(
+            r'<meta\s+name=["\']bmstable["\']\s+content=["\']([^"\']+)["\']',
+            raw,
+            re.IGNORECASE,
+        )
+        if not m:
+            m = re.search(
+                r'<meta\s+content=["\']([^"\']+)["\']\s+name=["\']bmstable["\']',
+                raw,
+                re.IGNORECASE,
+            )
+        if not m:
+            _die(f"HTML から bmstable の meta が取得できません: {u}")
+        rel = m.group(1).strip()
+        return urljoin(u, rel)
+    return u
+
+
+def _merge_course_parts(parts: list[Any]) -> Any:
+    """複数ヘッダーの course をトップレベル配列として連結（空は None）。"""
+    merged: list[Any] = []
+    for p in parts:
+        if p is None:
+            continue
+        if isinstance(p, list):
+            merged.extend(p)
+        else:
+            merged.append(p)
+    return merged if merged else None
+
+
+def _row_dedupe_key(row: Mapping[str, Any]) -> str | None:
+    sha = row.get("sha256")
+    md5 = row.get("md5")
+    if sha:
+        s = str(sha).strip().lower()
+        if re.fullmatch(r"[0-9a-f]{64}", s):
+            return "sha256:" + s
+    if md5:
+        m = str(md5).strip().lower()
+        if re.fullmatch(r"[0-9a-f]{32}", m):
+            return "md5:" + m
+    return None
+
+
 def _validate_sql_where(fragment: str) -> None:
     if not fragment or not fragment.strip():
         _die("設定 sql_where が空です。例: minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm")
@@ -148,7 +212,7 @@ def _filter_course_structure(course: Any, md5s: set[str], sha256s: set[str]) -> 
                     if isinstance(sub, dict) and "charts" in sub:
                         fo = _filter_course_object(sub, md5s, sha256s)
                         if fo is not None:
-                            inner.append(fo)
+                            inner.append(sub)
                     else:
                         inner.append(sub)
                 if inner:
@@ -178,10 +242,16 @@ def main() -> None:
         print("filter_config の enabled が false のためスキップします。", file=sys.stderr)
         raise SystemExit(0)
 
-    header_url = (cfg.get("source_header_url") or "").strip()
-    if not header_url:
-        print("source_header_url が空のためスキップします（難易度表フィルタは行いません）。", file=sys.stderr)
+    header_urls_cfg = _normalize_cfg_header_urls(cfg)
+    if not header_urls_cfg:
+        print(
+            "source_header_urls / source_header_url が空のためスキップします（難易度表フィルタは行いません）。",
+            file=sys.stderr,
+        )
         raise SystemExit(0)
+
+    resolved_json_urls = [_resolve_bmstable_header_url(u) for u in header_urls_cfg]
+    multi_source = len(resolved_json_urls) > 1
 
     site_base = (cfg.get("site_base_url") or os.environ.get("SITE_BASE_URL") or "").strip().rstrip("/")
     if not site_base:
@@ -198,24 +268,77 @@ def main() -> None:
     md5s, sha256s = _query_allowed_hashes(songdata, sql_where)
     print(f"許可ハッシュ数: md5={len(md5s)}, sha256={len(sha256s)} (WHERE {sql_where!r})")
 
-    raw_header = _fetch_url(header_url)
-    header_obj = json.loads(raw_header.decode("utf-8"))
-    if not isinstance(header_obj, dict):
-        _die("ヘッダー JSON のトップレベルはオブジェクトである必要があります。")
+    merged_rows: list[dict[str, Any]] = []
+    seen_keys: set[str] = set()
+    base_header: dict[str, Any] | None = None
+    course_parts: list[Any] = []
+    total_in = 0
+    total_filtered = 0
 
-    data_url_raw = (cfg.get("source_data_url") or "").strip() or str(header_obj.get("data_url") or "").strip()
-    if not data_url_raw:
-        _die("データ JSON の URL が取得できません（source_data_url またはヘッダーの data_url）。")
+    if (cfg.get("source_data_url") or "").strip() and multi_source:
+        print(
+            "警告: 複数ヘッダー指定時は各ヘッダーの data_url を使います（source_data_url は無視）。",
+            file=sys.stderr,
+        )
 
-    if re.match(r"^https?://", data_url_raw, re.IGNORECASE):
-        data_url = data_url_raw
+    for idx, header_json_url in enumerate(resolved_json_urls):
+        raw_header = _fetch_url(header_json_url)
+        header_obj = json.loads(raw_header.decode("utf-8"))
+        if not isinstance(header_obj, dict):
+            _die(f"ヘッダー JSON のトップレベルはオブジェクトである必要があります: {header_json_url}")
+
+        if base_header is None:
+            base_header = dict(header_obj)
+
+        if (cfg.get("source_data_url") or "").strip() and not multi_source:
+            data_url_raw = str(cfg.get("source_data_url") or "").strip()
+        else:
+            data_url_raw = str(header_obj.get("data_url") or "").strip()
+        if not data_url_raw:
+            _die(f"データ JSON の URL が取得できません: {header_json_url}")
+
+        if re.match(r"^https?://", data_url_raw, re.IGNORECASE):
+            data_url = data_url_raw
+        else:
+            data_url = urljoin(header_json_url, data_url_raw)
+
+        raw_data = _fetch_url(data_url)
+        data_obj = json.loads(raw_data.decode("utf-8"))
+        if not isinstance(data_obj, list):
+            _die(f"データ JSON のトップレベルは配列である必要があります: {data_url}")
+        filtered_part = _filter_data_array(data_obj, md5s, sha256s)
+        total_in += len(data_obj)
+        total_filtered += len(filtered_part)
+        print(
+            f"[{idx + 1}/{len(resolved_json_urls)}] {header_json_url} データ: {len(data_obj)} -> {len(filtered_part)}"
+        )
+
+        for row in filtered_part:
+            if not isinstance(row, dict):
+                continue
+            dk = _row_dedupe_key(row)
+            if dk is None or dk in seen_keys:
+                continue
+            seen_keys.add(dk)
+            merged_rows.append(row)
+
+        if "course" in header_obj:
+            course_parts.append(_filter_course_structure(header_obj["course"], md5s, sha256s))
+
+    if base_header is None:
+        _die("ヘッダーを 1 件も読み込めませんでした。")
+
+    new_header: dict[str, Any] = dict(base_header)
+    merged_course = _merge_course_parts(course_parts)
+    if merged_course is not None:
+        new_header["course"] = merged_course
     else:
-        data_url = urljoin(header_url, data_url_raw)
+        new_header.pop("course", None)
 
-    raw_data = _fetch_url(data_url)
-    data_obj = json.loads(raw_data.decode("utf-8"))
-    filtered_data = _filter_data_array(data_obj, md5s, sha256s)
-    print(f"データ行: {len(data_obj) if isinstance(data_obj, list) else '?'} -> {len(filtered_data)}")
+    filtered_data = merged_rows
+    print(
+        f"データ行（全ソース合算・重複除去後）: 入力 {total_in} 行、条件通過 {total_filtered}、ユニーク {len(filtered_data)}"
+    )
 
     out_dir = cfg.get("output_dir", "docs/table")
     data_name = cfg.get("output_data_filename", "filtered_data.json")
@@ -224,11 +347,7 @@ def main() -> None:
     data_path = os.path.join(out_dir, data_name)
     header_path = os.path.join(out_dir, header_name)
 
-    new_header: dict[str, Any] = dict(header_obj)
     new_header["data_url"] = f"{site_base}/{data_name}"
-
-    if "course" in new_header:
-        new_header["course"] = _filter_course_structure(new_header["course"], md5s, sha256s)
 
     _save_json(data_path, filtered_data)
     _save_json(header_path, new_header)

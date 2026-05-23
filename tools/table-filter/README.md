@@ -23,7 +23,7 @@ export SITE_BASE_URL="https://あなた.github.io/リポジトリ名/table"
 python3 tools/table-filter/filter_table.py --config tools/table-filter/filter_config.json
 ```
 
-事前に `data/songdata.db` を配置し、`source_header_url` を埋めてください。
+事前に `data/songdata.db` を配置し、`source_header_urls`（または `source_header_url`）を埋めてください。
 
 ## SQL インジェクション対策
 
