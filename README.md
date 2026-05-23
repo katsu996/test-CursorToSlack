@@ -24,9 +24,10 @@
 
 ### クイックスタート
 
-1. `data/songdata.db` をコミットする（更新のたびに差し替え）。
-2. `tools/table-filter/filter_config.json` の `source_header_url` に元表のヘッダー JSON の URL を書く。
-3. `main` に push → Actions がフィルタ（DB が無い／URL が空のときはスキップ）→ `docs/` を Pages 公開。
+1. **初回のみ**: GitHub の **Settings → Pages → Build and deployment** で **Source を「GitHub Actions」**にする（このリポジトリの `Deploy GitHub Pages` ワークフローがデプロイするため）。
+2. `data/songdata.db` をコミットする（Web の **Add file → Upload files** で `data/songdata.db` を上書きしてもよい。更新のたびに差し替え）。
+3. （任意）難易度表を Actions で絞り込む場合は、`tools/table-filter/filter_config.json` の `source_header_url` に元表のヘッダー JSON の URL を書く。空のままならフィルタはスキップされ、`docs/` の静的ファイルだけが公開される。
+4. `main` に push（または **Actions → Deploy GitHub Pages → Run workflow**）→ 成功後、**Settings → Pages** に表示されるサイト URL で `docs/index.html` などが開ける。
 
 beatoraja の Table URL には `https://<owner>.github.io/<repo>/table/filtered_header.json` を登録します。
 
