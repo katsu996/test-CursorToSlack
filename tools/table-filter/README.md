@@ -11,7 +11,7 @@
 `filter_config.json` を編集します（雛形は `filter_config.example.json`）。
 
 - **source_header_url**: 必須（空だと Actions ではスキップ）。元表のヘッダー JSON の HTTPS URL。
-- **source_data_url**: 省略時はヘッダー内の `data_url` から自動取得。
+- **source_data_url**: 省略時はヘッダー内の `data_url` を使う。`score_rec.json` のように **相対 URL のときは `source_header_url` を基準に解決**される。
 - **sql_where**: `SELECT ... FROM song WHERE (` の直後にそのまま連結される条件式。`minbpm` / `maxbpm` は `song` の列名。
 - **site_base_url**: ローカル実行時はここに `https://<owner>.github.io/<repo>/table` のような **ディレクトリ URL（末尾スラッシュなし）** を書く。GitHub Actions ではワークフローが `SITE_BASE_URL` を渡すため空でよい。
 

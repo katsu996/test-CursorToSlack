@@ -1,3 +1,7 @@
 __pycache__/
 *.py[cod]
 .Python
+
+# Actions / ローカルで tools/table-filter が生成する難易度表（毎回再生成）
+docs/table/filtered_data.json
+docs/table/filtered_header.json

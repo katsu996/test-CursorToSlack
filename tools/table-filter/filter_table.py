@@ -16,6 +16,7 @@ import sqlite3
 import sys
 import urllib.request
 from typing import Any, Mapping, MutableMapping
+from urllib.parse import urljoin
 
 DEFAULT_CONFIG = "tools/table-filter/filter_config.json"
 
@@ -202,9 +203,14 @@ def main() -> None:
     if not isinstance(header_obj, dict):
         _die("ヘッダー JSON のトップレベルはオブジェクトである必要があります。")
 
-    data_url = (cfg.get("source_data_url") or "").strip() or str(header_obj.get("data_url") or "").strip()
-    if not data_url:
+    data_url_raw = (cfg.get("source_data_url") or "").strip() or str(header_obj.get("data_url") or "").strip()
+    if not data_url_raw:
         _die("データ JSON の URL が取得できません（source_data_url またはヘッダーの data_url）。")
+
+    if re.match(r"^https?://", data_url_raw, re.IGNORECASE):
+        data_url = data_url_raw
+    else:
+        data_url = urljoin(header_url, data_url_raw)
 
     raw_data = _fetch_url(data_url)
     data_obj = json.loads(raw_data.decode("utf-8"))
