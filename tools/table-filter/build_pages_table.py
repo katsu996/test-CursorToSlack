@@ -131,11 +131,21 @@ def main() -> None:
             db = dict(song_by_md5[md])
         rows_out.append({"table": t, "db": db})
 
+    urls_raw = cfg.get("source_header_urls")
+    header_urls: list[str] = []
+    if isinstance(urls_raw, list):
+        header_urls = [str(u).strip() for u in urls_raw if str(u).strip()]
+    if not header_urls:
+        one = str(cfg.get("source_header_url", "")).strip()
+        if one:
+            header_urls = [one]
+
     meta = {
         "row_count": len(rows_out),
         "matched_songdata": sum(1 for x in rows_out if x["db"] is not None),
         "sql_where": str(cfg.get("sql_where", "")).strip(),
-        "source_header_url": str(cfg.get("source_header_url", "")).strip(),
+        "source_header_url": header_urls[0] if header_urls else "",
+        "source_header_urls": header_urls,
     }
     _save_json(browser_path, {"meta": meta, "rows": rows_out})
     print(f"書き出し: {browser_path} （{len(rows_out)} 行、DB 一致 {meta['matched_songdata']}）")

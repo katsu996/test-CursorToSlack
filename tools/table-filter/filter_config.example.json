@@ -4,7 +4,11 @@
   "skip_if_no_songdata": true,
   "songdata_db": "data/songdata.db",
   "sql_where": "minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm",
-  "source_header_url": "https://mocha-repository.info/table/dpn_header.json",
+  "source_header_urls": [
+    "https://stellabms.xyz/sl/table_rec.html",
+    "https://stellabms.xyz/st/table_rec.html"
+  ],
+  "source_header_url": "",
   "source_data_url": "",
   "output_dir": "docs/table",
   "output_data_filename": "filtered_data.json",
