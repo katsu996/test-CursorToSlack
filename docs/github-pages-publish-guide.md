@@ -59,7 +59,7 @@ git push -u origin main
 
 ## 難易度表の自動生成（songdata.db × SQL）
 
-`tools/table-filter/` を同梱し、`data/songdata.db` と `filter_config.json` を用意すると、push 時に **元表を取得してフィルタした JSON** を `docs/table/` に出力してから Pages 公開できます。詳細は [github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md) を参照してください。
+`tools/table-filter/` を同梱し、`data/songdata.db` と `filter_config.json` を用意すると、push 時に **元表を取得してフィルタした JSON** を `docs/table/` に出力し、続けて **`browser_rows.json`**（表＋DB マージ）を生成してから Pages 公開できます。サイトの **`index.html`** がトップでそのデータを表形式表示します。詳細は [github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md) を参照してください。
 
 ## ローカルでのファイル配置のコツ
 

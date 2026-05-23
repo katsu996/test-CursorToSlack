@@ -27,7 +27,9 @@
 - ヘッダー: `https://stellabms.xyz/sl/header_rec.json`
 - データ: ヘッダー内の `data_url`（例: `score_rec.json`）を **ヘッダー URL から相対解決**（→ `https://stellabms.xyz/sl/score_rec.json`）
 
-**フィルタ後の行数が 0 になる場合:** `songdata.db` がローカルでスキャンした譜面の集合であり、**元表の `md5` / `sha256` と一致する行だけ**が残ります。さらに `sql_where`（変速 BPM など）で絞るため、**手元の DB に無い譜面**や **ヘッダー由来の `minbpm` と `maxbpm` が等しい譜面**は落ちます。表を十分に埋めたい場合は **BMS フォルダを読み込ませたうえで `songdata.db` を更新・コミット**してください。
+**フィルタ後の行数が 0 になる場合:** `songdata.db` がローカルでスキャンした譜面の集合であり、**元表の `md5` / `sha256` と一致する行だけ**が残ります。さらに `sql_where`（例: **等速 BPM** `minbpm = maxbpm`、または変速 `minbpm != maxbpm`）で絞るため、**手元の DB に無い譜面**や **条件に合わない BPM 範囲の譜面**は落ちます。表を十分に埋めたい場合は **BMS フォルダを読み込ませたうえで `songdata.db` を更新・コミット**してください。
+
+**GitHub Pages のトップページ:** Actions は `filter_table.py` のあと `build_pages_table.py` を実行し、`docs/table/browser_rows.json`（難易度表の行＋`song` 列のマージ）を生成します。`docs/index.html` がこの JSON を読み込み、**表形式で一覧表示**します。
 
 ## 制限・注意
 
@@ -41,6 +43,7 @@
 | ファイル | 説明 |
 |----------|------|
 | [tools/table-filter/filter_table.py](../tools/table-filter/filter_table.py) | フィルタ本体（Python 標準ライブラリのみ） |
+| [tools/table-filter/build_pages_table.py](../tools/table-filter/build_pages_table.py) | フィルタ結果と `song` をマージし `browser_rows.json` を生成（Pages トップの表用） |
 | [tools/table-filter/filter_config.json](../tools/table-filter/filter_config.json) | 実際に読む設定（URL・SQL 等） |
 | [tools/table-filter/README.md](../tools/table-filter/README.md) | 設定項目の短い説明 |
 | [.github/workflows/pages.yml](../.github/workflows/pages.yml) | フィルタ実行後に Pages をデプロイ |

@@ -49,7 +49,7 @@ def _fetch_url(url: str, timeout: float = 120.0) -> bytes:
 
 def _validate_sql_where(fragment: str) -> None:
     if not fragment or not fragment.strip():
-        _die("設定 sql_where が空です。例: minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm != maxbpm")
+        _die("設定 sql_where が空です。例: minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm")
     frag = fragment.strip()
     if len(frag) > 500:
         _die("sql_where が長すぎます（上限 500 文字）。")
