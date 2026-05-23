@@ -2,9 +2,10 @@
 
 ## できること
 
-1. ローカルの **songdata.db**（beatoraja が生成する `song` テーブル）に対して、**WHERE 断片**（例: `minbpm != maxbpm`）で行を絞り込み、`md5` / `sha256` の集合を得る。
+1. ローカルの **songdata.db**（beatoraja が生成する `song` テーブル）に対して、**WHERE 断片**（例: 等速 BPM `minbpm = maxbpm`、変速 `minbpm != maxbpm`）で行を絞り込み、`md5` / `sha256` の集合を得る。
 2. 指定した **元難易度表**（ヘッダー JSON の URL。必要ならデータ JSON も URL で上書き）を取得し、**そのハッシュが集合に含まれる行だけ**残した `filtered_data.json` を出力する。
 3. ヘッダー JSON の **`data_url` を GitHub Pages 上の新しい JSON の URL** に差し替えた `filtered_header.json` を出力する。
+4. （GitHub Actions 同梱）`build_pages_table.py` が `filtered_data.json` と `song` を突き合わせ、`browser_rows.json` を生成する。`docs/index.html` が Pages のトップでこれを表表示する。
 
 ## 設定
 

@@ -3,7 +3,7 @@
   "enabled": true,
   "skip_if_no_songdata": true,
   "songdata_db": "data/songdata.db",
-  "sql_where": "minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm != maxbpm",
+  "sql_where": "minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm",
   "source_header_url": "https://mocha-repository.info/table/dpn_header.json",
   "source_data_url": "",
   "output_dir": "docs/table",

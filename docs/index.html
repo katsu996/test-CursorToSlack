@@ -3,17 +3,299 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GitHub Pages</title>
+  <title>難易度表ビューア（等速 BPM フィルタ）</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; }
-    code { background: #f4f4f4; padding: 0.12em 0.4em; border-radius: 4px; }
-    a { color: #0b57d0; }
+    :root {
+      --bg: #f6f7f9;
+      --card: #fff;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --muted: #59636e;
+      --accent: #0969da;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+      margin: 0;
+      padding: 1rem 1rem 2rem;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 100%; margin: 0 auto; }
+    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
+    .lead { color: var(--muted); margin: 0 0 1rem; font-size: 0.95rem; }
+    .meta {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.88rem;
+    }
+    .meta dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; }
+    .meta dt { color: var(--muted); }
+    .meta dd { margin: 0; word-break: break-all; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .toolbar label { font-size: 0.88rem; color: var(--muted); }
+    #q {
+      flex: 1 1 12rem;
+      min-width: 8rem;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .scroll {
+      overflow: auto;
+      max-height: min(78vh, 900px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    table {
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.5rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #eaeef2;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      font-weight: 600;
+    }
+    th.group-t { background: #dbeafe; }
+    th.group-d { background: #dcfce7; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    tr:hover td { background: #f0f6ff; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.empty { color: #8c959f; }
+    a { color: var(--accent); }
+    .err { color: #cf222e; padding: 1rem; background: #ffebe9; border-radius: 8px; }
+    code { background: #f0f3f6; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
+    footer { margin-top: 1.25rem; font-size: 0.82rem; color: var(--muted); }
   </style>
 </head>
 <body>
-  <h1>静的ファイル・難易度表</h1>
-  <p>このサイトは GitHub Pages で <code>docs/</code> から公開されています。</p>
-  <p>beatoraja の難易度表 URL には、Actions で生成した <code>table/filtered_header.json</code> など、<strong><code>.json</code> で終わるフル URL</strong> を Table URL に登録してください。</p>
-  <p>手順はリポジトリ内の <code>docs/github-pages-publish-guide.md</code> および <code>docs/github-actions-songdata-table-filter.md</code> を参照してください。</p>
+  <div class="wrap">
+    <h1>難易度表（songdata 突合・一覧）</h1>
+    <p class="lead">
+      Actions で <code>songdata.db</code> の条件（現在: 等速 BPM = <code>minbpm = maxbpm</code>）に合う行だけに絞った難易度表と、ローカル DB の <code>song</code> 列を可能な限り並べています。
+      beatoraja の Table URL には <code>table/filtered_header.json</code> を登録してください。
+    </p>
+    <div id="meta" class="meta" hidden>
+      <dl id="meta-dl"></dl>
+    </div>
+    <div class="toolbar">
+      <label for="q">絞り込み</label>
+      <input type="search" id="q" placeholder="タイトル・URL・ハッシュなど" autocomplete="off" disabled />
+      <span id="count" class="lead" style="margin:0"></span>
+    </div>
+    <div id="err" class="err" hidden></div>
+    <div class="scroll" id="scroll" hidden>
+      <table id="tbl">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <footer>
+      手順・設定はリポジトリの <code>docs/github-pages-publish-guide.md</code> / <code>docs/github-actions-songdata-table-filter.md</code> を参照。
+    </footer>
+  </div>
+  <script>
+(function () {
+  const LABELS = {
+    id: "表 ID", md5: "MD5", sha256: "SHA256", title: "表タイトル", artist: "表アーティスト",
+    level: "表レベル", url: "リンク", url_diff: "差分URL",
+    subtitle: "サブタイトル", genre: "ジャンル", subartist: "サブアーティスト", tag: "タグ",
+    path: "譜面パス", folder: "フォルダID", stagefile: "ステージ", banner: "バナー", backbmp: "背景",
+    preview: "プレビュー", parent: "親ID", difficulty: "difficulty", maxbpm: "max BPM", minbpm: "min BPM",
+    length: "長さ(秒?)", mode: "mode", judge: "judge", feature: "feature", content: "content",
+    date: "ファイル日時", favorite: "お気に入り", adddate: "DB登録日時", notes: "ノーツ数", charthash: "charthash"
+  };
+
+  function fmt(val) {
+    if (val === null || val === undefined) return "";
+    if (typeof val === "number" && Number.isFinite(val)) return String(val);
+    if (typeof val === "boolean") return val ? "true" : "false";
+    if (typeof val === "object") {
+      try { return JSON.stringify(val); } catch (e) { return String(val); }
+    }
+    return String(val);
+  }
+
+  function isNumericLike(val) {
+    return typeof val === "number" && Number.isFinite(val);
+  }
+
+  function collectKeys(rows, key) {
+    const s = new Set();
+    for (const r of rows) {
+      const o = r[key];
+      if (o && typeof o === "object") Object.keys(o).forEach(k => s.add(k));
+    }
+    const arr = Array.from(s);
+    const pri = key === "table"
+      ? ["id", "title", "artist", "level", "md5", "sha256", "url", "url_diff"]
+      : ["title", "subtitle", "artist", "genre", "path", "minbpm", "maxbpm", "notes", "length", "level", "difficulty", "md5", "sha256", "folder", "preview", "banner", "stagefile", "backbmp", "tag", "subartist", "parent", "mode", "judge", "feature", "content", "date", "adddate", "favorite", "charthash"];
+    const first = pri.filter(k => s.has(k));
+    const rest = arr.filter(k => pri.indexOf(k) < 0).sort();
+    return first.concat(rest);
+  }
+
+  function esc(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function cellHtml(val) {
+    const t = fmt(val);
+    if (!t) return '<td class="empty">—</td>';
+    if (/^https?:\/\//i.test(t)) return '<td><a href="' + esc(t) + '" rel="noopener noreferrer">' + esc(t) + '</a></td>';
+    const num = isNumericLike(val);
+    return '<td class="' + (num ? "num" : "") + '">' + esc(t) + '</td>';
+  }
+
+  const metaEl = document.getElementById("meta");
+  const metaDl = document.getElementById("meta-dl");
+  const errEl = document.getElementById("err");
+  const scrollEl = document.getElementById("scroll");
+  const thead = document.getElementById("thead");
+  const tbody = document.getElementById("tbody");
+  const q = document.getElementById("q");
+  const countEl = document.getElementById("count");
+
+  fetch("./table/browser_rows.json", { cache: "no-store" })
+    .then(function (r) {
+      if (!r.ok) throw new Error("browser_rows.json を取得できません (" + r.status + ")");
+      return r.json();
+    })
+    .then(function (data) {
+      const meta = data.meta || {};
+      const rows = Array.isArray(data.rows) ? data.rows : [];
+      metaDl.innerHTML = "";
+      [
+        ["行数", meta.row_count],
+        ["songdata と一致", meta.matched_songdata],
+        ["SQL 条件", meta.sql_where],
+        ["元ヘッダー URL", meta.source_header_url],
+        ["備考", meta.reason]
+      ].forEach(function (pair) {
+        if (pair[1] === undefined || pair[1] === null || pair[1] === "") return;
+        const dt = document.createElement("dt");
+        dt.textContent = pair[0];
+        const dd = document.createElement("dd");
+        dd.textContent = String(pair[1]);
+        metaDl.appendChild(dt);
+        metaDl.appendChild(dd);
+      });
+      metaEl.hidden = metaDl.children.length === 0;
+
+      const tKeys = collectKeys(rows, "table");
+      const dKeys = collectKeys(rows, "db");
+
+      const trh1 = document.createElement("tr");
+      const thT = document.createElement("th");
+      thT.colSpan = Math.max(1, tKeys.length);
+      thT.className = "group-t";
+      thT.textContent = "難易度表 JSON の列";
+      trh1.appendChild(thT);
+      const thD = document.createElement("th");
+      thD.colSpan = Math.max(1, dKeys.length);
+      thD.className = "group-d";
+      thD.textContent = "songdata.db（song）の列";
+      trh1.appendChild(thD);
+      thead.appendChild(trh1);
+
+      const trh2 = document.createElement("tr");
+      tKeys.forEach(function (k) {
+        const th = document.createElement("th");
+        th.className = "group-t";
+        th.textContent = LABELS[k] || ("表: " + k);
+        trh2.appendChild(th);
+      });
+      if (!tKeys.length) {
+        const th = document.createElement("th");
+        th.className = "group-t";
+        th.textContent = "（表データなし）";
+        trh2.appendChild(th);
+      }
+      dKeys.forEach(function (k) {
+        const th = document.createElement("th");
+        th.className = "group-d";
+        th.textContent = LABELS[k] || ("DB: " + k);
+        trh2.appendChild(th);
+      });
+      if (!dKeys.length) {
+        const th = document.createElement("th");
+        th.className = "group-d";
+        th.textContent = "（DB列なし）";
+        trh2.appendChild(th);
+      }
+      thead.appendChild(trh2);
+
+      function rowText(r) {
+        const t = r.table || {};
+        const d = r.db || {};
+        return tKeys.concat(dKeys).map(function (k) {
+          if (tKeys.indexOf(k) >= 0) return fmt(t[k]);
+          return fmt(d[k]);
+        }).join(" ") + " " + JSON.stringify(t) + " " + JSON.stringify(d);
+      }
+
+      function render(filtered) {
+        tbody.innerHTML = "";
+        filtered.forEach(function (r) {
+          const tr = document.createElement("tr");
+          const t = r.table || {};
+          const d = r.db || {};
+          tKeys.forEach(function (k) {
+            tr.insertAdjacentHTML("beforeend", cellHtml(t[k]));
+          });
+          if (!tKeys.length) tr.insertAdjacentHTML("beforeend", "<td class=\"empty\">—</td>");
+          dKeys.forEach(function (k) {
+            tr.insertAdjacentHTML("beforeend", cellHtml(d ? d[k] : ""));
+          });
+          if (!dKeys.length) tr.insertAdjacentHTML("beforeend", "<td class=\"empty\">—</td>");
+          tbody.appendChild(tr);
+        });
+        countEl.textContent = filtered.length + " / " + rows.length + " 行を表示";
+      }
+
+      let filtered = rows.slice();
+      render(filtered);
+      q.disabled = false;
+      q.addEventListener("input", function () {
+        const needle = (q.value || "").trim().toLowerCase();
+        if (!needle) {
+          filtered = rows.slice();
+        } else {
+          filtered = rows.filter(function (r) {
+            return rowText(r).toLowerCase().indexOf(needle) >= 0;
+          });
+        }
+        render(filtered);
+      });
+
+      scrollEl.hidden = false;
+    })
+    .catch(function (e) {
+      errEl.textContent = String(e.message || e);
+      errEl.hidden = false;
+    });
+})();
+  </script>
 </body>
 </html>
