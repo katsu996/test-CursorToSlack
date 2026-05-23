@@ -1,0 +1,6 @@
+[
+  {
+    "name": "変速BPM (minbpm ≠ maxbpm)",
+    "sql": "minbpm != maxbpm"
+  }
+]
