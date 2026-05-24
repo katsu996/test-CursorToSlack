@@ -131,7 +131,7 @@
     </div>
     <div class="toolbar">
       <label for="q">絞り込み</label>
-      <input type="search" id="q" placeholder="タイトル・URL・ハッシュなど" autocomplete="off" disabled />
+      <input type="search" id="q" placeholder="タイトル・ハッシュなど" autocomplete="off" disabled />
       <span id="count" class="lead" style="margin:0"></span>
     </div>
     <div id="err" class="err" hidden></div>
@@ -152,6 +152,7 @@
     path: true, preview: true, banner: true, stagefile: true, backbmp: true,
     tag: true, parent: true, mode: true, judge: true, feature: true, content: true,
     favorite: true, adddate: true,
+    url: true, url_diff: true,
     source_header_json_url: true, source_table_register_url: true
   };
 
@@ -210,7 +211,7 @@
     }
     var tablePri = [
       "id", "source_table_index", "source_table_names", "title", "artist", "level", "custom_level",
-      "md5", "sha256", "url", "url_diff"
+      "md5", "sha256"
     ];
     var dbPriFull = [
       "title", "subtitle", "artist", "genre", "path", "minbpm", "maxbpm", "notes", "length", "level",
@@ -289,19 +290,15 @@
       var meta = data.meta || {};
       var rows = Array.isArray(data.rows) ? data.rows : [];
       metaDl.innerHTML = "";
-      var urls = meta.source_header_urls;
-      var urlLine = "";
-      if (Array.isArray(urls) && urls.length) {
-        urlLine = urls.join(", ");
-      } else if (meta.source_header_url) {
-        urlLine = String(meta.source_header_url);
-      }
       var pairs = [
         ["行数", meta.row_count],
         ["songdata と一致", meta.matched_songdata],
-        ["SQL 条件", meta.sql_where],
-        ["元ヘッダー URL", urlLine]
+        ["SQL 条件", meta.sql_where]
       ];
+      var leg = meta.source_table_legend;
+      if (Array.isArray(leg) && leg.length) {
+        pairs.push(["元難易度表（表示名）", leg.join(" ／ ")]);
+      }
       if (meta.custom_level_mapping_count) {
         pairs.push(
           ["独自レベル列", meta.custom_level_field],

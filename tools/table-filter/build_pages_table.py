@@ -140,12 +140,24 @@ def main() -> None:
         if one:
             header_urls = [one]
 
+    n_src = len(header_urls)
+    disp_raw = cfg.get("source_table_display_names")
+    display_names: list[str] = []
+    for i in range(n_src):
+        label = ""
+        if isinstance(disp_raw, list) and i < len(disp_raw) and str(disp_raw[i]).strip():
+            label = str(disp_raw[i]).strip()
+        display_names.append(label)
+    legend = [
+        f"{i + 1}. {display_names[i] if display_names[i] else f'表 {i + 1}'}" for i in range(n_src)
+    ]
+
     meta = {
         "row_count": len(rows_out),
         "matched_songdata": sum(1 for x in rows_out if x["db"] is not None),
         "sql_where": str(cfg.get("sql_where", "")).strip(),
-        "source_header_url": header_urls[0] if header_urls else "",
-        "source_header_urls": header_urls,
+        "source_table_display_names": display_names,
+        "source_table_legend": legend,
         "custom_level_field": str(cfg.get("custom_level_field") or "custom_level").strip() or "custom_level",
         "custom_level_source_key": str(cfg.get("custom_level_source_key") or "level").strip() or "level",
         "custom_level_unmapped": str(cfg.get("custom_level_unmapped") or "omit").strip() or "omit",

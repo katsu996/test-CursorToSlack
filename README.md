@@ -54,6 +54,8 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 マージ後の各行には **`source_table_index` / `source_table_names`** など、どの元難易度表の譜面として採用されたかが付きます（詳細は [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) の「出自の難易度表」節）。
 
+**Pages に出す表の表示名（任意）:** **`source_table_display_names`** を `source_header_urls` と同じ長さの文字列配列で書くと、行の「出自の難易度表」列と、Pages トップのメタ「元難易度表（表示名）」にその名前が使われます（stellabms の SL / ST を「Satellite Recommend」「Stella Recommend」などに変えたいとき）。空の要素はヘッダー JSON の `name` / `title` にフォールバックします。Pages の **`browser_rows.json` には元 URL を載せません**（取得元 URL はこの `filter_config.json` を参照）。
+
 ### 5. フィルタそのものをオフにしたい・難易度表取得を止めたい
 
 次のいずれかで、**外部表の取得と `docs/table/` への生成**はスキップされます（Pages の `docs/` 静的ファイルのデプロイは続きます）。

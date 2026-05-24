@@ -16,6 +16,7 @@
 
 - **`source_header_urls`**: 推奨。元表の URL の配列（JSON 直リンクまたは難易度表 HTML）。
 - **`source_header_url`**: 1 本だけのとき用（`source_header_urls` が空のときに使用）。
+- **`source_table_display_names`**: 任意。`source_header_urls` と同じ長さの配列で、行の `source_table_names` と Pages メタ用の**表示名**を上書き（詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)）。
 - **`source_data_url`**: **単一ヘッダー時のみ**有効。データ JSON の URL でヘッダー内 `data_url` を上書き。**複数ヘッダー時は無視**（警告あり）。
 - **`sql_where`**: `SELECT ... FROM song WHERE (` の直後に連結される条件式。`minbpm` / `maxbpm` は `song` の列名。
 - **`site_base_url`**: ローカル実行時は `https://<owner>.github.io/<repo>/table` のような **ディレクトリ URL（末尾スラッシュなし）** を書く。GitHub Actions では **`SITE_BASE_URL` 環境変数**をワークフローが渡すため空でよい。
