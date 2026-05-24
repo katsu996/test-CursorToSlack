@@ -56,6 +56,8 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **Pages に出す表の表示名（任意）:** **`source_table_display_names`** を `source_header_urls` と同じ長さの文字列配列で書くと、行の「出自（フル）」列と、Pages トップのメタ「元難易度表（表示名）」にその名前が使われます（stellabms の SL / ST を「Satellite Recommend」「Stella Recommend」などに変えたいとき）。**`source_table_short_names`** も同じ長さの配列で書くと、行の「出自（略）」列（例: `sl` / `st`）とメタ「元難易度表（略称）」に使われます（空の要素はそのインデックスの略称なし）。**`source_table_display_names`** の空要素だけ、ヘッダー JSON の `name` / `title` にフォールバックします。Pages の **`browser_rows.json` には元 URL を載せません**（取得元 URL はこの `filter_config.json` を参照）。
 
+**合成難易度表ヘッダーの `name`（任意）:** **`output_header_name`** に文字列を書くと、マージ後の **`filtered_header.json` の `name`** に使われます（元ヘッダーに `name` が無い・空のときの保険。空のときはスクリプト既定の英語名）。beatoraja は **`name` が空の表を拒否**します。
+
 ### 5. フィルタそのものをオフにしたい・難易度表取得を止めたい
 
 次のいずれかで、**外部表の取得と `docs/table/` への生成**はスキップされます（Pages の `docs/` 静的ファイルのデプロイは続きます）。
@@ -88,9 +90,13 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 （`<owner>` と `<repo>` は実際の値に置き換えてください。）
 
+**サイトのトップだけ**（例: `https://<ユーザー>.github.io/<リポジトリ名>/`）を Table URL に入れると、beatoraja は **HTML モード**でページを取得します。トップの **`docs/index.html` に `<meta name="bmstable" content="table/filtered_header.json">` を入れてある**ため、この URL でもヘッダー JSON に辿り着けます。ただし **末尾スラッシュ無し**（`…/repo`）の URL では jbmstable-parser の相対解決がずれることがあるため、**末尾 `/` 付き**か、確実には上記の **`filtered_header.json` 直リンク**を推奨します。
+
 生成される `filtered_header.json` の **`data_url` は既定で `filtered_data.json` のみ**（ヘッダーと同じパス上の相対指定）です。`SITE_BASE_URL` の誤りでデータが取れない問題を避けるための挙動です。**絶対 URL で出したい場合**は `tools/table-filter/filter_config.json` で **`use_relative_data_url` を `false`** にし、**`site_base_url`**（またはローカルでは環境変数 **`SITE_BASE_URL`**）をセットしてください。
 
 **HTML 経由が必要なクライアント**では、同じ `docs/table/` にある **`bmstable.html`** の URL（例: `…/table/bmstable.html`）を Table URL に試すこともできます（`<meta name="bmstable" content="filtered_header.json">` でヘッダーを解決します）。
+
+**読み込みで「難易度表の値が不正です」になる主な理由:** 本体の `TableData.validate()` は、表の **`name` が空でないこと**と、**フォルダまたは段位に有効な譜面が 1 件以上あること**を要求します。`filtered_data.json` が **空配列**（`songdata.db` と元表のハッシュが交差しない、`sql_where` で全落ち、厳格条件で全スキップなど）のときは、ヘッダーだけ取得できても **必ず失敗**します。Actions のログに `beatoraja 向けデータ行が 0 件` のメッセージが出ていないかも確認してください。
 
 ### 9. 結果がおかしいときに手動で確認すること
 
@@ -98,6 +104,9 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 - **表の行が 0 件:**  
   - 元表の `md5` / `sha256` と **`songdata.db` の `song` に存在する行**の交差だけが残るため、**DB を更新していない譜面**は落ちます  
   - **`sql_where`** に合わない BPM の譜面も落ちます  
+- **beatoraja で「難易度表の値が不正です」:**  
+  - **`filtered_data.json` が空**（上記の交差ゼロ・条件で全落ちなど）だと、本体の `TableData.validate()` で必ず失敗します。Actions ログに **`beatoraja 向けデータ行が 0 件`** が出ていないか確認してください  
+  - Table URL に **サイトのトップ**だけを入れている場合は、**`docs/index.html` の `bmstable` meta**（`table/filtered_header.json` への相対）がデプロイに含まれているか確認してください（**末尾スラッシュ無しの `…/repo`** は相対解決がずれることがあります）  
 - **トップの表が空:** 上記の「フィルタスキップ」や `filtered_data_enriched.json` / `filtered_data.json` 未生成の状態で `browser_rows.json` が空になっている可能性があります
 
 ### 10. 元表ごとにレベルを「独自難易度」へ写す（`custom_level_mapping`）

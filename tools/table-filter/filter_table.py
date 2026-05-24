@@ -485,11 +485,21 @@ def _row_passes_beatoraja_strict_decoder(row: Mapping[str, Any]) -> bool:
     return md5_ok or sha_ok
 
 
-def _sanitize_header_for_beatoraja(header: MutableMapping[str, Any]) -> None:
-    """course が空配列のヘッダは jbmstable-parser が IndexOutOfBounds するためキーごと削除。"""
+def _sanitize_header_for_beatoraja(header: MutableMapping[str, Any], cfg: Mapping[str, Any]) -> None:
+    """
+    course が空配列のヘッダは jbmstable-parser が IndexOutOfBounds するためキーごと削除。
+    name が空だと beatoraja の TableData.validate() が失敗し「難易度表の値が不正です」になるため補完する。
+    """
     c = header.get("course")
     if isinstance(c, list) and len(c) == 0:
         header.pop("course", None)
+
+    name = str(header.get("name") or "").strip()
+    if not name:
+        fb = str(cfg.get("output_header_name") or "").strip()
+        if not fb:
+            fb = "Filtered difficulty table (songdata)"
+        header["name"] = fb
 
 
 def main() -> None:
@@ -728,7 +738,7 @@ def main() -> None:
     else:
         new_header["data_url"] = f"{site_base}/{data_name}"
 
-    _sanitize_header_for_beatoraja(new_header)
+    _sanitize_header_for_beatoraja(new_header, cfg)
 
     strip_keys = _strip_keys_cfg(cfg)
     enriched_name = (
@@ -750,6 +760,15 @@ def main() -> None:
     if dropped:
         print(
             f"警告: beatoraja 厳格デコードに合わない行を {dropped} 件スキップしました（{enriched_name} には残します）。",
+            file=sys.stderr,
+        )
+
+    if not beatoraja_rows:
+        print(
+            "エラー: beatoraja 向けデータ行が 0 件です。"
+            " 本体は TableData.validate() で失敗し「難易度表の値が不正です」になります。"
+            " songdata.db を更新するか sql_where を見直し、"
+            " 元表とハッシュが交差する行が少なくとも 1 件残るようにしてください。",
             file=sys.stderr,
         )
 

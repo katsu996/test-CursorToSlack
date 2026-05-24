@@ -49,9 +49,13 @@
 - **ヘッダ `course`:** 空配列 `[]` のとき jbmstable-parser は `get(0)` で落ちるため、**空なら `course` キーごと削除**します。
 - **`beatoraja_strip_chart_keys`:** `filter_config.json` で、beatoraja 向けデータから除外するキーを配列で上書きできます。**未指定なら** `source_table_index` / `source_table_names` / `source_table_short_names` / `source_header_json_url` / `source_table_register_url` / `id` を除きます。**空配列 `[]`** なら除外しません。
 
-### HTML 入口（`docs/table/bmstable.html`）
+### HTML 入口（`docs/table/bmstable.html` とサイトのトップ）
 
 beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered_header.json`）を Table URL に足せば足ります。環境によっては **HTML の meta 経由**の方が安定する場合があるため、**`docs/table/bmstable.html`** に `<meta name="bmstable" content="filtered_header.json">` を置いています。必要なら Table URL に **`…/table/bmstable.html`** を登録してください。
+
+**サイトのトップ（`…/`）を Table URL にした場合:** URL が **`.json` で終わらない**と本体は **HTML モード**になり、ページ内の **`<meta name="bmstable" content="...">`** からヘッダー JSON を探します。GitHub Pages の **`docs/index.html`** にも **`content="table/filtered_header.json"`** の meta を入れてあるため、ユーザーが誤って **リポジトリのトップ URL**だけを登録してもヘッダーに辿り着けます。相対解決の都合で **`https://…/repo`（末尾スラッシュ無し）**は避け、**`…/repo/`** または **`filtered_header.json` の直リンク**を推奨します。
+
+**「難易度表の値が不正です」:** `bms.player.beatoraja.TableDataAccessor.DifficultyTableAccessor.read` 内で `TableData.validate()` が偽を返したときに投げられます。典型例は (1) **HTML に bmstable が無く**ヘッダーが解決できない、(2) **`filtered_data.json` が空**でフォルダに有効な譜面が 1 件も無い、(3) **ヘッダーの `name` が空**、などです。(1) は上記 meta で、(2) は Actions ログの `beatoraja 向けデータ行が 0 件` で気付けます。(3) は `filter_table.py` が **`output_header_name`**（設定）または既定名で `name` を補完します。
 
 ## `filtered_data_enriched.json` / `filtered_data.json` 各行の「出自の難易度表」メタデータ
 
