@@ -26,7 +26,7 @@
 
 - **`data_url`（生成ヘッダー）:** 既定（`use_relative_data_url` 未指定または `true`）では **`filtered_data.json` のようなファイル名のみ**を書き、jbmstable-parser が **ヘッダー JSON の URL と同じディレクトリ**からデータを取得します。`use_relative_data_url: false` のときだけ `site_base_url` または環境変数 **`SITE_BASE_URL`** が必要で、`${SITE_BASE_URL}/filtered_data.json` 形式にします。
 - **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空・`songdata.db` 不在（`skip_if_no_songdata: true`）などでも **0 で終了**し、後段の `build_pages_table.py` が続きます。
-- **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**のデータ行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です。GitHub Pages では **`level-stats.html`** が `./table/level_stats.json` を直接読み込んで表示します。
+- **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について、**元表データ行全体**と **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**の行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です（`version` 2 以降は同一行に「SQL 前」「SQL 後」の列比較用の `level_rows` を含みます）。GitHub Pages では **`level-stats.html`** が `./table/level_stats.json` を直接読み込んで表示します。
 - **`build_pages_table.py`:** `filtered_data_enriched.json` が無ければ `filtered_data.json` を読みます。どちらも無い場合は **空の `browser_rows.json`**（理由を `meta` に記録）を書き、Pages デプロイは失敗させません。
 
 ## `filter_table.py` のデータフロー（概要）
@@ -35,7 +35,7 @@
 2. 各 **元ヘッダー**を取得（URL が `.html` のときは `<meta name="bmstable">` からヘッダー JSON URL を解決）。
 3. ヘッダーの **`data_url`** を取得（相対ならヘッダー URL に `urljoin`）。単一ソースかつ **`source_data_url`** があればそちらを優先。
 4. データ配列の各行について **`md5` / `sha256`** が許可集合に含まれる行だけ残す。
-5. 各ソースのフィルタ通過行について、**レベル列（`custom_level_source_key`、既定 `level`）別の行数**を集計し、**重複マージより前**の件数として `level_stats.json` の `sources` に書き留める（単一ヘッダーでも同様）。
+5. 各ソースについて、**元表データの全行**をレベル列でバケット化した件数（SQL 条件前）と、**フィルタ通過行**について同様の集計（SQL 条件後）を作り、**重複マージより前**の意味で `level_stats.json` の `sources` に書き留める（`level_rows` で同一レベル行に前後件数を並べる。単一ヘッダーでも同様）。
 6. **複数ヘッダー**のときは、通過行を **`md5` / `sha256` で重複除去**して 1 本のデータ配列にマージ。`course` は各ヘッダー由来を **配列として連結**。合成ヘッダーは **先頭ヘッダーをベース**にし、`data_url` は既定で **`filtered_data.json` などファイル名のみ**（ヘッダーと同じ公開ディレクトリ上のデータを指す）。
 7. マージ時、データ行の各オブジェクトに **出自の難易度表**を示すフィールドを付与する（下記「出自」節）。
 8. **`custom_level_mapping` が設定されているとき**は、**新規に採用した行**（ハッシュありで `row_by_key` に初めて入る行、およびハッシュなしの行）について、**そのループの元ヘッダーインデックス**に対応するマップで、元のレベル列（既定: `level`）を引き、**`custom_level` 列（名前は `custom_level_field`）**に書き込む（下記「独自レベル」節）。
@@ -95,7 +95,7 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 
 **Pages トップの列表示:** `docs/index.html` は **全列をチェックボックスで表示／非表示**できます。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
 
-**レベル別曲数サマリー:** `filter_table.py` が `level_stats.json` に書き出す集計を、**`level-stats.html`**（`./table/level_stats.json` を fetch）で表示します。トップの `index.html` は難易度表の一覧のみです。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。フィルタがスキップされたビルドでは `level_stats.json` が無いことがあり、その場合は当該ページでエラー表示になります。
+**元難易度表別の曲数サマリー:** `filter_table.py` が `level_stats.json` に書き出す集計を、**`level-stats.html`**（`./table/level_stats.json` を fetch）で表示します。トップの `index.html` は難易度表の一覧のみです。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。各元表カードの表は、同一レベルについて **曲数（SQL 後）**（`songdata.db` の条件でハッシュ交差した行）と **曲数（SQL 前）**（元表 JSON の全データ行）を並べて比較できます。フィルタがスキップされたビルドでは `level_stats.json` が無いことがあり、その場合は当該ページでエラー表示になります。
 
 ## 独自レベル（`custom_level_mapping`）
 

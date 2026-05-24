@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>K Original難易度表 — レベル別の曲数</title>
+  <title>K Original難易度表 — 元難易度表別の曲数</title>
   <style>
-    /* index と同系の shadcn/ui（zinc）風トークン（OS の明暗に追従） */
     html {
       color-scheme: light dark;
       --background: 0 0% 100%;
@@ -14,23 +13,61 @@
       --card-foreground: 240 10% 3.9%;
       --muted: 240 4.8% 95.9%;
       --muted-foreground: 240 3.8% 46.1%;
+      --accent: 240 4.8% 95.9%;
+      --accent-foreground: 240 5.9% 10%;
       --border: 240 5.9% 90%;
+      --input: 240 5.9% 90%;
+      --ring: 240 5.9% 10%;
       --radius: 0.5rem;
       --link: 221 83% 53%;
       --destructive: 0 84.2% 60.2%;
     }
     @media (prefers-color-scheme: dark) {
-      html {
+      html:not(.theme-light):not(.theme-dark) {
         --background: 240 10% 3.9%;
         --foreground: 0 0% 98%;
         --card: 240 10% 3.9%;
         --card-foreground: 0 0% 98%;
         --muted: 240 3.7% 15.9%;
         --muted-foreground: 240 5% 64.9%;
+        --accent: 240 3.7% 15.9%;
+        --accent-foreground: 0 0% 98%;
         --border: 240 3.7% 15.9%;
+        --input: 240 3.7% 15.9%;
+        --ring: 240 4.9% 83.9%;
         --link: 217 91% 60%;
         --destructive: 0 62.8% 30.6%;
       }
+    }
+    html.theme-dark {
+      --background: 240 10% 3.9%;
+      --foreground: 0 0% 98%;
+      --card: 240 10% 3.9%;
+      --card-foreground: 0 0% 98%;
+      --muted: 240 3.7% 15.9%;
+      --muted-foreground: 240 5% 64.9%;
+      --accent: 240 3.7% 15.9%;
+      --accent-foreground: 0 0% 98%;
+      --border: 240 3.7% 15.9%;
+      --input: 240 3.7% 15.9%;
+      --ring: 240 4.9% 83.9%;
+      --link: 217 91% 60%;
+      --destructive: 0 62.8% 30.6%;
+    }
+    html.theme-light {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 3.9%;
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 3.9%;
+      --muted: 240 4.8% 95.9%;
+      --muted-foreground: 240 3.8% 46.1%;
+      --accent: 240 4.8% 95.9%;
+      --accent-foreground: 240 5.9% 10%;
+      --border: 240 5.9% 90%;
+      --input: 240 5.9% 90%;
+      --ring: 240 5.9% 10%;
+      --link: 221 83% 53%;
+      --destructive: 0 84.2% 60.2%;
     }
     * { box-sizing: border-box; }
     body {
@@ -43,9 +80,54 @@
       -webkit-font-smoothing: antialiased;
     }
     .wrap { max-width: 100%; margin: 0 auto; }
-    h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.025em; margin: 0 0 0.5rem; }
+    .site-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .site-head-main { flex: 1; min-width: 0; }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      margin: 0.35rem 0 0;
+      line-height: 1.2;
+    }
+    .shadcn-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+      border-radius: calc(var(--radius) - 2px);
+      font-size: 0.875rem;
+      font-weight: 500;
+      line-height: 1.25rem;
+      height: 2.25rem;
+      padding: 0 0.875rem;
+      border: 1px solid hsl(var(--input));
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      cursor: pointer;
+      transition: color 0.15s, background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+    .shadcn-btn:hover {
+      background-color: hsl(var(--accent));
+      color: hsl(var(--accent-foreground));
+    }
+    .shadcn-btn:focus-visible {
+      outline: 2px solid hsl(var(--ring));
+      outline-offset: 2px;
+    }
+    .shadcn-btn-icon-wrap { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .shadcn-btn-icon-wrap svg { display: block; }
+    .shadcn-btn-text { font-size: 0.8125rem; }
     .lead { color: hsl(var(--muted-foreground)); margin: 0 0 1rem; font-size: 0.875rem; }
-    .nav { margin-bottom: 1rem; font-size: 0.875rem; }
+    .nav { margin: 0 0 0.35rem; font-size: 0.875rem; }
     .nav a {
       display: inline-flex;
       align-items: center;
@@ -151,8 +233,16 @@
 </head>
 <body>
   <div class="wrap">
-    <p class="nav"><a href="./index.html">← K Original難易度表</a></p>
-    <h1>レベル別の曲数</h1>
+    <header class="site-header">
+      <div class="site-head-main">
+        <p class="nav"><a href="./index.html">← K Original難易度表</a></p>
+        <h1>元難易度表別の曲数</h1>
+      </div>
+      <button type="button" class="shadcn-btn" id="theme-toggle" aria-label="配色を切り替え">
+        <span class="shadcn-btn-icon-wrap" id="theme-toggle-icon" aria-hidden="true"></span>
+        <span class="shadcn-btn-text" id="theme-toggle-text">自動</span>
+      </button>
+    </header>
     <p class="lead">
       Actions が生成する <code>table/level_stats.json</code> を表示します。
     </p>
@@ -161,12 +251,63 @@
     </div>
     <div id="err" class="err" hidden></div>
     <section id="level-stats-section" class="level-stats" hidden>
-      <h2>集計</h2>
+      <h2>元難易度表ごとのレベル別件数</h2>
       <div id="level-stats-grid" class="level-stats-grid"></div>
     </section>
   </div>
   <script>
 (function () {
+  var THEME_STORAGE = "k-original-color-scheme";
+  var THEME_ICONS = {
+    system: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>',
+    light: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+    dark: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'
+  };
+
+  function applyThemeClass(mode) {
+    var html = document.documentElement;
+    html.classList.remove("theme-light", "theme-dark");
+    if (mode === "light") html.classList.add("theme-light");
+    else if (mode === "dark") html.classList.add("theme-dark");
+  }
+
+  function storedThemeMode() {
+    var v = localStorage.getItem(THEME_STORAGE);
+    if (v === "light" || v === "dark") return v;
+    return "system";
+  }
+
+  function setThemeButtonLabel(btn, mode) {
+    if (!btn) return;
+    var label = mode === "light" ? "ライト" : mode === "dark" ? "ダーク" : "自動";
+    var iconKey = mode === "light" ? "light" : mode === "dark" ? "dark" : "system";
+    var iconEl = document.getElementById("theme-toggle-icon");
+    var textEl = document.getElementById("theme-toggle-text");
+    if (iconEl) iconEl.innerHTML = THEME_ICONS[iconKey] || "";
+    if (textEl) textEl.textContent = label;
+    btn.setAttribute("aria-label", "配色: " + label + "（クリックで切替）");
+    btn.title = "配色: " + label + "（クリックで 自動→ライト→ダーク→自動）";
+  }
+
+  function initThemeToggle() {
+    var mode = storedThemeMode();
+    applyThemeClass(mode === "system" ? null : mode);
+    var btn = document.getElementById("theme-toggle");
+    setThemeButtonLabel(btn, mode);
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var cur = storedThemeMode();
+      var next = cur === "system" ? "light" : cur === "light" ? "dark" : "system";
+      if (next === "system") localStorage.removeItem(THEME_STORAGE);
+      else localStorage.setItem(THEME_STORAGE, next);
+      var m = storedThemeMode();
+      applyThemeClass(m === "system" ? null : m);
+      setThemeButtonLabel(btn, m);
+    });
+  }
+
+  initThemeToggle();
+
   var metaEl = document.getElementById("meta");
   var metaDl = document.getElementById("meta-dl");
   var errEl = document.getElementById("err");
@@ -215,7 +356,9 @@
         var shortN = (src.short_name && String(src.short_name).trim()) || "";
         var sub = document.createElement("p");
         sub.className = "level-stats-sub";
-        sub.textContent = "条件通過 " + (src.total_filtered != null ? src.total_filtered : "—") + " 行（重複除去前）";
+        var ta = src.total_all != null ? String(src.total_all) : "—";
+        var tf = src.total_filtered != null ? String(src.total_filtered) : "—";
+        sub.textContent = "元表データ " + ta + " 行 / SQL 条件通過 " + tf + " 行（重複除去前）";
         card.appendChild(sub);
         var wrap = document.createElement("div");
         wrap.className = "scroll-mini";
@@ -224,25 +367,54 @@
         var trh = document.createElement("tr");
         var th1 = document.createElement("th");
         th1.textContent = "レベル";
-        var th2 = document.createElement("th");
-        th2.textContent = "曲数";
         trh.appendChild(th1);
-        trh.appendChild(th2);
+        var levelRows = Array.isArray(src.level_rows) ? src.level_rows : null;
+        var tb = document.createElement("tbody");
+        if (levelRows) {
+          var th2 = document.createElement("th");
+          th2.textContent = "曲数（SQL 後）";
+          var th3 = document.createElement("th");
+          th3.textContent = "曲数（SQL 前）";
+          trh.appendChild(th2);
+          trh.appendChild(th3);
+        } else {
+          var th2o = document.createElement("th");
+          th2o.textContent = "曲数";
+          trh.appendChild(th2o);
+        }
         thead.appendChild(trh);
         tbl.appendChild(thead);
-        var tb = document.createElement("tbody");
-        var bl = src.by_level && typeof src.by_level === "object" ? src.by_level : {};
-        Object.keys(bl).forEach(function (k) {
-          var tr = document.createElement("tr");
-          var td1 = document.createElement("td");
-          td1.textContent = shortN ? shortN + String(k) : String(k);
-          var td2 = document.createElement("td");
-          td2.className = "num";
-          td2.textContent = String(bl[k]);
-          tr.appendChild(td1);
-          tr.appendChild(td2);
-          tb.appendChild(tr);
-        });
+        if (levelRows) {
+          levelRows.forEach(function (lr) {
+            var tr = document.createElement("tr");
+            var lv = lr.level != null && lr.level !== "" ? String(lr.level) : "";
+            var td1 = document.createElement("td");
+            td1.textContent = shortN && lv ? shortN + lv : lv;
+            var td2 = document.createElement("td");
+            td2.className = "num";
+            td2.textContent = String(lr.after_sql != null ? lr.after_sql : 0);
+            var td3 = document.createElement("td");
+            td3.className = "num";
+            td3.textContent = String(lr.before_sql != null ? lr.before_sql : 0);
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tr.appendChild(td3);
+            tb.appendChild(tr);
+          });
+        } else {
+          var bl = src.by_level && typeof src.by_level === "object" ? src.by_level : {};
+          Object.keys(bl).forEach(function (k) {
+            var tr = document.createElement("tr");
+            var td1 = document.createElement("td");
+            td1.textContent = shortN ? shortN + String(k) : String(k);
+            var td2 = document.createElement("td");
+            td2.className = "num";
+            td2.textContent = String(bl[k]);
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tb.appendChild(tr);
+          });
+        }
         tbl.appendChild(tb);
         wrap.appendChild(tbl);
         card.appendChild(wrap);

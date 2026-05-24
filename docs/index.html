@@ -223,9 +223,35 @@
     }
     .toolbar {
       display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0;
     }
     .toolbar label { font-size: 0.8125rem; color: hsl(var(--muted-foreground)); font-weight: 500; }
+    .filter-collapse {
+      margin-bottom: 0.75rem;
+      padding: 0;
+      overflow: hidden;
+    }
+    .filter-collapse-toggle {
+      width: 100%;
+      border-radius: var(--radius);
+      border: none;
+      box-shadow: none;
+      justify-content: space-between;
+      padding: 0.65rem 0.85rem;
+      font-weight: 600;
+    }
+    .filter-collapse-toggle:hover { box-shadow: none; }
+    .filter-collapse-panel {
+      padding: 0.65rem 0.85rem 0.75rem;
+      border-top: 1px solid hsl(var(--border));
+    }
+    .filter-collapse-panel .toolbar { margin-bottom: 0.65rem; }
+    .filter-collapse-panel .filter-src { margin-bottom: 0; }
+    .filter-chevron {
+      font-size: 0.7rem;
+      opacity: 0.8;
+      margin-left: 0.35rem;
+    }
     /* shadcn Input 相当 */
     .shadcn-input {
       flex: 1 1 12rem;
@@ -402,12 +428,20 @@
         <option value="desc">降順</option>
       </select>
     </div>
-    <div class="toolbar">
-      <label for="q">絞り込み</label>
-      <input type="search" id="q" class="shadcn-input" placeholder="タイトル・ハッシュなど" autocomplete="off" disabled />
-      <span id="count" class="lead" style="margin:0"></span>
+    <div class="filter-collapse shadcn-card">
+      <button type="button" class="shadcn-btn filter-collapse-toggle" id="filter-panel-toggle" aria-expanded="false" aria-controls="filter-panel">
+        <span>絞り込み</span>
+        <span class="filter-chevron" aria-hidden="true">▼</span>
+      </button>
+      <div id="filter-panel" class="filter-collapse-panel" hidden>
+        <div class="toolbar">
+          <label for="q">キーワード</label>
+          <input type="search" id="q" class="shadcn-input" placeholder="タイトル・ハッシュなど" autocomplete="off" disabled />
+          <span id="count" class="lead" style="margin:0"></span>
+        </div>
+        <div id="filter-src-bar" class="filter-src" hidden></div>
+      </div>
     </div>
-    <div id="filter-src-bar" class="filter-src shadcn-card" hidden></div>
     <div id="colbar" class="colbar shadcn-card" hidden>
       <p class="colbar-lead">
         列の表示切替（1 列ごとにチェック）。追加の列にチェックを入れると表に出ます。
@@ -422,7 +456,7 @@
       </table>
     </div>
     <footer>
-      <a class="shadcn-link" href="./level-stats.html">レベル別の曲数</a>
+      <a class="shadcn-link" href="./level-stats.html">元難易度表別の曲数</a>
     </footer>
   </div>
   <script>
@@ -478,6 +512,19 @@
   }
 
   initThemeToggle();
+
+  (function initFilterCollapse() {
+    var btn = document.getElementById("filter-panel-toggle");
+    var panel = document.getElementById("filter-panel");
+    var chev = btn && btn.querySelector(".filter-chevron");
+    if (!btn || !panel) return;
+    btn.addEventListener("click", function () {
+      var willOpen = panel.hidden;
+      panel.hidden = !willOpen;
+      btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      if (chev) chev.textContent = willOpen ? "▲" : "▼";
+    });
+  })();
 
   /** 既定でオフにする列（チェックボックスで表示可能） */
   var HIDDEN_KEYS = {
@@ -566,6 +613,7 @@
 
   function defaultColumnVisible(k, section) {
     if (section === "db" && (k === "title" || k === "artist")) return false;
+    if (section === "db" && (k === "md5" || k === "sha256")) return false;
     return !HIDDEN_KEYS[k];
   }
 
@@ -696,7 +744,7 @@
         }
         filterSrcBar.innerHTML = "";
         var lead = document.createElement("span");
-        lead.textContent = "難易度表（チェックした表のみ表示）:";
+        lead.textContent = "難易度表（1つ以上チェックした表のみ表示。すべてオフのときは行を表示しません）:";
         filterSrcBar.appendChild(lead);
         entries.forEach(function (e) {
           sourceFilterState[e.short] = true;
@@ -736,11 +784,12 @@
       }
 
       function applySourceFilter(base) {
+        if (!Object.keys(sourceFilterState).length) return base.slice();
         var enabled = [];
         Object.keys(sourceFilterState).forEach(function (k) {
           if (sourceFilterState[k]) enabled.push(k);
         });
-        if (!enabled.length) return base.slice();
+        if (!enabled.length) return [];
         return base.filter(function (r) {
           var tags = rowSourceTags(r);
           for (var ei = 0; ei < enabled.length; ei++) {
