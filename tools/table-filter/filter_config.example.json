@@ -20,6 +20,7 @@
   "source_data_url": "",
   "output_dir": "docs/table",
   "output_data_filename": "filtered_data.json",
+  "output_data_enriched_filename": "filtered_data_enriched.json",
   "output_header_filename": "filtered_header.json",
   "output_level_stats_filename": "level_stats.json",
   "site_base_url": "",
@@ -29,5 +30,6 @@
   ],
   "custom_level_field": "custom_level",
   "custom_level_source_key": "level",
-  "custom_level_unmapped": "omit"
+  "custom_level_unmapped": "omit",
+  "beatoraja_strip_chart_keys": null
 }

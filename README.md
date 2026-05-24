@@ -94,7 +94,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 - **表の行が 0 件:**  
   - 元表の `md5` / `sha256` と **`songdata.db` の `song` に存在する行**の交差だけが残るため、**DB を更新していない譜面**は落ちます  
   - **`sql_where`** に合わない BPM の譜面も落ちます  
-- **トップの表が空:** 上記の「フィルタスキップ」や `filtered_data.json` 未生成の状態で `browser_rows.json` が空になっている可能性があります
+- **トップの表が空:** 上記の「フィルタスキップ」や `filtered_data_enriched.json` / `filtered_data.json` 未生成の状態で `browser_rows.json` が空になっている可能性があります
 
 ### 10. 元表ごとにレベルを「独自難易度」へ写す（`custom_level_mapping`）
 
@@ -112,7 +112,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **重複譜面:** 複数表で同じ `md5` / `sha256` が出た場合は **先に列挙したヘッダー側の行だけが残り**、独自レベルもそのソースのマップだけが使われます。
 
-**beatoraja の Table JSON:** `filtered_data.json` の各行に `custom_level` が載ります。beatoraja が未知のキーをどう表示するかは本体・スキン次第です。Pages のトップ表では「独自レベル」列として表示されます。
+**beatoraja の Table JSON:** `filtered_data.json` は beatoraja（jbmstable-parser）向けに、出自メタ列を除きかつパーサが弾く行を落としたものです。GitHub Pages の表は **`filtered_data_enriched.json`**（同じ行に出自列などが残る）を元に `browser_rows.json` が生成されます。`custom_level` は既定では両方に残ります。`beatoraja_strip_chart_keys` で beatoraja 側から除外するキーを上書きできます（詳細は [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md)）。
 
 詳細なデータフローは [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) を参照してください。
 

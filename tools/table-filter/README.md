@@ -3,10 +3,10 @@
 ## できること（概要）
 
 1. ローカルの **songdata.db**（beatoraja が生成する `song` テーブル）に対して、**WHERE 断片**で行を絞り込み、`md5` / `sha256` の集合を得る。
-2. 指定した **元難易度表**（ヘッダー JSON の URL。HTML なら `bmstable` の meta から解決）を取得し、**そのハッシュが集合に含まれる行だけ**残した `filtered_data.json` を出力する。
+2. 指定した **元難易度表**（ヘッダー JSON の URL。HTML なら `bmstable` の meta から解決）を取得し、**そのハッシュが集合に含まれる行だけ**残したうえで、**beatoraja 用**の `filtered_data.json` と **Pages 用**の `filtered_data_enriched.json` を出力する。
 3. ヘッダー JSON の **`data_url` を GitHub Pages 上の新しい JSON の URL** に差し替えた `filtered_header.json` を出力する。
 4. `filter_table.py` は各元表について **`sql_where` 通過後・重複マージ前**の行をレベル列別に数え、`level_stats.json` を出力する（既定ファイル名は `output_level_stats_filename`）。
-5. `build_pages_table.py` が `filtered_data.json` と `song` を突き合わせ `browser_rows.json` を生成する。`docs/index.html` が一覧を表示し、`docs/level-stats.html` が `level_stats.json` を読んでレベル別曲数を表示する。
+5. `build_pages_table.py` が `filtered_data_enriched.json`（無ければ `filtered_data.json`）と `song` を突き合わせ `browser_rows.json` を生成する。`docs/index.html` が一覧を表示し、`docs/level-stats.html` が `level_stats.json` を読んでレベル別曲数を表示する。
 6. 複数の元表をマージするとき、**各行に出自情報**（`source_table_index`・`source_table_short_names`・`source_table_names` など）を付与する。同一譜面が複数表に載っている場合は `source_table_names` / `source_table_short_names` に複数の表ラベルが入る（`source_table_index` は先勝ちの表の番号のまま）。
 
 **運用で触る設定・手順**（SQL、URL、DB の置き場所、push、Table URL）は **[リポジトリ直下の README.md](../../README.md)** を参照してください。
@@ -24,7 +24,8 @@
 - **`site_base_url`**: ローカル実行時は `https://<owner>.github.io/<repo>/table` のような **ディレクトリ URL（末尾スラッシュなし）** を書く。GitHub Actions では **`SITE_BASE_URL` 環境変数**をワークフローが渡すため空でよい。
 - **`custom_level_mapping`**, **`custom_level_field`**, **`custom_level_source_key`**, **`custom_level_unmapped`**: 元表ごとのレベルを独自列に写す（詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)）。
 - **`enabled`**, **`skip_if_no_songdata`**: フィルタのスキップ挙動。詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)。
-- **`output_dir`**, **`output_data_filename`**, **`output_header_filename`**, **`output_level_stats_filename`**: 出力先とファイル名（既定は `docs/table/` 配下、`level_stats.json` はレベル別集計用）。
+- **`output_dir`**, **`output_data_filename`**, **`output_data_enriched_filename`**, **`output_header_filename`**, **`output_level_stats_filename`**: 出力先とファイル名（既定は `docs/table/` 配下、`level_stats.json` はレベル別集計用）。
+- **`beatoraja_strip_chart_keys`**: beatoraja 向け `filtered_data.json` から除くキー（未指定時は `source_*` 出自列）。空配列なら除去しない。
 
 ## ローカル実行
 

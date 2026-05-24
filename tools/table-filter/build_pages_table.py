@@ -49,19 +49,34 @@ def main() -> None:
     cfg = _load_json(cfg_path)
     out_dir = cfg.get("output_dir", "docs/table")
     data_name = cfg.get("output_data_filename", "filtered_data.json")
-    filtered_path = os.path.join(out_dir, data_name)
+    enriched_name = str(cfg.get("output_data_enriched_filename") or "filtered_data_enriched.json").strip() or "filtered_data_enriched.json"
+    enriched_path = os.path.join(out_dir, enriched_name)
+    default_data_path = os.path.join(out_dir, data_name)
+    if os.path.isfile(enriched_path):
+        filtered_path = enriched_path
+        data_source_note = enriched_name
+    elif os.path.isfile(default_data_path):
+        filtered_path = default_data_path
+        data_source_note = data_name
+    else:
+        filtered_path = default_data_path
+        data_source_note = data_name
+
     songdata_path = cfg.get("songdata_db", "data/songdata.db")
     browser_name = cfg.get("browser_rows_filename", "browser_rows.json")
     browser_path = os.path.join(out_dir, browser_name)
 
     if not os.path.isfile(filtered_path):
-        print(f"filtered_data が無いため空の browser_rows を出力: {filtered_path}", file=sys.stderr)
+        print(
+            f"filtered_data が無いため空の browser_rows を出力: {enriched_path} / {default_data_path}",
+            file=sys.stderr,
+        )
         _save_json(
             browser_path,
             {
                 "meta": {
                     "reason": "filtered_data.json が無い（フィルタ未実行またはスキップ）",
-                    "filtered_path": filtered_path,
+                    "filtered_path_candidates": [enriched_path, default_data_path],
                 },
                 "rows": [],
             },
@@ -168,6 +183,7 @@ def main() -> None:
         "row_count": len(rows_out),
         "matched_songdata": sum(1 for x in rows_out if x["db"] is not None),
         "sql_where": str(cfg.get("sql_where", "")).strip(),
+        "table_rows_source_file": data_source_note,
         "source_table_display_names": display_names,
         "source_table_short_names": short_names,
         "source_table_legend": legend,

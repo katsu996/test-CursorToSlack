@@ -20,14 +20,14 @@
 
 | 順序 | 処理 | 入力 | 主な出力 |
 |------|------|------|----------|
-| 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`SITE_BASE_URL`（環境変数）、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
-| 2 | `build_pages_table.py` | 同上設定、`filtered_data.json`、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の一覧表用） |
+| 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`SITE_BASE_URL`（環境変数）、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`（beatoraja 用・拡張列除去）、`filtered_data_enriched.json`（Pages 用・出自列あり）、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
+| 2 | `build_pages_table.py` | 同上設定、`filtered_data_enriched.json`（無ければ `filtered_data.json`）、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の一覧表用） |
 | 3 | Pages アーティファクト | `docs/` ディレクトリ全体 | GitHub Pages にアップロード |
 
 - **`SITE_BASE_URL`:** `https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/table` が設定され、`filtered_header.json` 内の **`data_url`** が `${SITE_BASE_URL}/filtered_data.json` 形式に差し替わります。
 - **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空・`songdata.db` 不在（`skip_if_no_songdata: true`）などでも **0 で終了**し、後段の `build_pages_table.py` が続きます。
 - **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**のデータ行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です。GitHub Pages では **`level-stats.html`** が `./table/level_stats.json` を直接読み込んで表示します（トップの `index.html` とは別 URL）。
-- **`build_pages_table.py`:** `filtered_data.json` が無い場合は **空の `browser_rows.json`**（理由を `meta` に記録）を書き、Pages デプロイは失敗させません。
+- **`build_pages_table.py`:** `filtered_data_enriched.json` が無ければ `filtered_data.json` を読みます。どちらも無い場合は **空の `browser_rows.json`**（理由を `meta` に記録）を書き、Pages デプロイは失敗させません。
 
 ## `filter_table.py` のデータフロー（概要）
 
@@ -40,9 +40,18 @@
 7. マージ時、データ行の各オブジェクトに **出自の難易度表**を示すフィールドを付与する（下記「出自」節）。
 8. **`custom_level_mapping` が設定されているとき**は、**新規に採用した行**（ハッシュありで `row_by_key` に初めて入る行、およびハッシュなしの行）について、**そのループの元ヘッダーインデックス**に対応するマップで、元のレベル列（既定: `level`）を引き、**`custom_level` 列（名前は `custom_level_field`）**に書き込む（下記「独自レベル」節）。
 
-## `filtered_data.json` 各行の「出自の難易度表」メタデータ
+## beatoraja（jbmstable-parser）との互換
 
-`filter_table.py` は、GitHub Pages の一覧で行がどの元表由来か分かるよう、次のキーを **データ行オブジェクトに追加**します（beatoraja が読み込む自作表でも、未知のキーは通常無視されます）。
+本体が使う [jbmstable-parser](https://github.com/exch-bms2/jbmstable-parser) の `DifficultyTableParser.decodeJSONTableData(..., accept=false)` は次を満たさない**データ行を黙って捨てます**（`level` が JSON `null` の行、`md5` / `sha256` の文字列長が 24 以下の行など）。
+
+- **`filtered_data.json`:** 上記に合わない行は書き出し前に除外し、GitHub Pages 用に付けた **`source_*` 系キー**も除いたオブジェクトだけを載せます（beatoraja の Table URL はこのファイルを指す `data_url` のままです）。
+- **`filtered_data_enriched.json`:** マージ直後の行オブジェクト（出自列などを含む）のまま保存し、**`build_pages_table.py`** がこちらを優先して読み込みます。
+- **ヘッダ `course`:** 空配列 `[]` のとき jbmstable-parser は `get(0)` で落ちるため、**空なら `course` キーごと削除**します。
+- **`beatoraja_strip_chart_keys`:** `filter_config.json` で、beatoraja 向けデータから除外するキーを配列で上書きできます。**未指定なら** `source_table_index` / `source_table_names` / `source_table_short_names` / `source_header_json_url` / `source_table_register_url` を除きます。**空配列 `[]`** なら除外しません。
+
+## `filtered_data_enriched.json` / `filtered_data.json` 各行の「出自の難易度表」メタデータ
+
+`filter_table.py` は、GitHub Pages の一覧で行がどの元表由来か分かるよう、次のキーを **データ行オブジェクトに追加**します（**enriched のみ**に残し、beatoraja が読む `filtered_data.json` からは既定で除去します）。
 
 | キー | 型 | 意味 |
 |------|-----|------|
@@ -54,7 +63,7 @@
 
 **重複譜面:** `md5` / `sha256` が同じ行は **1 行にまとめ**、`source_table_names` と `source_table_short_names` にだけ後続の表の表示名・略称を追記します。`source_table_index` は更新しません（先勝ち）。
 
-**GitHub Pages の `index.html`:** 列が煩雑にならないよう、`source_header_json_url` と `source_table_register_url` は **画面上は非表示**にしていますが、`filtered_data.json` には残ります。**`url` / `url_diff`** も Pages の表では既定でオフ（列表示のチェックボックスでオンにできる）です（beatoraja 用の `filtered_data.json` には元表の値が残ります）。**出自（略）**と**出自（フル）**は別列です。**表 ID**・**出自表（番号）**・**出自（フル）**・**フォルダID**（`song.folder`）も既定でオフです。
+**GitHub Pages の `index.html`:** 列が煩雑にならないよう、`source_header_json_url` と `source_table_register_url` は **画面上は非表示**にしていますが、**`filtered_data_enriched.json`**（および `browser_rows.json` の `table`）には残ります。**`url` / `url_diff`** も Pages の表では既定でオフ（列表示のチェックボックスでオンにできる）です。**beatoraja が読む `filtered_data.json`** からは出自列を除き、元表の `url` / `url_diff` はそのまま残します。**出自（略）**と**出自（フル）**は別列です。**表 ID**・**出自表（番号）**・**出自（フル）**・**フォルダID**（`song.folder`）も既定でオフです。
 
 ### `source_table_display_names`（任意）
 
@@ -74,6 +83,7 @@
 | `source_table_short_names` | 設定どおりの略称配列（未設定インデックスは空文字）。 |
 | `source_table_legend` | `["1. 表示名A", "2. 表示名B", ...]` 形式。`index.html` のメタ「元難易度表（表示名）」にそのまま使います。 |
 | `source_table_legend_short` | `["1. sl", "2. st", ...]` のように略称版。メタ「元難易度表（略称）」に使います。 |
+| `table_rows_source_file` | `build_pages_table.py` が読んだデータ JSON のファイル名（`filtered_data_enriched.json` または `filtered_data.json`）。 |
 
 **Pages トップの列表示:** `docs/index.html` は **全列をチェックボックスで表示／非表示**できます。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
 
