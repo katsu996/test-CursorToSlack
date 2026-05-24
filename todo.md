@@ -14,7 +14,7 @@
 ## 定期メンテ（カレンダーではなくトリガーで実施）
 
 - **beatoraja / LR2oraja の新バージョン**が出たら: 難易度表まわりの挙動を確認し、必要なら [`docs/beatoraja-jbmstable-table-json.md`](docs/beatoraja-jbmstable-table-json.md) とユニットテストを更新する。  
-- **`source_header_urls` を差し替えたとき**: 元表の JSON キー変更で `custom_level_source_key` や level 集計がずれていないか確認する。  
+- **`source_tables` を差し替えたとき**: 元表の JSON キー変更で `custom_level_source_key` や level 集計がずれていないか確認する。  
 - **GitHub の Actions / Pages の仕様変更**: `pages.yml` の `actions/*` メジャー更新時はリリースノートを読んでからマージする。
 
 ---

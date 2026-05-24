@@ -3,7 +3,7 @@
 ここに置いたファイルが `https://<ユーザー>.github.io/<リポジトリ名>/` から配信されます。
 
 - **トップページ**（`index.html`）: Actions 実行後、`table/browser_rows.json` を読み込み、難易度表＋`songdata.db` の列を表形式で表示します（`filter_config.json` の `custom_level_mapping` で付与した独自レベル列も含みます）。**並び替え・絞り込み・列の表示**は 1 つの折りたたみパネルにまとまっています。フッターから **`table/filtered_header.json`**（beatoraja 用ヘッダー）を開けます。
-- **元難易度表別の曲数**（`level-stats.html`）: `table/level_stats.json` を読み込み、元難易度表ごとにレベル別件数（SQL 条件の前後で比較）を表示します。
+- **統合難易度表別の曲数**（`level-stats.html`）: `table/level_stats.json` を読み込み、統合難易度表ごとにレベル別件数（SQL 条件の前後で比較）を表示します。
 - **Jekyll を無効にする:** `.nojekyll`
 
 ## 運用（手動作業）

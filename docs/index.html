@@ -62,7 +62,7 @@
     <footer class="site-footer">
       <a class="shadcn-link" href="./table/filtered_header.json" target="_blank" rel="noopener noreferrer">beatoraja 用難易度表ヘッダー（<code>filtered_header.json</code>）</a>
       <span class="footer-sep" aria-hidden="true">·</span>
-      <a class="shadcn-link" href="./level-stats.html">元難易度表別の曲数</a>
+      <a class="shadcn-link" href="./level-stats.html">統合難易度表別の曲数</a>
     </footer>
   </div>
   <script>
@@ -185,6 +185,16 @@
     return d.innerHTML;
   }
 
+  /** 難易度表行の MD5 から bms-score-viewer へのリンク（表の右端列） */
+  function chatCellHtml(table) {
+    var m = table && table.md5 != null ? String(table.md5).trim().toLowerCase() : "";
+    if (!/^[0-9a-f]{32}$/.test(m)) {
+      return '<td class="empty">—</td>';
+    }
+    var href = "https://bms-score-viewer.pages.dev/view?md5=" + encodeURIComponent(m);
+    return '<td class="chat-cell"><a href="' + esc(href) + '" rel="noopener noreferrer">Chat</a></td>';
+  }
+
   function cellHtml(val) {
     var t = fmt(val);
     if (!t) return '<td class="empty">—</td>';
@@ -263,11 +273,11 @@
       ];
       var leg = meta.source_table_legend;
       if (Array.isArray(leg) && leg.length) {
-        pairs.push(["元難易度表（表示名）", leg.join(" ／ ")]);
+        pairs.push(["統合難易度表（表示名）", leg.join(" ／ ")]);
       }
       var legS = meta.source_table_legend_short;
       if (Array.isArray(legS) && legS.length) {
-        pairs.push(["元難易度表（略称）", legS.join(" ／ ")]);
+        pairs.push(["統合難易度表（略称）", legS.join(" ／ ")]);
       }
       if (meta.custom_level_mapping_count) {
         pairs.push(
@@ -392,6 +402,11 @@
         thD.className = "group-d";
         thD.textContent = "songdata.db（song）の列";
         trh1.appendChild(thD);
+        var thChat = document.createElement("th");
+        thChat.colSpan = 1;
+        thChat.className = "group-chat";
+        thChat.textContent = "Chat";
+        trh1.appendChild(thChat);
         thead.appendChild(trh1);
 
         var trh2 = document.createElement("tr");
@@ -419,6 +434,10 @@
           th1.textContent = "（DB列なし）";
           trh2.appendChild(th1);
         }
+        var thChat2 = document.createElement("th");
+        thChat2.className = "group-chat";
+        thChat2.textContent = "Chat";
+        trh2.appendChild(thChat2);
         thead.appendChild(trh2);
       }
 
@@ -465,6 +484,10 @@
         var parts = [];
         allTKeys.forEach(function (k) { parts.push(fmt(t[k])); });
         allDKeys.forEach(function (k) { parts.push(fmt(d ? d[k] : "")); });
+        var m = t.md5 != null ? String(t.md5).trim().toLowerCase() : "";
+        if (/^[0-9a-f]{32}$/.test(m)) {
+          parts.push("https://bms-score-viewer.pages.dev/view?md5=" + m);
+        }
         return parts.join(" ") + " " + JSON.stringify(t) + " " + JSON.stringify(d);
       }
 
@@ -512,6 +535,7 @@
             tr.insertAdjacentHTML("beforeend", cellHtml(d ? d[k] : ""));
           });
           if (!vDKeys.length) tr.insertAdjacentHTML("beforeend", "<td class=\"empty\">—</td>");
+          tr.insertAdjacentHTML("beforeend", chatCellHtml(t));
           tbody.appendChild(tr);
         });
         countEl.textContent = list.length + " / " + rows.length + " 行を表示";

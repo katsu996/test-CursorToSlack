@@ -47,20 +47,21 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **beatoraja が 0 件のとき:** **`beatoraja_empty_rows_policy`** が **`fail`（既定）**のとき、`filter_table.py` は **終了コード 1** となり Actions が失敗します（空の難易度表をデプロイしない）。緩めたい場合のみ `warn` などに変更してください。
 
-### 4. 元難易度表の URL を変える・足す
+### 4. 取り込む難易度表の URL を変える・足す（`source_tables`）
 
-1. 同じく **`tools/table-filter/filter_config.json`** の **`source_header_urls`**（配列）を編集する  
-2. 各要素は次のどちらでも可です。  
-   - **ヘッダー JSON の HTTPS URL**（例: `https://example.com/header.json`）  
-   - **難易度表の HTML の URL**（`<meta name="bmstable" content="...">` からヘッダー JSON を自動解決）
+1. **`tools/table-filter/filter_config.json`** の **`source_tables`**（オブジェクトの配列）を編集します。**1 要素 = 1 本の難易度表**で、URL・表示名・略称の対応が一目で分かります。  
+2. 各オブジェクトのフィールド:  
+   - **`header_url`**（必須）: **ヘッダー JSON の HTTPS URL**、または **難易度表 HTML**（`<meta name="bmstable" content="...">` からヘッダーを解決）。**`url`** でも同じ意味で指定できます。  
+   - **`display_name`**（任意）: 行の「出自（フル）」や Pages メタの凡例に使います。空のときはヘッダー JSON の `name` / `title` にフォールバックします。  
+   - **`short_name`**（任意）: 「シンボル」列や絞り込み用（例: `sl` / `st`）。空なら略称なし扱いです。
 
-**1 本だけ指定する場合:** `source_header_urls` を空配列 `[]` にし、**`source_header_url`** に文字列で 1 本書いても動きます（後方互換）。
+**後方互換:** `source_tables` が空または無いときは、従来どおり **`source_header_urls`**（URL のみの配列）と、任意の **`source_table_display_names`** / **`source_table_short_names`**（**同じインデックスで対応**）でも動きます。
 
-**単一ソース時のみ:** **`source_data_url`** にデータ JSON の URL を書くと、ヘッダー内の `data_url` の代わりに使われます。**複数ヘッダー**（`source_header_urls` が 2 件以上）のときは **各ヘッダーの `data_url` のみ**が使われ、`source_data_url` は無視されます（警告が出ます）。
+**1 本だけ指定する場合:** `source_tables` を `[]` にし、**`source_header_url`** に文字列で 1 本書いても動きます。
 
-マージ後の各行には **`source_table_index` / `source_table_short_names` / `source_table_names`** など、どの元難易度表の譜面として採用されたかが付きます（詳細は [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) の「出自の難易度表」節）。
+**単一ソース時のみ:** **`source_data_url`** にデータ JSON の URL を書くと、ヘッダー内の `data_url` の代わりに使われます。**複数ヘッダー**（`source_tables` が 2 要素以上、または `source_header_urls` が 2 件以上）のときは **各ヘッダーの `data_url` のみ**が使われ、`source_data_url` は無視されます（警告が出ます）。
 
-**Pages に出す表の表示名（任意）:** **`source_table_display_names`** を `source_header_urls` と同じ長さの文字列配列で書くと、行の「出自（フル）」列と、Pages トップのメタ「元難易度表（表示名）」にその名前が使われます（stellabms の SL / ST を「Satellite」「Stella」などに変えたいとき）。**`source_table_short_names`** も同じ長さの配列で書くと、行の「シンボル」列（例: `sl` / `st`）とメタ「元難易度表（略称）」に使われます（空の要素はそのインデックスの略称なし）。**`source_table_display_names`** の空要素だけ、ヘッダー JSON の `name` / `title` にフォールバックします。Pages の **`browser_rows.json` には元 URL を載せません**（取得元 URL はこの `filter_config.json` を参照）。
+マージ後の各行には **`source_table_index` / `source_table_short_names` / `source_table_names`** などが付き、**複数の入力表をマージしたときにどの表由来の譜面として残ったか**が分かります（詳細は [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) の「出自の難易度表」節）。
 
 **合成難易度表ヘッダーの `name`（任意）:** **`output_header_name`** に文字列を書くと、**`filtered_header.json` の `name`**（beatoraja に表示される表名）に使われます。空のときは元ヘッダーの `name` がそのまま使われ、それも空ならスクリプト既定の英語名になります。beatoraja は **`name` が空の表を拒否**します。
 
@@ -71,7 +72,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 次のいずれかで、**外部表の取得と `docs/table/` への生成**はスキップされます（Pages の `docs/` 静的ファイルのデプロイは続きます）。
 
 - **`enabled`** を `false` にする  
-- **`source_header_urls`** を `[]` にし、**`source_header_url`** も空にする  
+- **`source_tables` を `[]` にし、かつ **`source_header_urls`** が空（または無い）で **`source_header_url`** も空にする  
 
 この場合、`filter_table.py` は何も出力せず、その後の **`build_pages_table.py`** は空の **`browser_rows.json`** を出します（トップの表は空になります）。
 
@@ -88,7 +89,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 成功したら **Settings → Pages** に表示される **サイト URL** で `index.html` が開きます。
 
-**元難易度表別の曲数（集計のみ）:** 同じサイトの **`level-stats.html`**（例: `https://<ユーザー>.github.io/<リポジトリ名>/level-stats.html`）を開きます。データは `table/level_stats.json` で、フィルタがスキップされたビルドではファイルが無くエラーになることがあります。
+**統合難易度表別の曲数（集計のみ）:** 同じサイトの **`level-stats.html`**（例: `https://<ユーザー>.github.io/<リポジトリ名>/level-stats.html`）を開きます。データは `table/level_stats.json` で、フィルタがスキップされたビルドではファイルが無くエラーになることがあります。
 
 ### 8. beatoraja に「絞り込み後の難易度表」を登録する
 
@@ -98,7 +99,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 （`<owner>` と `<repo>` は実際の値に置き換えてください。）
 
-**Pages のトップ:** `index.html` のフッターに、上記と同じパスの **`filtered_header.json` を開くリンク**があります（新しいタブで JSON が表示されます）。Table URL の確認や共有に使えます。
+**Pages のトップ:** `index.html` のフッターに、上記と同じパスの **`filtered_header.json` を開くリンク**があります（新しいタブで JSON が表示されます）。Table URL の確認や共有に使えます。一覧表の右端の **Chat** 列は、難易度表行の **`md5`** から [bms-score-viewer](https://bms-score-viewer.pages.dev/)（`view?md5=…`）へのリンクです。
 
 **サイトのトップだけ**（例: `https://<ユーザー>.github.io/<リポジトリ名>/`）を Table URL に入れると、beatoraja は **HTML モード**でページを取得します。トップの **`docs/index.html` に `<meta name="bmstable" content="table/filtered_header.json">` を入れてある**ため、この URL でもヘッダー JSON に辿り着けます。ただし **末尾スラッシュ無し**（`…/repo`）の URL では jbmstable-parser の相対解決がずれることがあるため、**末尾 `/` 付き**か、確実には上記の **`filtered_header.json` 直リンク**を推奨します。
 
@@ -121,10 +122,10 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 ### 10. 元表ごとにレベルを「独自難易度」へ写す（`custom_level_mapping`）
 
-複数の元難易度表を `source_header_urls` に並べているとき、**配列の何番目の表か**に応じて「元のレベル値 → 独自レベル」の対応表を持てます（例: 1 番目の表のレベル 12 は独自 12、2 番目の表のレベル 1 は独自 13）。
+複数の入力難易度表を **`source_tables`**（または従来の **`source_header_urls`**）に並べているとき、**配列の何番目の表か**に応じて「元のレベル値 → 独自レベル」の対応表を持てます（例: 1 番目の表のレベル 12 は独自 12、2 番目の表のレベル 1 は独自 13）。
 
 1. **`tools/table-filter/filter_config.json`** を開く  
-2. **`custom_level_mapping`** に、**`source_header_urls` と同じ長さの配列**を用意する（短い場合は足りない分だけマップ無し、長い場合は余りは無視。警告が Actions ログに出ます）  
+2. **`custom_level_mapping`** に、**`source_tables` の要素数と同じ長さの配列**を用意する（後方互換で **`source_header_urls`** だけ使う場合はその件数と揃える。短い場合は足りない分だけマップ無し、長い場合は余りは無視。警告が Actions ログに出ます）  
 3. 各要素は JSON オブジェクトで、**キーが元表のレベル（文字列）**、**値が独自レベル**（数値でも文字列でも可）  
 4. 出力される列名は既定で **`custom_level`**。変えたい場合は **`custom_level_field`**（英数字とアンダースコアのみ）  
 5. 元表から読む列名が `level` 以外のときは **`custom_level_source_key`** を合わせる  

@@ -28,6 +28,7 @@ from beatoraja_rows import (
 )
 from http_fetch import fetch_bytes
 from level_stats import level_bucket_for_stats, merge_level_compare_rows, sort_level_stat_keys
+from source_tables import normalize_source_tables
 from sql_where_guard import die as _die
 from sql_where_guard import resolve_sql_where, validate_sql_where
 
@@ -44,16 +45,6 @@ def _save_json(path: str, obj: Any) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=False, indent=2)
         f.write("\n")
-
-
-def _normalize_cfg_header_urls(cfg: Mapping[str, Any]) -> list[str]:
-    urls_raw = cfg.get("source_header_urls")
-    if isinstance(urls_raw, list):
-        out = [str(u).strip() for u in urls_raw if str(u).strip()]
-        if out:
-            return out
-    single = str(cfg.get("source_header_url") or "").strip()
-    return [single] if single else []
 
 
 def _resolve_bmstable_header_url(page_or_json_url: str) -> str:
@@ -87,22 +78,6 @@ def _header_display_name(header_obj: Mapping[str, Any], idx: int) -> str:
             if s:
                 return s
     return f"表 {idx + 1}"
-
-
-def _table_display_label(cfg: Mapping[str, Any], idx: int, header_obj: Mapping[str, Any]) -> str:
-    raw = cfg.get("source_table_display_names")
-    if isinstance(raw, list) and idx < len(raw):
-        s = str(raw[idx]).strip()
-        if s:
-            return s
-    return _header_display_name(header_obj, idx)
-
-
-def _table_short_label(cfg: Mapping[str, Any], idx: int) -> str:
-    raw = cfg.get("source_table_short_names")
-    if isinstance(raw, list) and idx < len(raw):
-        return str(raw[idx]).strip()
-    return ""
 
 
 def _merge_course_parts(parts: list[Any]) -> Any:
@@ -316,16 +291,17 @@ def main() -> None:
         print("filter_config の enabled が false のためスキップします。", file=sys.stderr)
         raise SystemExit(0)
 
-    header_urls_cfg = _normalize_cfg_header_urls(cfg)
+    header_urls_cfg, disp_cfg, short_cfg = normalize_source_tables(cfg)
     if not header_urls_cfg:
         print(
-            "source_header_urls / source_header_url が空のためスキップします（難易度表フィルタは行いません）。",
+            "source_tables が空、または source_header_urls / source_header_url が空のためスキップします（難易度表フィルタは行いません）。",
             file=sys.stderr,
         )
         raise SystemExit(0)
 
     resolved_json_urls = [_resolve_bmstable_header_url(u) for u in header_urls_cfg]
     multi_source = len(resolved_json_urls) > 1
+    uses_source_tables_objects = isinstance(cfg.get("source_tables"), list) and bool(cfg.get("source_tables"))
 
     maps_raw_warn = cfg.get("custom_level_mapping")
     if isinstance(maps_raw_warn, list) and len(maps_raw_warn) > 0 and resolved_json_urls:
@@ -340,31 +316,32 @@ def main() -> None:
                 file=sys.stderr,
             )
 
-    disp_warn = cfg.get("source_table_display_names")
-    if isinstance(disp_warn, list) and disp_warn and resolved_json_urls:
-        if len(disp_warn) < len(resolved_json_urls):
-            print(
-                "警告: source_table_display_names の要素数が元ヘッダー数より少ないです（足りない分はヘッダー名にフォールバック）。",
-                file=sys.stderr,
-            )
-        if len(disp_warn) > len(resolved_json_urls):
-            print(
-                "警告: source_table_display_names の要素数が元ヘッダー数より多いです（余った要素は無視されます）。",
-                file=sys.stderr,
-            )
+    if not uses_source_tables_objects:
+        disp_warn = cfg.get("source_table_display_names")
+        if isinstance(disp_warn, list) and disp_warn and resolved_json_urls:
+            if len(disp_warn) < len(resolved_json_urls):
+                print(
+                    "警告: source_table_display_names の要素数が元ヘッダー数より少ないです（足りない分はヘッダー名にフォールバック）。",
+                    file=sys.stderr,
+                )
+            if len(disp_warn) > len(resolved_json_urls):
+                print(
+                    "警告: source_table_display_names の要素数が元ヘッダー数より多いです（余った要素は無視されます）。",
+                    file=sys.stderr,
+                )
 
-    short_warn = cfg.get("source_table_short_names")
-    if isinstance(short_warn, list) and short_warn and resolved_json_urls:
-        if len(short_warn) < len(resolved_json_urls):
-            print(
-                "警告: source_table_short_names の要素数が元ヘッダー数より少ないです（足りない分は略称なし）。",
-                file=sys.stderr,
-            )
-        if len(short_warn) > len(resolved_json_urls):
-            print(
-                "警告: source_table_short_names の要素数が元ヘッダー数より多いです（余った要素は無視されます）。",
-                file=sys.stderr,
-            )
+        short_warn = cfg.get("source_table_short_names")
+        if isinstance(short_warn, list) and short_warn and resolved_json_urls:
+            if len(short_warn) < len(resolved_json_urls):
+                print(
+                    "警告: source_table_short_names の要素数が元ヘッダー数より少ないです（足りない分は略称なし）。",
+                    file=sys.stderr,
+                )
+            if len(short_warn) > len(resolved_json_urls):
+                print(
+                    "警告: source_table_short_names の要素数が元ヘッダー数より多いです（余った要素は無視されます）。",
+                    file=sys.stderr,
+                )
 
     use_relative_data_url = cfg.get("use_relative_data_url", True)
     if not isinstance(use_relative_data_url, bool):
@@ -424,8 +401,9 @@ def main() -> None:
         if not isinstance(header_obj, dict):
             _die(f"ヘッダー JSON のトップレベルはオブジェクトである必要があります: {header_json_url}")
 
-        display_name = _table_display_label(cfg, idx, header_obj)
-        short_label = _table_short_label(cfg, idx)
+        ov_disp = disp_cfg[idx] if idx < len(disp_cfg) else ""
+        display_name = ov_disp if ov_disp else _header_display_name(header_obj, idx)
+        short_label = short_cfg[idx] if idx < len(short_cfg) else ""
 
         if base_header is None:
             base_header = dict(header_obj)

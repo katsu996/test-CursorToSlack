@@ -15,6 +15,7 @@ import sqlite3
 import sys
 from typing import Any
 
+from source_tables import normalize_source_tables
 from sql_where_guard import resolve_sql_where
 
 DEFAULT_CONFIG = "tools/table-filter/filter_config.json"
@@ -148,34 +149,19 @@ def main() -> None:
             db = dict(song_by_md5[md])
         rows_out.append({"table": t, "db": db})
 
-    urls_raw = cfg.get("source_header_urls")
-    header_urls: list[str] = []
-    if isinstance(urls_raw, list):
-        header_urls = [str(u).strip() for u in urls_raw if str(u).strip()]
-    if not header_urls:
-        one = str(cfg.get("source_header_url", "")).strip()
-        if one:
-            header_urls = [one]
-
+    header_urls, disp_cfg, short_cfg = normalize_source_tables(cfg)
     n_src = len(header_urls)
-    disp_raw = cfg.get("source_table_display_names")
     display_names: list[str] = []
     for i in range(n_src):
-        label = ""
-        if isinstance(disp_raw, list) and i < len(disp_raw) and str(disp_raw[i]).strip():
-            label = str(disp_raw[i]).strip()
+        label = disp_cfg[i] if i < len(disp_cfg) else ""
         display_names.append(label)
     legend = [
         f"{i + 1}. {display_names[i] if display_names[i] else f'表 {i + 1}'}" for i in range(n_src)
     ]
 
-    short_raw = cfg.get("source_table_short_names")
     short_names: list[str] = []
     for i in range(n_src):
-        s = ""
-        if isinstance(short_raw, list) and i < len(short_raw):
-            s = str(short_raw[i]).strip()
-        short_names.append(s)
+        short_names.append(short_cfg[i] if i < len(short_cfg) else "")
     legend_short = [
         f"{i + 1}. {short_names[i] if short_names[i] else display_names[i] or f'表 {i + 1}'}"
         for i in range(n_src)

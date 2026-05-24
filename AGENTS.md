@@ -37,6 +37,7 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 
 | File | Purpose |
 |------|---------|
+| `tools/table-filter/source_tables.py` | `source_tables` 設定の正規化（後方互換の分割配列も解釈） |
 | `tools/table-filter/filter_table.py` | メインフィルタ CLI（マージ・書き出し） |
 | `tools/table-filter/http_fetch.py` | HTTP 取得（リトライ） |
 | `tools/table-filter/sql_where_guard.py` | `sql_where` / プリセットの検証 |

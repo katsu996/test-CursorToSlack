@@ -9,7 +9,7 @@
 **はい。** 次を満たせば、ランナー上で「元表を取得 → `songdata.db` に SQL → ハッシュ交差でフィルタ → `docs/table/` に JSON 出力 → `docs/` 全体を GitHub Pages にデプロイ」まで完結します。
 
 1. 実行時に **`data/songdata.db`** がリポジトリに存在する（通常はコミット済み）。
-2. 元難易度表のヘッダーが **HTTPS で取得できる**（`filter_config.json` の `source_header_urls` または `source_header_url`）。データ本体は各ヘッダーの `data_url`（**相対パスはヘッダー JSON の URL を基準に解決**）または単一ソース時の `source_data_url`。
+2. 統合難易度表のヘッダーが **HTTPS で取得できる**（`filter_config.json` の **`source_tables`**（推奨）または後方互換の **`source_header_urls`** / **`source_header_url`**）。データ本体は各ヘッダーの `data_url`（**相対パスはヘッダー JSON の URL を基準に解決**）または単一ソース時の `source_data_url`。
 3. 生成ヘッダーの `data_url` は **既定でファイル名のみ**（例: `filtered_data.json`）とし、beatoraja がヘッダーと同じディレクトリ上のデータ JSON を取得できるようにします（`SITE_BASE_URL` は不要）。**絶対 URL で出したい場合のみ** `use_relative_data_url: false` と `site_base_url` / `SITE_BASE_URL` を併用します。
 
 **GitHub が提供していないもの:** ブラウザだけで手元の DB を渡す専用 UIはありません。DB は **リポジトリに載せて更新する** 想定です。
@@ -77,23 +77,27 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 
 | キー | 型 | 意味 |
 |------|-----|------|
-| `source_table_index` | 整数 | **`source_header_urls` の並び**で見たときの表番号（**1 始まり**）。同一譜面が複数表に載っている場合は、**先にマージされた表**（重複除去で採用された側）の番号が残ります。 |
-| `source_table_short_names` | 文字列の配列 | **`source_table_short_names[i]`**（`filter_config.json`）が非空ならその略称（例: `sl`）。無ければ **空配列**になり得ます。複数表に同一譜面があると **`source_table_names` と同様に**後続の略称を追記します。 |
-| `source_table_names` | 文字列の配列 | **`source_table_display_names[i]`** が非空ならそれを、無ければ各ヘッダー JSON の `name` / `Name` / `title` / `Title`（なければ `表 N`）から得た **表示名**。複数表に同一譜面があると **複数要素**になります。 |
-| `source_table_register_url` | 文字列（任意） | 設定に書いた **登録用 URL**（例: `table_rec.html`）。`filter_config.json` の `source_header_urls` の同じインデックスの値。 |
+| `source_table_index` | 整数 | **`source_tables`（または `source_header_urls`）の並び**で見たときの表番号（**1 始まり**）。同一譜面が複数表に載っている場合は、**先にマージされた表**（重複除去で採用された側）の番号が残ります。 |
+| `source_table_short_names` | 文字列の配列 | 設定の略称（`source_tables[].short_name` または後方互換の `source_table_short_names[i]`）が非空ならその略称（例: `sl`）。無ければ **空配列**になり得ます。複数表に同一譜面があると **`source_table_names` と同様に**後続の略称を追記します。 |
+| `source_table_names` | 文字列の配列 | 設定の **`display_name`**（または後方互換の `source_table_display_names[i]`）が非空ならそれを、無ければ各ヘッダー JSON の `name` / `Name` / `title` / `Title`（なければ `表 N`）から得た **表示名**。複数表に同一譜面があると **複数要素**になります。 |
+| `source_table_register_url` | 文字列（任意） | 設定に書いた **登録用 URL**（例: `table_rec.html`）。`source_tables[].header_url` または `source_header_urls` の同じインデックスの値。 |
 | `source_header_json_url` | 文字列 | 実際に取得した **ヘッダー JSON の HTTPS URL**（HTML から `bmstable` で解決した後の URL）。 |
 
 **重複譜面:** `md5` / `sha256` が同じ行は **1 行にまとめ**、`source_table_names` と `source_table_short_names` にだけ後続の表の表示名・略称を追記します。`source_table_index` は更新しません（先勝ち）。
 
 **GitHub Pages の `index.html`:** 列が煩雑にならないよう、`source_header_json_url` と `source_table_register_url` は **画面上は非表示**にしていますが、**`filtered_data_enriched.json`**（および `browser_rows.json` の `table`）には残ります。**`url` / `url_diff`** も Pages の表では既定でオフ（列表示のチェックボックスでオンにできる）です。**beatoraja が読む `filtered_data.json`** からは出自列を除き、元表の `url` / `url_diff` はそのまま残します。**シンボル**（`source_table_short_names`）と**出自（フル）**は別列です。**表 ID**・**出自表（番号）**・**出自（フル）**・**フォルダID**（`song.folder`）も既定でオフです。
 
-### `source_table_display_names`（任意）
+### `source_tables`（推奨）
 
-`filter_config.json` の **`source_table_display_names`** を、`source_header_urls`（正規化後の **本数と同じ順・同じ長さ推奨**）の配列として書くと、上記 **`source_table_names`** の各要素は **設定の文字列を優先**します（stellabms の **SL / ST** のように、URL や略称ではなく **Satellite** / **Stella** などの短い表示名を Pages と行データに揃えたいときに使います）。要素が空文字のインデックスは、従来どおりヘッダー JSON の `name` / `title` にフォールバックします。要素数がヘッダー数とずれると Actions ログに警告が出ます。
+`filter_config.json` の **`source_tables`** はオブジェクトの配列です。各要素に **`header_url`**（または **`url`**）を書き、任意で **`display_name`**（出自フル名）、**`short_name`**（シンボル列・絞り込み用）を **同じオブジェクト内**にまとめられます。`custom_level_mapping` の **配列の何番目か**は、この **`source_tables` の並び**と対応します。
 
-### `source_table_short_names`（任意）
+### `source_table_display_names`（後方互換・任意）
 
-同じく **`source_table_short_names`** を同じ長さの配列で書くと、行の **`source_table_short_names`**（略称の配列）にその文字列が入ります（例: `sl` / `st`）。空要素のインデックスは略称が空になり、その行の略称列は **`source_table_names` と同じ並びで**フル名だけが意味を持つ場合があります。要素数がずれると Actions ログに警告が出ます。
+`source_tables` を使わず **`source_header_urls`** だけ並べる場合に、表示名を **別配列**で渡すためのキーです。`source_header_urls`（正規化後の **本数と同じ順・同じ長さ推奨**）として書くと、上記 **`source_table_names`** の各要素は **設定の文字列を優先**します。要素が空文字のインデックスは、従来どおりヘッダー JSON の `name` / `title` にフォールバックします。要素数がヘッダー数とずれると Actions ログに警告が出ます。
+
+### `source_table_short_names`（後方互換・任意）
+
+`source_tables` を使わない場合の略称配列です。同じく **`source_header_urls` と同じ長さ**で書くと、行の **`source_table_short_names`**（略称の配列）にその文字列が入ります（例: `sl` / `st`）。要素数がずれると Actions ログに警告が出ます。
 
 ## `browser_rows.json` の `meta`（Pages 向け）
 
@@ -103,19 +107,19 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 |------|------|
 | `source_table_display_names` | 設定どおりの表示名配列（未設定インデックスは空文字）。 |
 | `source_table_short_names` | 設定どおりの略称配列（未設定インデックスは空文字）。 |
-| `source_table_legend` | `["1. 表示名A", "2. 表示名B", ...]` 形式。`index.html` のメタ「元難易度表（表示名）」にそのまま使います。 |
-| `source_table_legend_short` | `["1. sl", "2. st", ...]` のように略称版。メタ「元難易度表（略称）」に使います。 |
+| `source_table_legend` | `["1. 表示名A", "2. 表示名B", ...]` 形式。`index.html` のメタ「統合難易度表（表示名）」にそのまま使います。 |
+| `source_table_legend_short` | `["1. sl", "2. st", ...]` のように略称版。メタ「統合難易度表（略称）」に使います。 |
 | `table_rows_source_file` | `build_pages_table.py` が読んだデータ JSON のファイル名（`filtered_data_enriched.json` または `filtered_data.json`）。 |
 
-**Pages トップの UI:** `docs/index.html` は **行の並び替え・キーワード／出自の難易度表チェック・列の表示**を **1 つの折りたたみパネル**（「並び替え・絞り込み・列の表示」）にまとめています（既定は閉じた状態）。フッターから **`table/filtered_header.json` へのリンク**があり、beatoraja 登録用ヘッダーをブラウザで直接開けます。**全列をチェックボックスで表示／非表示**できます。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
+**Pages トップの UI:** `docs/index.html` は **行の並び替え・キーワード／出自の難易度表チェック・列の表示**を **1 つの折りたたみパネル**（「並び替え・絞り込み・列の表示」）にまとめています（既定は閉じた状態）。フッターから **`table/filtered_header.json` へのリンク**があり、beatoraja 登録用ヘッダーをブラウザで直接開けます。**全列をチェックボックスで表示／非表示**できます。表の右端に **Chat** 列があり、行の **`md5`**（32 桁の hex）から [bms-score-viewer](https://bms-score-viewer.pages.dev/) 形式のリンク（`view?md5=…`）を生成します。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
 
-**元難易度表別の曲数サマリー:** `filter_table.py` が `level_stats.json` に書き出す集計を、**`level-stats.html`**（`./table/level_stats.json` を fetch）で表示します。トップの `index.html` は難易度表の一覧のみです。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。各元表カードの表は、同一レベルについて **曲数（SQL 後）**（`songdata.db` の条件でハッシュ交差した行）と **曲数（SQL 前）**（元表 JSON の全データ行）を並べて比較できます。フィルタがスキップされたビルドでは `level_stats.json` が無いことがあり、その場合は当該ページでエラー表示になります。
+**統合難易度表別の曲数サマリー:** `filter_table.py` が `level_stats.json` に書き出す集計を、**`level-stats.html`**（`./table/level_stats.json` を fetch）で表示します。トップの `index.html` は難易度表の一覧のみです。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。各元表カードの表は、同一レベルについて **曲数（SQL 後）**（`songdata.db` の条件でハッシュ交差した行）と **曲数（SQL 前）**（元表 JSON の全データ行）を並べて比較できます。フィルタがスキップされたビルドでは `level_stats.json` が無いことがあり、その場合は当該ページでエラー表示になります。
 
 ## 独自レベル（`custom_level_mapping`）
 
 **目的:** 難易度表 A の「レベル 12」と難易度表 B の「レベル 1」を、**同じ独自スケール上の数値（またはラベル）**に揃えたい場合に使います。
 
-- **`custom_level_mapping`:** `source_header_urls`（または正規化後のヘッダー列）と **同じ順・同じ長さを推奨**の配列。`custom_level_mapping[i]` はオブジェクトで、**キー = 元表のレベルの文字列表現**、**値 = 独自レベル**（数値・文字列・`null` の値側は JSON 任意）。
+- **`custom_level_mapping`:** **`source_tables`**（または正規化後のヘッダー URL 列）と **同じ順・同じ長さを推奨**の配列。`custom_level_mapping[i]` はオブジェクトで、**キー = 元表のレベルの文字列表現**、**値 = 独自レベル**（数値・文字列・`null` の値側は JSON 任意）。
 - **`custom_level_field`:** 出力 JSON に載せるキー名（既定 `custom_level`）。英字または `_` で始まり英数字と `_` のみ。
 - **`custom_level_source_key`:** 元表の行から読むレベル列名（既定 `level`）。
 - **`custom_level_unmapped`:** マップにキーが無かったとき。`omit`（既定） / `source` または `original` / `null`。
@@ -124,7 +128,7 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 
 ## 例: stellabms Satellite（`table_rec.html`）
 
-[stellabms の Satellite 用 `table_rec.html`](https://stellabms.xyz/sl/table_rec.html) は `<meta name="bmstable" content="header_rec.json" />` により、同ディレクトリの **`header_rec.json`** をヘッダーとして読みます。既定では `source_header_urls` に SL / ST の `table_rec.html` が並んでいます。
+[stellabms の Satellite 用 `table_rec.html`](https://stellabms.xyz/sl/table_rec.html) は `<meta name="bmstable" content="header_rec.json" />` により、同ディレクトリの **`header_rec.json`** をヘッダーとして読みます。既定の `filter_config.json` では **`source_tables`** に SL / ST の `table_rec.html` が並びます。
 
 **フィルタ後の行数が 0 に近い場合:** 元表のハッシュと **`songdata.db` の `song` に存在する行**の交差だけが残ります。さらに **`sql_where`** で BPM などを絞るため、**DB に無い譜面**や **条件不一致**は落ちます。表を埋めたい場合は **beatoraja で譜面を読み込んだうえで DB を更新**し、再度コミットしてください。
 

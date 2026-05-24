@@ -4,17 +4,17 @@
   "songdata_db": "data/songdata.db",
   "beatoraja_empty_rows_policy": "fail",
   "sql_where": "minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm",
-  "source_header_urls": [
-    "https://stellabms.xyz/sl/table_rec.html",
-    "https://stellabms.xyz/st/table_rec.html"
-  ],
-  "source_table_display_names": [
-    "Satellite",
-    "Stella"
-  ],
-  "source_table_short_names": [
-    "sl",
-    "st"
+  "source_tables": [
+    {
+      "header_url": "https://stellabms.xyz/sl/table_rec.html",
+      "display_name": "Satellite",
+      "short_name": "sl"
+    },
+    {
+      "header_url": "https://stellabms.xyz/st/table_rec.html",
+      "display_name": "Stella",
+      "short_name": "st"
+    }
   ],
   "source_header_url": "",
   "source_data_url": "",

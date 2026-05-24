@@ -12,6 +12,8 @@ import os
 import sys
 from typing import Any
 
+from source_tables import normalize_source_tables
+
 
 def _load_json(path: str) -> Any:
     with open(path, encoding="utf-8") as f:
@@ -32,9 +34,8 @@ def main() -> int:
         print("smoke: enabled=false のためスキップ", file=sys.stderr)
         return 0
 
-    urls = cfg.get("source_header_urls")
-    one = str(cfg.get("source_header_url") or "").strip()
-    has_src = (isinstance(urls, list) and any(str(u).strip() for u in urls)) or bool(one)
+    header_urls, _, _ = normalize_source_tables(cfg)
+    has_src = bool(header_urls)
     if not has_src:
         print("smoke: 元表 URL が空のためフィルタ未実行想定でスキップ", file=sys.stderr)
         return 0
