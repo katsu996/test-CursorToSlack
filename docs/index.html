@@ -2,6 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
+  <!-- beatoraja: Table URL にサイトのトップ（.json で終わらない URL）を入れたとき、jbmstable-parser がこの meta からヘッダー JSON を解決する -->
+  <meta name="bmstable" content="table/filtered_header.json" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>難易度表ビューア（等速 BPM フィルタ）</title>
   <style>
@@ -157,7 +159,8 @@
     <h1>難易度表（songdata 突合・一覧）</h1>
     <p class="lead">
       Actions で <code>songdata.db</code> の条件（現在: 等速 BPM = <code>minbpm = maxbpm</code>）に合う行だけに絞った難易度表と、ローカル DB の <code>song</code> 列を表示します。
-      beatoraja の Table URL には <code>table/filtered_header.json</code> を登録してください。
+      beatoraja の Table URL は、推奨どおり <code>…/table/filtered_header.json</code> の HTTPS URL を登録してください。
+      サイトのトップ（<code>…/</code> または <code>…/index.html</code>）だけを登録する場合も、本ページの <code>bmstable</code> メタから同じヘッダーを解決できます。
     </p>
     <div id="meta" class="meta" hidden>
       <dl id="meta-dl"></dl>

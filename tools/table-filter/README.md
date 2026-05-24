@@ -26,6 +26,7 @@
 - **`custom_level_mapping`**, **`custom_level_field`**, **`custom_level_source_key`**, **`custom_level_unmapped`**: 元表ごとのレベルを独自列に写す（詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)）。
 - **`enabled`**, **`skip_if_no_songdata`**: フィルタのスキップ挙動。詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)。
 - **`output_dir`**, **`output_data_filename`**, **`output_data_enriched_filename`**, **`output_header_filename`**, **`output_level_stats_filename`**: 出力先とファイル名（既定は `docs/table/` 配下、`level_stats.json` はレベル別集計用）。
+- **`output_header_name`**: 任意。合成ヘッダー JSON の **`name` が空**のときに使う表示名（空ならスクリプト既定の英語名）。beatoraja の `TableData.validate()` で `name` が必須のため。
 - **`beatoraja_strip_chart_keys`**: beatoraja 向け `filtered_data.json` から除くキー（未指定時は `source_*` 出自列に加え `id`）。空配列なら除去しない。
 
 ## ローカル実行
