@@ -8,12 +8,79 @@
   <title>K Original</title>
   <style>
     :root {
+      color-scheme: light dark;
       --bg: #f6f7f9;
       --card: #fff;
       --border: #d0d7de;
       --text: #1f2328;
       --muted: #59636e;
       --accent: #0969da;
+      --input-bg: #fff;
+      --table-th: #eaeef2;
+      --row-even: #fafbfc;
+      --row-hover: #f0f6ff;
+      --code-bg: #f0f3f6;
+      --err-bg: #ffebe9;
+      --err-text: #cf222e;
+      --group-t-bg: #dbeafe;
+      --group-d-bg: #dcfce7;
+      --colpick-hover: #fafbfc;
+    }
+    @media (prefers-color-scheme: dark) {
+      html:not(.theme-light) {
+        --bg: #0d1117;
+        --card: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --input-bg: #0d1117;
+        --table-th: #21262d;
+        --row-even: #161b22;
+        --row-hover: #1c2128;
+        --code-bg: #21262d;
+        --err-bg: #3d1418;
+        --err-text: #f85149;
+        --group-t-bg: #1a2f4a;
+        --group-d-bg: #15281f;
+        --colpick-hover: #21262d;
+      }
+    }
+    html.theme-dark {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --input-bg: #0d1117;
+      --table-th: #21262d;
+      --row-even: #161b22;
+      --row-hover: #1c2128;
+      --code-bg: #21262d;
+      --err-bg: #3d1418;
+      --err-text: #f85149;
+      --group-t-bg: #1a2f4a;
+      --group-d-bg: #15281f;
+      --colpick-hover: #21262d;
+    }
+    html.theme-light {
+      --bg: #f6f7f9;
+      --card: #fff;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --muted: #59636e;
+      --accent: #0969da;
+      --input-bg: #fff;
+      --table-th: #eaeef2;
+      --row-even: #fafbfc;
+      --row-hover: #f0f6ff;
+      --code-bg: #f0f3f6;
+      --err-bg: #ffebe9;
+      --err-text: #cf222e;
+      --group-t-bg: #dbeafe;
+      --group-d-bg: #dcfce7;
+      --colpick-hover: #fafbfc;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,7 +92,30 @@
       line-height: 1.5;
     }
     .wrap { max-width: 100%; margin: 0 auto; }
-    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
+    .site-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    h1 { font-size: 1.35rem; margin: 0; }
+    .theme-toggle {
+      flex-shrink: 0;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.82rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      line-height: 1.2;
+    }
+    .theme-toggle:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
     .lead { color: var(--muted); margin: 0 0 1rem; font-size: 0.95rem; }
     .meta {
       background: var(--card);
@@ -48,7 +138,7 @@
       position: sticky;
       top: 0;
       z-index: 5;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
     .sortbar label { font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
     .sortbar select {
@@ -57,12 +147,21 @@
       border-radius: 6px;
       font-size: 0.88rem;
       min-width: 10rem;
-      background: #fff;
+      background: var(--input-bg);
+      color: var(--text);
     }
     .toolbar {
       display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
       margin-bottom: 0.75rem;
     }
+    .filter-src {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem 1rem;
+      margin-bottom: 0.65rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    .filter-src label { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; user-select: none; }
+    .filter-src input { margin: 0; }
     .toolbar label { font-size: 0.88rem; color: var(--muted); }
     #q {
       flex: 1 1 12rem;
@@ -71,6 +170,8 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 0.9rem;
+      background: var(--input-bg);
+      color: var(--text);
     }
     .colbar {
       background: var(--card);
@@ -114,7 +215,7 @@
       border: 1px solid transparent;
       user-select: none;
     }
-    label.colpick:hover { border-color: var(--border); background: #fafbfc; }
+    label.colpick:hover { border-color: var(--border); background: var(--colpick-hover); }
     label.colpick input { margin: 0; }
     .scroll {
       overflow: auto;
@@ -136,32 +237,30 @@
       vertical-align: top;
     }
     th {
-      background: #eaeef2;
+      background: var(--table-th);
       position: sticky;
       top: 0;
       z-index: 2;
       font-weight: 600;
     }
-    th.group-t { background: #dbeafe; }
-    th.group-d { background: #dcfce7; }
-    tr:nth-child(even) td { background: #fafbfc; }
-    tr:hover td { background: #f0f6ff; }
+    th.group-t { background: var(--group-t-bg); }
+    th.group-d { background: var(--group-d-bg); }
+    tr:nth-child(even) td { background: var(--row-even); }
+    tr:hover td { background: var(--row-hover); }
     td.num { text-align: right; font-variant-numeric: tabular-nums; }
     td.empty { color: #8c959f; }
     a { color: var(--accent); }
-    .err { color: #cf222e; padding: 1rem; background: #ffebe9; border-radius: 8px; }
-    code { background: #f0f3f6; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
+    .err { color: var(--err-text); padding: 1rem; background: var(--err-bg); border-radius: 8px; }
+    code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
     footer { margin-top: 1.25rem; font-size: 0.82rem; color: var(--muted); }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1 id="site-h1">K Original</h1>
-    <p class="lead">
-      Actions で <code>songdata.db</code> の SQL 条件に合う行へ絞り込んだ難易度表と、ローカル DB の <code>song</code> 列を表示します。
-      beatoraja の Table URL は、推奨どおり <code>…/table/filtered_header.json</code> の HTTPS URL を登録してください。
-      サイトのトップ（<code>…/</code> または <code>…/index.html</code>）だけを登録する場合も、本ページの <code>bmstable</code> メタから同じヘッダーを解決できます。
-    </p>
+    <header class="site-header">
+      <h1 id="site-h1">K Original</h1>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="配色を切り替え">自動</button>
+    </header>
     <div id="meta" class="meta" hidden>
       <dl id="meta-dl"></dl>
     </div>
@@ -181,9 +280,10 @@
       <input type="search" id="q" placeholder="タイトル・ハッシュなど" autocomplete="off" disabled />
       <span id="count" class="lead" style="margin:0"></span>
     </div>
+    <div id="filter-src-bar" class="filter-src" hidden></div>
     <div id="colbar" class="colbar" hidden>
       <p class="colbar-lead">
-        列の表示切替（1 列ごとにチェック）。初期状態は従来どおり表示していた列のみオンです。追加の列にチェックを入れると表に出ます。
+        列の表示切替（1 列ごとにチェック）。追加の列にチェックを入れると表に出ます。
       </p>
       <div id="colbar-inner"></div>
     </div>
@@ -200,6 +300,48 @@
   </div>
   <script>
 (function () {
+  var THEME_STORAGE = "k-original-color-scheme";
+
+  function applyThemeClass(mode) {
+    var html = document.documentElement;
+    html.classList.remove("theme-light", "theme-dark");
+    if (mode === "light") html.classList.add("theme-light");
+    else if (mode === "dark") html.classList.add("theme-dark");
+  }
+
+  function storedThemeMode() {
+    var v = localStorage.getItem(THEME_STORAGE);
+    if (v === "light" || v === "dark") return v;
+    return "system";
+  }
+
+  function setThemeButtonLabel(btn, mode) {
+    if (!btn) return;
+    var label = mode === "light" ? "ライト" : mode === "dark" ? "ダーク" : "自動";
+    btn.textContent = label;
+    btn.setAttribute("aria-label", "配色: " + label + "（クリックで切替）");
+    btn.title = "配色: " + label + "（クリックで 自動→ライト→ダーク→自動）";
+  }
+
+  function initThemeToggle() {
+    var mode = storedThemeMode();
+    applyThemeClass(mode === "system" ? null : mode);
+    var btn = document.getElementById("theme-toggle");
+    setThemeButtonLabel(btn, mode);
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var cur = storedThemeMode();
+      var next = cur === "system" ? "light" : cur === "light" ? "dark" : "system";
+      if (next === "system") localStorage.removeItem(THEME_STORAGE);
+      else localStorage.setItem(THEME_STORAGE, next);
+      var m = storedThemeMode();
+      applyThemeClass(m === "system" ? null : m);
+      setThemeButtonLabel(btn, m);
+    });
+  }
+
+  initThemeToggle();
+
   /** 既定でオフにする列（チェックボックスで表示可能） */
   var HIDDEN_KEYS = {
     id: true,
@@ -285,7 +427,8 @@
     return first.concat(rest);
   }
 
-  function defaultColumnVisible(k) {
+  function defaultColumnVisible(k, section) {
+    if (section === "db" && (k === "title" || k === "artist")) return false;
     return !HIDDEN_KEYS[k];
   }
 
@@ -332,6 +475,7 @@
 
   var metaEl = document.getElementById("meta");
   var metaDl = document.getElementById("meta-dl");
+  var filterSrcBar = document.getElementById("filter-src-bar");
   var errEl = document.getElementById("err");
   var scrollEl = document.getElementById("scroll");
   var colbarEl = document.getElementById("colbar");
@@ -393,10 +537,88 @@
 
       var allTKeys = collectAllKeys(rows, "table");
       var allDKeys = collectAllKeys(rows, "db");
+      var metaShorts = Array.isArray(meta.source_table_short_names) ? meta.source_table_short_names : [];
+      var metaDisplays = Array.isArray(meta.source_table_display_names) ? meta.source_table_display_names : [];
+      var sourceFilterState = {};
+
+      function buildSourceFilterBar() {
+        sourceFilterState = {};
+        if (!filterSrcBar) return;
+        var entries = [];
+        for (var si = 0; si < metaShorts.length; si++) {
+          var sh = String(metaShorts[si] || "").trim();
+          if (!sh) continue;
+          var dn = si < metaDisplays.length && String(metaDisplays[si] || "").trim()
+            ? String(metaDisplays[si]).trim()
+            : sh;
+          entries.push({ short: sh, label: dn });
+        }
+        if (!entries.length) {
+          filterSrcBar.hidden = true;
+          return;
+        }
+        filterSrcBar.innerHTML = "";
+        var lead = document.createElement("span");
+        lead.textContent = "難易度表（チェックした表のみ表示）:";
+        filterSrcBar.appendChild(lead);
+        entries.forEach(function (e) {
+          sourceFilterState[e.short] = true;
+          var lab = document.createElement("label");
+          var inp = document.createElement("input");
+          inp.type = "checkbox";
+          inp.checked = true;
+          inp.addEventListener("change", function () {
+            sourceFilterState[e.short] = inp.checked;
+            refresh();
+          });
+          lab.appendChild(inp);
+          lab.appendChild(document.createTextNode(e.short + "（" + e.label + "）"));
+          filterSrcBar.appendChild(lab);
+        });
+        filterSrcBar.hidden = false;
+      }
+
+      function rowSourceTags(r) {
+        var t = r.table || {};
+        var out = {};
+        var shorts = t.source_table_short_names;
+        if (Array.isArray(shorts)) {
+          for (var ri = 0; ri < shorts.length; ri++) {
+            var s = String(shorts[ri] || "").trim();
+            if (s) out[s] = true;
+          }
+        }
+        if (!Object.keys(out).length && t.source_table_index != null && metaShorts.length) {
+          var ix = Number(t.source_table_index);
+          if (Number.isFinite(ix) && ix >= 1 && ix <= metaShorts.length) {
+            var fb = String(metaShorts[ix - 1] || "").trim();
+            if (fb) out[fb] = true;
+          }
+        }
+        return out;
+      }
+
+      function applySourceFilter(base) {
+        var enabled = [];
+        Object.keys(sourceFilterState).forEach(function (k) {
+          if (sourceFilterState[k]) enabled.push(k);
+        });
+        if (!enabled.length) return base.slice();
+        return base.filter(function (r) {
+          var tags = rowSourceTags(r);
+          for (var ei = 0; ei < enabled.length; ei++) {
+            if (tags[enabled[ei]]) return true;
+          }
+          return false;
+        });
+      }
+
+      buildSourceFilterBar();
+
       var visT = {};
       var visD = {};
-      allTKeys.forEach(function (k) { visT[k] = defaultColumnVisible(k); });
-      allDKeys.forEach(function (k) { visD[k] = defaultColumnVisible(k); });
+      allTKeys.forEach(function (k) { visT[k] = defaultColumnVisible(k, "table"); });
+      allDKeys.forEach(function (k) { visD[k] = defaultColumnVisible(k, "db"); });
 
       function visibleKeys(allKeys, vis) {
         return allKeys.filter(function (k) { return vis[k]; });
@@ -558,7 +780,7 @@
       }
 
       function refresh() {
-        render(applySort(applySearch()));
+        render(applySort(applySourceFilter(applySearch())));
       }
 
       buildColPicker();
