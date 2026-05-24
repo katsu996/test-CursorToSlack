@@ -22,7 +22,7 @@
   "output_data_filename": "filtered_data.json",
   "output_data_enriched_filename": "filtered_data_enriched.json",
   "output_header_filename": "filtered_header.json",
-  "output_header_name": "K Original",
+  "output_header_name": "K Original難易度表",
   "_output_header_name_comment": "beatoraja の表名（filtered_header.json の name）および Pages トップのタイトル。空でないときは元ヘッダーの name より優先されます。",
   "output_level_stats_filename": "level_stats.json",
   "use_relative_data_url": true,

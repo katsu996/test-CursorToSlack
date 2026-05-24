@@ -3,45 +3,81 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>K Original — レベル別の曲数</title>
+  <title>K Original難易度表 — レベル別の曲数</title>
   <style>
-    :root {
-      --bg: #f6f7f9;
-      --card: #fff;
-      --border: #d0d7de;
-      --text: #1f2328;
-      --muted: #59636e;
-      --accent: #0969da;
+    /* index と同系の shadcn/ui（zinc）風トークン（OS の明暗に追従） */
+    html {
+      color-scheme: light dark;
+      --background: 0 0% 100%;
+      --foreground: 240 10% 3.9%;
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 3.9%;
+      --muted: 240 4.8% 95.9%;
+      --muted-foreground: 240 3.8% 46.1%;
+      --border: 240 5.9% 90%;
+      --radius: 0.5rem;
+      --link: 221 83% 53%;
+      --destructive: 0 84.2% 60.2%;
+    }
+    @media (prefers-color-scheme: dark) {
+      html {
+        --background: 240 10% 3.9%;
+        --foreground: 0 0% 98%;
+        --card: 240 10% 3.9%;
+        --card-foreground: 0 0% 98%;
+        --muted: 240 3.7% 15.9%;
+        --muted-foreground: 240 5% 64.9%;
+        --border: 240 3.7% 15.9%;
+        --link: 217 91% 60%;
+        --destructive: 0 62.8% 30.6%;
+      }
     }
     * { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
       margin: 0;
       padding: 1rem 1rem 2rem;
-      background: var(--bg);
-      color: var(--text);
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
       line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
     .wrap { max-width: 100%; margin: 0 auto; }
-    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
-    .lead { color: var(--muted); margin: 0 0 1rem; font-size: 0.95rem; }
-    .nav { margin-bottom: 1rem; font-size: 0.9rem; }
-    .nav a { color: var(--accent); }
+    h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.025em; margin: 0 0 0.5rem; }
+    .lead { color: hsl(var(--muted-foreground)); margin: 0 0 1rem; font-size: 0.875rem; }
+    .nav { margin-bottom: 1rem; font-size: 0.875rem; }
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      height: 2.25rem;
+      padding: 0 0.75rem;
+      border-radius: calc(var(--radius) - 2px);
+      font-weight: 500;
+      color: hsl(var(--foreground));
+      border: 1px solid hsl(var(--border));
+      background: hsl(var(--card));
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      text-decoration: none;
+      transition: background-color 0.15s;
+    }
+    .nav a:hover { background-color: hsl(var(--muted)); }
     .meta {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background-color: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
       padding: 0.75rem 1rem;
       margin-bottom: 1rem;
-      font-size: 0.88rem;
+      font-size: 0.8125rem;
     }
     .meta dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; }
-    .meta dt { color: var(--muted); }
+    .meta dt { color: hsl(var(--muted-foreground)); font-weight: 500; }
     .meta dd { margin: 0; word-break: break-all; }
     .level-stats {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background-color: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
       padding: 0.75rem 1rem 1rem;
       margin-bottom: 1rem;
     }
@@ -56,10 +92,10 @@
       gap: 0.75rem;
     }
     .level-stats-card {
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
       padding: 0.55rem 0.65rem;
-      background: #fafbfc;
+      background-color: hsl(var(--muted) / 0.35);
       min-width: 0;
     }
     .level-stats-card h3 {
@@ -70,15 +106,15 @@
     }
     .level-stats-card .level-stats-sub {
       font-size: 0.76rem;
-      color: var(--muted);
+      color: hsl(var(--muted-foreground));
       margin: 0 0 0.4rem;
     }
     .level-stats-card .scroll-mini {
       overflow: auto;
       max-height: 14rem;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: #fff;
+      border-radius: calc(var(--radius) - 2px);
+      border: 1px solid hsl(var(--border));
+      background-color: hsl(var(--background));
     }
     .level-stats-card table {
       border-collapse: collapse;
@@ -87,23 +123,35 @@
       white-space: nowrap;
     }
     .level-stats-card th, .level-stats-card td {
-      border: 1px solid var(--border);
+      border: 1px solid hsl(var(--border));
       padding: 0.25rem 0.4rem;
     }
     .level-stats-card th {
-      background: #e8ecf1;
+      background-color: hsl(var(--muted));
       position: sticky;
       top: 0;
       z-index: 1;
     }
     td.num { text-align: right; font-variant-numeric: tabular-nums; }
-    .err { color: #cf222e; padding: 1rem; background: #ffebe9; border-radius: 8px; }
-    code { background: #f0f3f6; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
+    .err {
+      color: hsl(var(--destructive));
+      padding: 0.875rem 1rem;
+      background-color: hsl(var(--destructive) / 0.12);
+      border: 1px solid hsl(var(--destructive) / 0.35);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+    }
+    code {
+      background-color: hsl(var(--muted));
+      padding: 0.1em 0.35em;
+      border-radius: calc(var(--radius) - 4px);
+      font-size: 0.85em;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <p class="nav"><a href="./index.html">← K Original</a></p>
+    <p class="nav"><a href="./index.html">← K Original難易度表</a></p>
     <h1>レベル別の曲数</h1>
     <p class="lead">
       Actions が生成する <code>table/level_stats.json</code> を表示します。

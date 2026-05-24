@@ -20,7 +20,7 @@
   "output_dir": "docs/table",
   "output_data_filename": "filtered_data.json",
   "output_header_filename": "filtered_header.json",
-  "output_header_name": "K Original",
+  "output_header_name": "K Original難易度表",
   "site_base_url": "",
   "use_relative_data_url": true,
   "custom_level_mapping": [],
