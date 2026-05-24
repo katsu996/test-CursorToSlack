@@ -185,22 +185,42 @@
     return d.innerHTML;
   }
 
+  /** title 属性用（HTML エスケープ） */
+  function escAttr(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/\r?\n/g, " ");
+  }
+
+  /** 難易度表 JSON の長文になりやすい列（幅を抑える） */
+  function isTableClampKey(k) {
+    return k === "title" || k === "note";
+  }
+
   /** 難易度表行の MD5 から bms-score-viewer へのリンク（表の右端列） */
-  function chatCellHtml(table) {
+  function chartCellHtml(table) {
     var m = table && table.md5 != null ? String(table.md5).trim().toLowerCase() : "";
     if (!/^[0-9a-f]{32}$/.test(m)) {
       return '<td class="empty">—</td>';
     }
     var href = "https://bms-score-viewer.pages.dev/view?md5=" + encodeURIComponent(m);
-    return '<td class="chat-cell"><a href="' + esc(href) + '" rel="noopener noreferrer">Chat</a></td>';
+    return '<td class="chart-cell"><a href="' + esc(href) + '" rel="noopener noreferrer">Chart</a></td>';
   }
 
-  function cellHtml(val) {
+  function cellHtml(val, section, key) {
+    var clamp = section === "table" && key && isTableClampKey(key);
+    var clsExtra = clamp ? " cell-max" : "";
     var t = fmt(val);
-    if (!t) return '<td class="empty">—</td>';
-    if (/^https?:\/\//i.test(t)) return '<td><a href="' + esc(t) + '" rel="noopener noreferrer">' + esc(t) + "</a></td>";
+    if (!t) return '<td class="empty' + clsExtra + '">—</td>';
+    if (/^https?:\/\//i.test(t)) {
+      return '<td class="' + (clamp ? "cell-max " : "") + '"><a href="' + esc(t) + '" rel="noopener noreferrer">' + esc(t) + "</a></td>";
+    }
     var num = isNumericLike(val);
-    return '<td class="' + (num ? "num" : "") + '">' + esc(t) + "</td>";
+    var base = num ? "num" : "";
+    var tit = clamp && t.length ? ' title="' + escAttr(t) + '"' : "";
+    return '<td class="' + base + clsExtra + '"' + tit + ">" + esc(t) + "</td>";
   }
 
   function getSortValue(r, spec) {
@@ -402,17 +422,17 @@
         thD.className = "group-d";
         thD.textContent = "songdata.db（song）の列";
         trh1.appendChild(thD);
-        var thChat = document.createElement("th");
-        thChat.colSpan = 1;
-        thChat.className = "group-chat";
-        thChat.textContent = "Chat";
-        trh1.appendChild(thChat);
+        var thChart = document.createElement("th");
+        thChart.colSpan = 1;
+        thChart.className = "group-chart";
+        thChart.textContent = "Chart";
+        trh1.appendChild(thChart);
         thead.appendChild(trh1);
 
         var trh2 = document.createElement("tr");
         vTKeys.forEach(function (k) {
           var th = document.createElement("th");
-          th.className = "group-t";
+          th.className = "group-t" + (isTableClampKey(k) ? " cell-max" : "");
           th.textContent = tableColTitle(k);
           trh2.appendChild(th);
         });
@@ -434,10 +454,10 @@
           th1.textContent = "（DB列なし）";
           trh2.appendChild(th1);
         }
-        var thChat2 = document.createElement("th");
-        thChat2.className = "group-chat";
-        thChat2.textContent = "Chat";
-        trh2.appendChild(thChat2);
+        var thChart2 = document.createElement("th");
+        thChart2.className = "group-chart";
+        thChart2.textContent = "Chart";
+        trh2.appendChild(thChart2);
         thead.appendChild(trh2);
       }
 
@@ -528,14 +548,14 @@
           var t = r.table || {};
           var d = r.db || {};
           vTKeys.forEach(function (k) {
-            tr.insertAdjacentHTML("beforeend", cellHtml(t[k]));
+            tr.insertAdjacentHTML("beforeend", cellHtml(t[k], "table", k));
           });
           if (!vTKeys.length) tr.insertAdjacentHTML("beforeend", "<td class=\"empty\">—</td>");
           vDKeys.forEach(function (k) {
-            tr.insertAdjacentHTML("beforeend", cellHtml(d ? d[k] : ""));
+            tr.insertAdjacentHTML("beforeend", cellHtml(d ? d[k] : "", "db", k));
           });
           if (!vDKeys.length) tr.insertAdjacentHTML("beforeend", "<td class=\"empty\">—</td>");
-          tr.insertAdjacentHTML("beforeend", chatCellHtml(t));
+          tr.insertAdjacentHTML("beforeend", chartCellHtml(t));
           tbody.appendChild(tr);
         });
         countEl.textContent = list.length + " / " + rows.length + " 行を表示";
