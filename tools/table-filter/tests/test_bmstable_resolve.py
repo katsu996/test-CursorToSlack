@@ -20,6 +20,21 @@ class TestBmstableResolve(unittest.TestCase):
         u = filter_table._resolve_bmstable_header_url("https://example.com/tables/page.html")
         self.assertEqual(u, "https://example.com/tables/sub/header.json")
 
+    @mock.patch.object(filter_table, "fetch_bytes")
+    def test_resolve_from_directory_url_html(self, fb: mock.MagicMock) -> None:
+        """末尾が / のときも HTML として bmstable を解決する（.json 誤認を防ぐ）。"""
+        fb.return_value = (
+            b'<html><head><meta name="bmstable" content="header.json" /></head></html>'
+        )
+        u = filter_table._resolve_bmstable_header_url("https://example.com/table/archive/x/")
+        self.assertEqual(u, "https://example.com/table/archive/x/header.json")
+
+    @mock.patch.object(filter_table, "fetch_bytes")
+    def test_resolve_json_body_without_json_suffix(self, fb: mock.MagicMock) -> None:
+        fb.return_value = b' { "name": "T" } \n'
+        u = filter_table._resolve_bmstable_header_url("https://example.com/api/header")
+        self.assertEqual(u, "https://example.com/api/header")
+
     def test_json_url_passthrough(self) -> None:
         self.assertEqual(
             filter_table._resolve_bmstable_header_url("https://example.com/h.json"),
