@@ -119,14 +119,14 @@
       <dl id="meta-dl"></dl>
     </div>
     <div class="sortbar">
-      <label for="sort-col">並び替え列</label>
+      <label for="sort-col">行の並び替え（基準列）</label>
       <select id="sort-col" disabled>
-        <option value="">元の順（難易度表 JSON の並び）</option>
+        <option value="">元の順（データの行順）</option>
       </select>
       <label for="sort-dir">順序</label>
       <select id="sort-dir" disabled>
-        <option value="asc">昇順（A→Z / 小→大）</option>
-        <option value="desc">降順（Z→A / 大→小）</option>
+        <option value="asc">昇順</option>
+        <option value="desc">降順</option>
       </select>
     </div>
     <div class="toolbar">
@@ -184,11 +184,11 @@
     return typeof val === "number" && Number.isFinite(val);
   }
 
-  function collectVisibleKeys(rows, key) {
+  /** 表示列の順序: よく使うキーを先頭、その他はキー名の A→Z（PR #10 以前の方針） */
+  function collectKeys(rows, key) {
     var s = {};
     for (var i = 0; i < rows.length; i++) {
-      var r = rows[i];
-      var o = r[key];
+      var o = rows[i][key];
       if (o && typeof o === "object") {
         var ks = Object.keys(o);
         for (var j = 0; j < ks.length; j++) {
@@ -197,13 +197,21 @@
         }
       }
     }
+    var tablePri = ["id", "title", "artist", "level", "md5", "sha256", "url", "url_diff"];
+    var dbPriFull = [
+      "title", "subtitle", "artist", "genre", "path", "minbpm", "maxbpm", "notes", "length", "level",
+      "difficulty", "md5", "sha256", "folder", "preview", "banner", "stagefile", "backbmp", "tag",
+      "subartist", "parent", "mode", "judge", "feature", "content", "date", "adddate", "favorite", "charthash"
+    ];
+    var dbPri = dbPriFull.filter(function (k) { return !HIDDEN_KEYS[k]; });
+    var pri = key === "table" ? tablePri : dbPri;
+    var first = [];
+    for (var p = 0; p < pri.length; p++) {
+      if (s[pri[p]]) first.push(pri[p]);
+    }
     var arr = Object.keys(s);
-    arr.sort(function (a, b) {
-      var la = key === "table" ? tableColTitle(a) : dbColTitle(a);
-      var lb = key === "table" ? tableColTitle(b) : dbColTitle(b);
-      return la.localeCompare(lb, "ja", { sensitivity: "base", numeric: true });
-    });
-    return arr;
+    var rest = arr.filter(function (k) { return pri.indexOf(k) < 0; }).sort();
+    return first.concat(rest);
   }
 
   function esc(s) {
@@ -291,8 +299,8 @@
       });
       metaEl.hidden = metaDl.children.length === 0;
 
-      var tKeys = collectVisibleKeys(rows, "table");
-      var dKeys = collectVisibleKeys(rows, "db");
+      var tKeys = collectKeys(rows, "table");
+      var dKeys = collectKeys(rows, "db");
 
       var trh1 = document.createElement("tr");
       var thT = document.createElement("th");
@@ -359,6 +367,14 @@
         });
       }
       fillSortSelect();
+      if (tKeys.indexOf("title") >= 0) {
+        sortCol.value = "table:title";
+      } else if (dKeys.indexOf("title") >= 0) {
+        sortCol.value = "db:title";
+      } else {
+        sortCol.value = "";
+      }
+      sortDir.value = "asc";
       sortCol.disabled = false;
       sortDir.disabled = false;
 
