@@ -146,5 +146,6 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 | **Actions・Python スクリプトの処理内容**（フィルタ、マージ、制限） | [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) |
 | `docs/` ディレクトリの役割（公開ルート） | [docs/README.md](docs/README.md) |
 | フィルタの CLI・設定キーの開発者向けメモ | [tools/table-filter/README.md](tools/table-filter/README.md) |
+| 保守・改善バックログ（優先順位付き） | [todo.md](todo.md) |
 
 ワークフロー定義: [.github/workflows/pages.yml](.github/workflows/pages.yml)
