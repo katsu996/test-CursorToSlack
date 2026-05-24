@@ -3,6 +3,7 @@
 ここに置いたファイルが `https://<ユーザー>.github.io/<リポジトリ名>/` から配信されます。
 
 - **トップページ**（`index.html`）: Actions 実行後、`table/browser_rows.json` を読み込み、難易度表＋`songdata.db` の列を表形式で表示します（`filter_config.json` の `custom_level_mapping` で付与した独自レベル列も含みます）。
+- **レベル別曲数**（`level-stats.html`）: `table/level_stats.json` を読み込み、元難易度表ごとのレベル別件数を表示します（トップとは別 URL）。
 - **Jekyll を無効にする:** `.nojekyll`
 
 ## 運用（手動作業）

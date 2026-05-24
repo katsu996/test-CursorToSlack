@@ -21,12 +21,12 @@
 | 順序 | 処理 | 入力 | 主な出力 |
 |------|------|------|----------|
 | 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`SITE_BASE_URL`（環境変数）、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
-| 2 | `build_pages_table.py` | 同上設定、`filtered_data.json`、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の表用） |
+| 2 | `build_pages_table.py` | 同上設定、`filtered_data.json`、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の一覧表用） |
 | 3 | Pages アーティファクト | `docs/` ディレクトリ全体 | GitHub Pages にアップロード |
 
 - **`SITE_BASE_URL`:** `https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/table` が設定され、`filtered_header.json` 内の **`data_url`** が `${SITE_BASE_URL}/filtered_data.json` 形式に差し替わります。
 - **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空・`songdata.db` 不在（`skip_if_no_songdata: true`）などでも **0 で終了**し、後段の `build_pages_table.py` が続きます。
-- **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**のデータ行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です。`build_pages_table.py` がこれを読み、`browser_rows.json` の `meta.level_distribution` に埋め込みます（GitHub Pages の別枠サマリー用）。
+- **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**のデータ行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です。GitHub Pages では **`level-stats.html`** が `./table/level_stats.json` を直接読み込んで表示します（トップの `index.html` とは別 URL）。
 - **`build_pages_table.py`:** `filtered_data.json` が無い場合は **空の `browser_rows.json`**（理由を `meta` に記録）を書き、Pages デプロイは失敗させません。
 
 ## `filter_table.py` のデータフロー（概要）
@@ -54,7 +54,7 @@
 
 **重複譜面:** `md5` / `sha256` が同じ行は **1 行にまとめ**、`source_table_names` と `source_table_short_names` にだけ後続の表の表示名・略称を追記します。`source_table_index` は更新しません（先勝ち）。
 
-**GitHub Pages の `index.html`:** 列が煩雑にならないよう、`source_header_json_url` と `source_table_register_url` は **画面上は非表示**にしていますが、`filtered_data.json` には残ります。**`url` / `url_diff`** も Pages の表では既定でオフ（列表示のチェックボックスでオンにできる）です（beatoraja 用の `filtered_data.json` には元表の値が残ります）。**出自（略）**と**出自（フル）**は別列です。
+**GitHub Pages の `index.html`:** 列が煩雑にならないよう、`source_header_json_url` と `source_table_register_url` は **画面上は非表示**にしていますが、`filtered_data.json` には残ります。**`url` / `url_diff`** も Pages の表では既定でオフ（列表示のチェックボックスでオンにできる）です（beatoraja 用の `filtered_data.json` には元表の値が残ります）。**出自（略）**と**出自（フル）**は別列です。**表 ID**・**出自表（番号）**・**出自（フル）**・**フォルダID**（`song.folder`）も既定でオフです。
 
 ### `source_table_display_names`（任意）
 
@@ -74,11 +74,10 @@
 | `source_table_short_names` | 設定どおりの略称配列（未設定インデックスは空文字）。 |
 | `source_table_legend` | `["1. 表示名A", "2. 表示名B", ...]` 形式。`index.html` のメタ「元難易度表（表示名）」にそのまま使います。 |
 | `source_table_legend_short` | `["1. sl", "2. st", ...]` のように略称版。メタ「元難易度表（略称）」に使います。 |
-| `level_distribution` | （任意）`filter_table.py` が出力した `level_stats.json` の内容をそのまま埋め込み。各元表の **レベル列ごとの曲数**（マージ前・条件通過のみ）。`index.html` の「難易度表別・レベル別の曲数」枠で表示。ファイルが無い場合はキー自体を付けません。 |
 
 **Pages トップの列表示:** `docs/index.html` は **全列をチェックボックスで表示／非表示**できます。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
 
-**レベル別曲数サマリー:** メインの一覧表とは別枠で、元難易度表ごとに「レベル → 曲数」の小表を並べます。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。
+**レベル別曲数サマリー:** `filter_table.py` が `level_stats.json` に書き出す集計を、**`level-stats.html`**（`./table/level_stats.json` を fetch）で表示します。トップの `index.html` は難易度表の一覧のみです。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。フィルタがスキップされたビルドでは `level_stats.json` が無いことがあり、その場合は当該ページでエラー表示になります。
 
 ## 独自レベル（`custom_level_mapping`）
 

@@ -78,6 +78,8 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 成功したら **Settings → Pages** に表示される **サイト URL** で `index.html` が開きます。
 
+**レベル別の曲数（集計のみ）:** 同じサイトの **`level-stats.html`**（例: `https://<ユーザー>.github.io/<リポジトリ名>/level-stats.html`）を開きます。データは `table/level_stats.json` で、フィルタがスキップされたビルドではファイルが無くエラーになることがあります。
+
 ### 8. beatoraja に「絞り込み後の難易度表」を登録する
 
 **Table URL**（設定 → リソース）に、次のような **`.json` で終わる HTTPS URL** を追加し、**難易度表読み込み**を実行します。

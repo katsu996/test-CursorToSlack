@@ -6,7 +6,7 @@
 2. 指定した **元難易度表**（ヘッダー JSON の URL。HTML なら `bmstable` の meta から解決）を取得し、**そのハッシュが集合に含まれる行だけ**残した `filtered_data.json` を出力する。
 3. ヘッダー JSON の **`data_url` を GitHub Pages 上の新しい JSON の URL** に差し替えた `filtered_header.json` を出力する。
 4. `filter_table.py` は各元表について **`sql_where` 通過後・重複マージ前**の行をレベル列別に数え、`level_stats.json` を出力する（既定ファイル名は `output_level_stats_filename`）。
-5. `build_pages_table.py` が `filtered_data.json` と `song` を突き合わせ `browser_rows.json` を生成し、`level_stats.json` があれば `meta.level_distribution` に取り込む。`docs/index.html` が Pages のトップで一覧とレベル別サマリーを表示する。
+5. `build_pages_table.py` が `filtered_data.json` と `song` を突き合わせ `browser_rows.json` を生成する。`docs/index.html` が一覧を表示し、`docs/level-stats.html` が `level_stats.json` を読んでレベル別曲数を表示する。
 6. 複数の元表をマージするとき、**各行に出自情報**（`source_table_index`・`source_table_short_names`・`source_table_names` など）を付与する。同一譜面が複数表に載っている場合は `source_table_names` / `source_table_short_names` に複数の表ラベルが入る（`source_table_index` は先勝ちの表の番号のまま）。
 
 **運用で触る設定・手順**（SQL、URL、DB の置き場所、push、Table URL）は **[リポジトリ直下の README.md](../../README.md)** を参照してください。
