@@ -6,7 +6,7 @@
   "sql_where": "minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm",
   "source_tables": [
     {
-      "header_url": "https://stellabms.xyz/sl/table_rec.html",
+      "header_url": "https://stellabms.xyz/sl/table.html",
       "display_name": "Satellite",
       "short_name": "sl"
     },
@@ -14,6 +14,21 @@
       "header_url": "https://stellabms.xyz/st/table_rec.html",
       "display_name": "Stella",
       "short_name": "st"
+    },
+    {
+      "header_url": "https://stellabms.xyz/sr/table.html",
+      "display_name": "Starlight",
+      "short_name": "sr"
+    },
+    {
+      "header_url": "https://darksabun.club/table/archive/normal1/",
+      "display_name": "通常難易度表（☆）",
+      "short_name": "☆"
+    },
+    {
+      "header_url": "https://bmsnormal2.syuriken.jp/table.html",
+      "display_name": "第2通常難易度表（▽）",
+      "short_name": "▽"
     }
   ],
   "source_header_url": "",

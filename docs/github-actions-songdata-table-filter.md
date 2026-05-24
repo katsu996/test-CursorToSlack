@@ -126,9 +126,11 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 - **重複行:** 複数ソースで同一ハッシュが出た場合は **先勝ち**のソースインデックスだけがマップに使われます（2 枚目以降は `source_table_names` / `source_table_short_names` にだけ表名・略称が足され、`custom_level` は上書きしません）。
 - **`course` 内のチャート行**には現状マップを適用していません（データ配列のメイン行のみ）。
 
-## 例: stellabms Satellite（`table_rec.html`）
+## 例: stellabms（HTML からヘッダー JSON を解決）
 
-[stellabms の Satellite 用 `table_rec.html`](https://stellabms.xyz/sl/table_rec.html) は `<meta name="bmstable" content="header_rec.json" />` により、同ディレクトリの **`header_rec.json`** をヘッダーとして読みます。既定の `filter_config.json` では **`source_tables`** に SL / ST の `table_rec.html` が並びます。
+stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の `filter_config.json` の **`source_tables`** では、Satellite（`sl/table.html`）・Stella（`st/table_rec.html`）・Starlight（`sr/table.html`）に加え、[通常難易度表（☆）](https://darksabun.club/table/archive/normal1/)・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) を列挙しています。
+
+**注意:** `darksabun.club` は Cloudflare 等のボット対策があり、**GitHub Actions のランナーから HTML が取得できず**フィルタが失敗することがあります。その場合は当該ソースを一時的に外すか、取得可能なミラー・直リンクのヘッダー JSON に差し替えてください。
 
 **フィルタ後の行数が 0 に近い場合:** 元表のハッシュと **`songdata.db` の `song` に存在する行**の交差だけが残ります。さらに **`sql_where`** で BPM などを絞るため、**DB に無い譜面**や **条件不一致**は落ちます。表を埋めたい場合は **beatoraja で譜面を読み込んだうえで DB を更新**し、再度コミットしてください。
 

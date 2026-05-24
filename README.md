@@ -55,6 +55,8 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
    - **`display_name`**（任意）: 行の「出自（フル）」や Pages メタの凡例に使います。空のときはヘッダー JSON の `name` / `title` にフォールバックします。  
    - **`short_name`**（任意）: 「シンボル」列や絞り込み用（例: `sl` / `st`）。空なら略称なし扱いです。
 
+**注意（Cloudflare 等）:** 入口 URL が **ボット検証用の HTML だけ**を返し、**ヘッダー JSON が取れない**と `filter_table.py` は失敗します（GitHub Actions のランナーで起きやすい）。`darksabun.club` のように取得できない場合は、当該要素を **`source_tables` から一時的に外す**か、**ヘッダー JSON の HTTPS 直 URL**（HTML の `<meta name="bmstable">` を経由しない）に差し替えてください。
+
 **後方互換:** `source_tables` が空または無いときは、従来どおり **`source_header_urls`**（URL のみの配列）と、任意の **`source_table_display_names`** / **`source_table_short_names`**（**同じインデックスで対応**）でも動きます。
 
 **1 本だけ指定する場合:** `source_tables` を `[]` にし、**`source_header_url`** に文字列で 1 本書いても動きます。

@@ -9,7 +9,7 @@
   "sql_where_disable_identifier_whitelist": false,
   "source_tables": [
     {
-      "header_url": "https://stellabms.xyz/sl/table_rec.html",
+      "header_url": "https://stellabms.xyz/sl/table.html",
       "display_name": "Satellite",
       "short_name": "sl"
     },
@@ -17,6 +17,21 @@
       "header_url": "https://stellabms.xyz/st/table_rec.html",
       "display_name": "Stella",
       "short_name": "st"
+    },
+    {
+      "header_url": "https://stellabms.xyz/sr/table.html",
+      "display_name": "Starlight",
+      "short_name": "sr"
+    },
+    {
+      "header_url": "https://darksabun.club/table/archive/normal1/",
+      "display_name": "通常難易度表（☆）",
+      "short_name": "☆"
+    },
+    {
+      "header_url": "https://bmsnormal2.syuriken.jp/table.html",
+      "display_name": "第2通常難易度表（▽）",
+      "short_name": "▽"
     }
   ],
   "_source_tables_comment": "各要素に header_url（または url）・任意の display_name・short_name をまとめて書きます。後方互換で source_header_urls 等の分割配列も可。",
@@ -40,7 +55,10 @@
   "http_fetch_backoff_seconds": 2.0,
   "custom_level_mapping": [
     { "12": 12, "11": 11, "10": 10 },
-    { "1": 13, "2": 14, "3": 15 }
+    { "1": 13, "2": 14, "3": 15 },
+    {},
+    {},
+    {}
   ],
   "custom_level_field": "custom_level",
   "custom_level_source_key": "level",
