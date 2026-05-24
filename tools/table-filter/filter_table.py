@@ -8,6 +8,8 @@ songdata.db の song テーブルに対する WHERE 断片で許可ハッシュ�
 `source_table_short_names` があれば `source_table_short_names`（略称の配列）に優先して使う。
 
 beatoraja の songdata.db（テーブル song）を想定。実行は GitHub Actions でもローカルでも可（標準ライブラリのみ）。
+
+成功時、難易度表データに加え、元表ごとのレベル別曲数を `output_level_stats_filename`（既定: `level_stats.json`）にも書き出す。
 """
 
 from __future__ import annotations
@@ -297,6 +299,54 @@ def _row_level_lookup_keys(raw_lvl: Any) -> list[str]:
     return out
 
 
+_UNSET_LEVEL_LABEL = "(未設定)"
+
+
+def _level_bucket_for_stats(raw_lvl: Any) -> str:
+    """
+    レベル別件数集計用のバケット文字列。表 JSON の level の型揺れをできるだけ同じ桶に寄せる。
+    """
+    if raw_lvl is None:
+        return _UNSET_LEVEL_LABEL
+    if isinstance(raw_lvl, bool):
+        return str(raw_lvl).lower()
+    if isinstance(raw_lvl, int):
+        return str(raw_lvl)
+    if isinstance(raw_lvl, float):
+        if raw_lvl.is_integer():
+            return str(int(raw_lvl))
+        s = str(raw_lvl).strip()
+        return s if s else _UNSET_LEVEL_LABEL
+    s = str(raw_lvl).strip()
+    if not s:
+        return _UNSET_LEVEL_LABEL
+    try:
+        f = float(s.replace(",", ""))
+        if f.is_integer():
+            return str(int(f))
+    except ValueError:
+        pass
+    return s
+
+
+def _sort_level_stat_keys(keys: list[str]) -> list[str]:
+    """数値らしいキーを先に昇順、最後に (未設定)。"""
+
+    def sort_key(k: str) -> tuple[int, float, str]:
+        if k == _UNSET_LEVEL_LABEL:
+            return (2, 0.0, k)
+        try:
+            return (0, float(int(k)), k)
+        except ValueError:
+            pass
+        try:
+            return (1, float(k), k)
+        except ValueError:
+            return (1, 0.0, k)
+
+    return sorted(keys, key=sort_key)
+
+
 def _apply_custom_level(row: MutableMapping[str, Any], source_idx: int, cfg: Mapping[str, Any]) -> None:
     """
     source_header_urls の並びと同じインデックスのマップで、元表のレベルを独自レベル列に書き込む。
@@ -441,6 +491,8 @@ def main() -> None:
     course_parts: list[Any] = []
     total_in = 0
     total_filtered = 0
+    level_field = str(cfg.get("custom_level_source_key") or "level").strip() or "level"
+    per_source_level_stats: list[dict[str, Any]] = []
 
     if (cfg.get("source_data_url") or "").strip() and multi_source:
         print(
@@ -481,6 +533,24 @@ def main() -> None:
         total_filtered += len(filtered_part)
         print(
             f"[{idx + 1}/{len(resolved_json_urls)}] {header_json_url} データ: {len(data_obj)} -> {len(filtered_part)}"
+        )
+
+        by_level: dict[str, int] = {}
+        for row in filtered_part:
+            if not isinstance(row, dict):
+                continue
+            b = _level_bucket_for_stats(row.get(level_field))
+            by_level[b] = by_level.get(b, 0) + 1
+        sorted_level_keys = _sort_level_stat_keys(list(by_level.keys()))
+        by_level_ordered = {k: by_level[k] for k in sorted_level_keys}
+        per_source_level_stats.append(
+            {
+                "index": idx + 1,
+                "display_name": display_name,
+                "short_name": short_label,
+                "total_filtered": len(filtered_part),
+                "by_level": by_level_ordered,
+            }
         )
 
         page_or_cfg_url = header_urls_cfg[idx] if idx < len(header_urls_cfg) else ""
@@ -557,6 +627,16 @@ def main() -> None:
 
     _save_json(data_path, filtered_data)
     _save_json(header_path, new_header)
+    stats_name = str(cfg.get("output_level_stats_filename") or "level_stats.json").strip() or "level_stats.json"
+    stats_path = os.path.join(out_dir, stats_name)
+    stats_payload: dict[str, Any] = {
+        "version": 1,
+        "level_field": level_field,
+        "sql_where": sql_where,
+        "sources": per_source_level_stats,
+    }
+    _save_json(stats_path, stats_payload)
+    print(f"書き出し: {stats_path}")
     print(f"書き出し: {data_path}\n書き出し: {header_path}\n公開用 Table URL 候補: {site_base}/{header_name}")
 
 

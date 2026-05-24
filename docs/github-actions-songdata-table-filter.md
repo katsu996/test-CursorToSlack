@@ -20,12 +20,13 @@
 
 | 順序 | 処理 | 入力 | 主な出力 |
 |------|------|------|----------|
-| 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`SITE_BASE_URL`（環境変数）、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`、`filtered_header.json`（条件によりスキップ可） |
+| 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`SITE_BASE_URL`（環境変数）、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
 | 2 | `build_pages_table.py` | 同上設定、`filtered_data.json`、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の表用） |
 | 3 | Pages アーティファクト | `docs/` ディレクトリ全体 | GitHub Pages にアップロード |
 
 - **`SITE_BASE_URL`:** `https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/table` が設定され、`filtered_header.json` 内の **`data_url`** が `${SITE_BASE_URL}/filtered_data.json` 形式に差し替わります。
 - **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空・`songdata.db` 不在（`skip_if_no_songdata: true`）などでも **0 で終了**し、後段の `build_pages_table.py` が続きます。
+- **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**のデータ行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です。`build_pages_table.py` がこれを読み、`browser_rows.json` の `meta.level_distribution` に埋め込みます（GitHub Pages の別枠サマリー用）。
 - **`build_pages_table.py`:** `filtered_data.json` が無い場合は **空の `browser_rows.json`**（理由を `meta` に記録）を書き、Pages デプロイは失敗させません。
 
 ## `filter_table.py` のデータフロー（概要）
@@ -34,9 +35,10 @@
 2. 各 **元ヘッダー**を取得（URL が `.html` のときは `<meta name="bmstable">` からヘッダー JSON URL を解決）。
 3. ヘッダーの **`data_url`** を取得（相対ならヘッダー URL に `urljoin`）。単一ソースかつ **`source_data_url`** があればそちらを優先。
 4. データ配列の各行について **`md5` / `sha256`** が許可集合に含まれる行だけ残す。
-5. **複数ヘッダー**のときは、通過行を **`md5` / `sha256` で重複除去**して 1 本のデータ配列にマージ。`course` は各ヘッダー由来を **配列として連結**。合成ヘッダーは **先頭ヘッダーをベース**にし、`data_url` だけ `SITE_BASE_URL` 上の `filtered_data.json` に差し替え。
-6. マージ時、データ行の各オブジェクトに **出自の難易度表**を示すフィールドを付与する（下記「出自」節）。
-7. **`custom_level_mapping` が設定されているとき**は、**新規に採用した行**（ハッシュありで `row_by_key` に初めて入る行、およびハッシュなしの行）について、**そのループの元ヘッダーインデックス**に対応するマップで、元のレベル列（既定: `level`）を引き、**`custom_level` 列（名前は `custom_level_field`）**に書き込む（下記「独自レベル」節）。
+5. 各ソースのフィルタ通過行について、**レベル列（`custom_level_source_key`、既定 `level`）別の行数**を集計し、**重複マージより前**の件数として `level_stats.json` の `sources` に書き留める（単一ヘッダーでも同様）。
+6. **複数ヘッダー**のときは、通過行を **`md5` / `sha256` で重複除去**して 1 本のデータ配列にマージ。`course` は各ヘッダー由来を **配列として連結**。合成ヘッダーは **先頭ヘッダーをベース**にし、`data_url` だけ `SITE_BASE_URL` 上の `filtered_data.json` に差し替え。
+7. マージ時、データ行の各オブジェクトに **出自の難易度表**を示すフィールドを付与する（下記「出自」節）。
+8. **`custom_level_mapping` が設定されているとき**は、**新規に採用した行**（ハッシュありで `row_by_key` に初めて入る行、およびハッシュなしの行）について、**そのループの元ヘッダーインデックス**に対応するマップで、元のレベル列（既定: `level`）を引き、**`custom_level` 列（名前は `custom_level_field`）**に書き込む（下記「独自レベル」節）。
 
 ## `filtered_data.json` 各行の「出自の難易度表」メタデータ
 
@@ -72,8 +74,11 @@
 | `source_table_short_names` | 設定どおりの略称配列（未設定インデックスは空文字）。 |
 | `source_table_legend` | `["1. 表示名A", "2. 表示名B", ...]` 形式。`index.html` のメタ「元難易度表（表示名）」にそのまま使います。 |
 | `source_table_legend_short` | `["1. sl", "2. st", ...]` のように略称版。メタ「元難易度表（略称）」に使います。 |
+| `level_distribution` | （任意）`filter_table.py` が出力した `level_stats.json` の内容をそのまま埋め込み。各元表の **レベル列ごとの曲数**（マージ前・条件通過のみ）。`index.html` の「難易度表別・レベル別の曲数」枠で表示。ファイルが無い場合はキー自体を付けません。 |
 
 **Pages トップの列表示:** `docs/index.html` は **全列をチェックボックスで表示／非表示**できます。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
+
+**レベル別曲数サマリー:** メインの一覧表とは別枠で、元難易度表ごとに「レベル → 曲数」の小表を並べます。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。
 
 ## 独自レベル（`custom_level_mapping`）
 

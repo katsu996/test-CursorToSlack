@@ -21,6 +21,7 @@
   "output_dir": "docs/table",
   "output_data_filename": "filtered_data.json",
   "output_header_filename": "filtered_header.json",
+  "output_level_stats_filename": "level_stats.json",
   "site_base_url": "",
   "custom_level_mapping": [
     { "12": 12, "11": 11, "10": 10 },

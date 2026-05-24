@@ -179,6 +179,15 @@ def main() -> None:
         if isinstance(cfg.get("custom_level_mapping"), list)
         else 0,
     }
+
+    stats_fn = str(cfg.get("output_level_stats_filename") or "level_stats.json").strip() or "level_stats.json"
+    stats_path = os.path.join(out_dir, stats_fn)
+    if os.path.isfile(stats_path):
+        try:
+            meta["level_distribution"] = _load_json(stats_path)
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"level_stats の読み込みに失敗（無視）: {stats_path}: {e}", file=sys.stderr)
+
     _save_json(browser_path, {"meta": meta, "rows": rows_out})
     print(f"書き出し: {browser_path} （{len(rows_out)} 行、DB 一致 {meta['matched_songdata']}）")
 

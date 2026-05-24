@@ -6,3 +6,4 @@ __pycache__/
 docs/table/filtered_data.json
 docs/table/filtered_header.json
 docs/table/browser_rows.json
+docs/table/level_stats.json
