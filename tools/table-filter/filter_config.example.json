@@ -23,6 +23,8 @@
   "output_data_enriched_filename": "filtered_data_enriched.json",
   "output_header_filename": "filtered_header.json",
   "output_level_stats_filename": "level_stats.json",
+  "use_relative_data_url": true,
+  "_use_relative_data_url_comment": "false にすると data_url を絶対 URL にし、そのとき site_base_url または SITE_BASE_URL が必要",
   "site_base_url": "",
   "custom_level_mapping": [
     { "12": 12, "11": 11, "10": 10 },

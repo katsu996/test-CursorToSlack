@@ -21,6 +21,7 @@
   "output_data_filename": "filtered_data.json",
   "output_header_filename": "filtered_header.json",
   "site_base_url": "",
+  "use_relative_data_url": true,
   "custom_level_mapping": [],
   "custom_level_field": "custom_level",
   "custom_level_source_key": "level",

@@ -13,6 +13,8 @@ beatoraja の songdata.db（テーブル song）を想定。実行は GitHub Act
 
 beatoraja（jbmstable-parser）はデータ行に厳格な条件があるため、`output_data_filename`（既定 `filtered_data.json`）には
 出自メタ等を除いた行だけを書き、GitHub Pages 用の拡張列付きは `output_data_enriched_filename`（既定 `filtered_data_enriched.json`）に保存する。
+生成ヘッダーの `data_url` は既定でファイル名のみ（ヘッダー JSON と同じディレクトリから解決）とし、
+`use_relative_data_url: false` のときだけ `site_base_url` / `SITE_BASE_URL` で絶対 URL を組み立てる。
 """
 
 from __future__ import annotations
@@ -38,6 +40,8 @@ _DEFAULT_BEATORAJA_STRIP_CHART_KEYS: frozenset[str] = frozenset(
         "source_table_short_names",
         "source_header_json_url",
         "source_table_register_url",
+        # LR2 用の数値 id など、仕様外で型が揺れると不具合の原因になり得るため除外
+        "id",
     )
 )
 
@@ -437,6 +441,36 @@ def _sanitize_chart_row_for_beatoraja(row: Mapping[str, Any], strip_keys: frozen
     return {k: v for k, v in row.items() if k not in strip_keys}
 
 
+def _normalize_beatoraja_chart_row(row: MutableMapping[str, Any]) -> None:
+    """
+    jbmstable-parser / beatoraja が想定する文字列中心の形に寄せる。
+    数値の level や空タイトルは SongData.validate や getElements のソートで落ちやすい。
+    """
+    lv = row.get("level")
+    if lv is not None and not isinstance(lv, str):
+        row["level"] = str(lv).strip()
+
+    for key in ("artist", "url", "url_diff"):
+        v = row.get(key)
+        if v is None:
+            row[key] = ""
+        elif not isinstance(v, str):
+            row[key] = str(v)
+
+    t = row.get("title")
+    if t is None:
+        row["title"] = "（無題）"
+    elif not isinstance(t, str):
+        row["title"] = str(t)
+    if not str(row.get("title", "")).strip():
+        row["title"] = "（無題）"
+
+    for hkey in ("md5", "sha256"):
+        hv = row.get(hkey)
+        if hv is not None and not isinstance(hv, str):
+            row[hkey] = str(hv)
+
+
 def _row_passes_beatoraja_strict_decoder(row: Mapping[str, Any]) -> bool:
     """
     jbmstable-parser の DifficultyTableParser.decodeJSONTableData(..., accept=false)
@@ -523,9 +557,21 @@ def main() -> None:
                 file=sys.stderr,
             )
 
+    use_relative_data_url = cfg.get("use_relative_data_url", True)
+    if not isinstance(use_relative_data_url, bool):
+        use_relative_data_url = str(use_relative_data_url).strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+
     site_base = (cfg.get("site_base_url") or os.environ.get("SITE_BASE_URL") or "").strip().rstrip("/")
-    if not site_base:
-        _die("site_base_url（設定）または環境変数 SITE_BASE_URL が必要です（data_url を書き換えるため）。")
+    if not use_relative_data_url and not site_base:
+        _die(
+            "use_relative_data_url が false のときは site_base_url（設定）または "
+            "環境変数 SITE_BASE_URL が必要です（data_url を絶対 URL で書くため）。"
+        )
 
     songdata = cfg.get("songdata_db", "data/songdata.db")
     if not os.path.isfile(songdata):
@@ -676,7 +722,11 @@ def main() -> None:
     data_path = os.path.join(out_dir, data_name)
     header_path = os.path.join(out_dir, header_name)
 
-    new_header["data_url"] = f"{site_base}/{data_name}"
+    if use_relative_data_url:
+        # 元表と同様にファイル名のみ。beatoraja / jbmstable-parser はヘッダー JSON の URL を基準に解決する。
+        new_header["data_url"] = os.path.basename(data_name)
+    else:
+        new_header["data_url"] = f"{site_base}/{data_name}"
 
     _sanitize_header_for_beatoraja(new_header)
 
@@ -692,6 +742,7 @@ def main() -> None:
     beatoraja_rows: list[dict[str, Any]] = []
     for r in filtered_data:
         clean = _sanitize_chart_row_for_beatoraja(r, strip_keys)
+        _normalize_beatoraja_chart_row(clean)
         if _row_passes_beatoraja_strict_decoder(clean):
             beatoraja_rows.append(clean)
         else:
@@ -714,10 +765,17 @@ def main() -> None:
     }
     _save_json(stats_path, stats_payload)
     print(f"書き出し: {stats_path}")
+    if use_relative_data_url:
+        table_url_hint = (
+            f"Table URL にはヘッダー JSON（例: …/table/{header_name}）を登録してください。"
+            f" data_url はヘッダー URL からの相対パス: {new_header.get('data_url')!r}"
+        )
+    else:
+        table_url_hint = f"公開用 Table URL 候補: {site_base}/{header_name}"
     print(
         f"書き出し: {enriched_path}（Pages 用・拡張列あり）\n"
         f"書き出し: {data_path}（beatoraja 用・拡張列除去）\n"
-        f"書き出し: {header_path}\n公開用 Table URL 候補: {site_base}/{header_name}"
+        f"書き出し: {header_path}\n{table_url_hint}"
     )
 
 

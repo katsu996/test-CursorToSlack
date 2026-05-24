@@ -9,8 +9,8 @@
 **はい。** 次を満たせば、ランナー上で「元表を取得 → `songdata.db` に SQL → ハッシュ交差でフィルタ → `docs/table/` に JSON 出力 → `docs/` 全体を GitHub Pages にデプロイ」まで完結します。
 
 1. 実行時に **`data/songdata.db`** がリポジトリに存在する（通常はコミット済み）。
-2. 元難易度表のヘッダーが **HTTPS で取得できる**（`filter_config.json` の `source_header_urls` または `source_header_url`）。データ本体は各ヘッダーの `data_url`（**相対パスはヘッダー URL 基準で解決**）または単一ソース時の `source_data_url`。
-3. 生成ヘッダーの `data_url` を書き換える **`SITE_BASE_URL`** が分かる（ワークフローが `https://<owner>.github.io/<repo>/table` を環境変数で渡す）。
+2. 元難易度表のヘッダーが **HTTPS で取得できる**（`filter_config.json` の `source_header_urls` または `source_header_url`）。データ本体は各ヘッダーの `data_url`（**相対パスはヘッダー JSON の URL を基準に解決**）または単一ソース時の `source_data_url`。
+3. 生成ヘッダーの `data_url` は **既定でファイル名のみ**（例: `filtered_data.json`）とし、beatoraja がヘッダーと同じディレクトリ上のデータ JSON を取得できるようにします（`SITE_BASE_URL` は不要）。**絶対 URL で出したい場合のみ** `use_relative_data_url: false` と `site_base_url` / `SITE_BASE_URL` を併用します。
 
 **GitHub が提供していないもの:** ブラウザだけで手元の DB を渡す専用 UIはありません。DB は **リポジトリに載せて更新する** 想定です。
 
@@ -20,11 +20,11 @@
 
 | 順序 | 処理 | 入力 | 主な出力 |
 |------|------|------|----------|
-| 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`SITE_BASE_URL`（環境変数）、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`（beatoraja 用・拡張列除去）、`filtered_data_enriched.json`（Pages 用・出自列あり）、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
+| 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`（beatoraja 用・拡張列除去）、`filtered_data_enriched.json`（Pages 用・出自列あり）、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
 | 2 | `build_pages_table.py` | 同上設定、`filtered_data_enriched.json`（無ければ `filtered_data.json`）、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の一覧表用） |
 | 3 | Pages アーティファクト | `docs/` ディレクトリ全体 | GitHub Pages にアップロード |
 
-- **`SITE_BASE_URL`:** `https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/table` が設定され、`filtered_header.json` 内の **`data_url`** が `${SITE_BASE_URL}/filtered_data.json` 形式に差し替わります。
+- **`data_url`（生成ヘッダー）:** 既定（`use_relative_data_url` 未指定または `true`）では **`filtered_data.json` のようなファイル名のみ**を書き、jbmstable-parser が **ヘッダー JSON の URL と同じディレクトリ**からデータを取得します。`use_relative_data_url: false` のときだけ `site_base_url` または環境変数 **`SITE_BASE_URL`** が必要で、`${SITE_BASE_URL}/filtered_data.json` 形式にします。
 - **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空・`songdata.db` 不在（`skip_if_no_songdata: true`）などでも **0 で終了**し、後段の `build_pages_table.py` が続きます。
 - **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**のデータ行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です。GitHub Pages では **`level-stats.html`** が `./table/level_stats.json` を直接読み込んで表示します（トップの `index.html` とは別 URL）。
 - **`build_pages_table.py`:** `filtered_data_enriched.json` が無ければ `filtered_data.json` を読みます。どちらも無い場合は **空の `browser_rows.json`**（理由を `meta` に記録）を書き、Pages デプロイは失敗させません。
@@ -36,7 +36,7 @@
 3. ヘッダーの **`data_url`** を取得（相対ならヘッダー URL に `urljoin`）。単一ソースかつ **`source_data_url`** があればそちらを優先。
 4. データ配列の各行について **`md5` / `sha256`** が許可集合に含まれる行だけ残す。
 5. 各ソースのフィルタ通過行について、**レベル列（`custom_level_source_key`、既定 `level`）別の行数**を集計し、**重複マージより前**の件数として `level_stats.json` の `sources` に書き留める（単一ヘッダーでも同様）。
-6. **複数ヘッダー**のときは、通過行を **`md5` / `sha256` で重複除去**して 1 本のデータ配列にマージ。`course` は各ヘッダー由来を **配列として連結**。合成ヘッダーは **先頭ヘッダーをベース**にし、`data_url` だけ `SITE_BASE_URL` 上の `filtered_data.json` に差し替え。
+6. **複数ヘッダー**のときは、通過行を **`md5` / `sha256` で重複除去**して 1 本のデータ配列にマージ。`course` は各ヘッダー由来を **配列として連結**。合成ヘッダーは **先頭ヘッダーをベース**にし、`data_url` は既定で **`filtered_data.json` などファイル名のみ**（ヘッダーと同じ公開ディレクトリ上のデータを指す）。
 7. マージ時、データ行の各オブジェクトに **出自の難易度表**を示すフィールドを付与する（下記「出自」節）。
 8. **`custom_level_mapping` が設定されているとき**は、**新規に採用した行**（ハッシュありで `row_by_key` に初めて入る行、およびハッシュなしの行）について、**そのループの元ヘッダーインデックス**に対応するマップで、元のレベル列（既定: `level`）を引き、**`custom_level` 列（名前は `custom_level_field`）**に書き込む（下記「独自レベル」節）。
 
@@ -44,10 +44,14 @@
 
 本体が使う [jbmstable-parser](https://github.com/exch-bms2/jbmstable-parser) の `DifficultyTableParser.decodeJSONTableData(..., accept=false)` は次を満たさない**データ行を黙って捨てます**（`level` が JSON `null` の行、`md5` / `sha256` の文字列長が 24 以下の行など）。
 
-- **`filtered_data.json`:** 上記に合わない行は書き出し前に除外し、GitHub Pages 用に付けた **`source_*` 系キー**も除いたオブジェクトだけを載せます（beatoraja の Table URL はこのファイルを指す `data_url` のままです）。
+- **`filtered_data.json`:** 上記に合わない行は書き出し前に除外し、GitHub Pages 用に付けた **`source_*` 系キー**も除いたオブジェクトだけを載せます。さらに **`id`（整数の LR2 用 ID など）**は既定で除外し、`level` / `title` / `artist` などは **文字列として正規化**して SongData 検証やソートでの例外を避けます。`custom_level` を beatoraja 向けから落としたい場合は **`beatoraja_strip_chart_keys`** に追加してください。
 - **`filtered_data_enriched.json`:** マージ直後の行オブジェクト（出自列などを含む）のまま保存し、**`build_pages_table.py`** がこちらを優先して読み込みます。
 - **ヘッダ `course`:** 空配列 `[]` のとき jbmstable-parser は `get(0)` で落ちるため、**空なら `course` キーごと削除**します。
-- **`beatoraja_strip_chart_keys`:** `filter_config.json` で、beatoraja 向けデータから除外するキーを配列で上書きできます。**未指定なら** `source_table_index` / `source_table_names` / `source_table_short_names` / `source_header_json_url` / `source_table_register_url` を除きます。**空配列 `[]`** なら除外しません。
+- **`beatoraja_strip_chart_keys`:** `filter_config.json` で、beatoraja 向けデータから除外するキーを配列で上書きできます。**未指定なら** `source_table_index` / `source_table_names` / `source_table_short_names` / `source_header_json_url` / `source_table_register_url` / `id` を除きます。**空配列 `[]`** なら除外しません。
+
+### HTML 入口（`docs/table/bmstable.html`）
+
+beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered_header.json`）を Table URL に足せば足ります。環境によっては **HTML の meta 経由**の方が安定する場合があるため、**`docs/table/bmstable.html`** に `<meta name="bmstable" content="filtered_header.json">` を置いています。必要なら Table URL に **`…/table/bmstable.html`** を登録してください。
 
 ## `filtered_data_enriched.json` / `filtered_data.json` 各行の「出自の難易度表」メタデータ
 

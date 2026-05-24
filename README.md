@@ -88,6 +88,10 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 （`<owner>` と `<repo>` は実際の値に置き換えてください。）
 
+生成される `filtered_header.json` の **`data_url` は既定で `filtered_data.json` のみ**（ヘッダーと同じパス上の相対指定）です。`SITE_BASE_URL` の誤りでデータが取れない問題を避けるための挙動です。**絶対 URL で出したい場合**は `tools/table-filter/filter_config.json` で **`use_relative_data_url` を `false`** にし、**`site_base_url`**（またはローカルでは環境変数 **`SITE_BASE_URL`**）をセットしてください。
+
+**HTML 経由が必要なクライアント**では、同じ `docs/table/` にある **`bmstable.html`** の URL（例: `…/table/bmstable.html`）を Table URL に試すこともできます（`<meta name="bmstable" content="filtered_header.json">` でヘッダーを解決します）。
+
 ### 9. 結果がおかしいときに手動で確認すること
 
 - **Actions が赤い:** ログで `filter_table.py`（外部 URL 取得・SQL）のエラーを確認する  
@@ -112,7 +116,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **重複譜面:** 複数表で同じ `md5` / `sha256` が出た場合は **先に列挙したヘッダー側の行だけが残り**、独自レベルもそのソースのマップだけが使われます。
 
-**beatoraja の Table JSON:** `filtered_data.json` は beatoraja（jbmstable-parser）向けに、出自メタ列を除きかつパーサが弾く行を落としたものです。GitHub Pages の表は **`filtered_data_enriched.json`**（同じ行に出自列などが残る）を元に `browser_rows.json` が生成されます。`custom_level` は既定では両方に残ります。`beatoraja_strip_chart_keys` で beatoraja 側から除外するキーを上書きできます（詳細は [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md)）。
+**beatoraja の Table JSON:** `filtered_data.json` は beatoraja（jbmstable-parser）向けに、出自メタ列・`id` を除き、かつパーサが弾く行を落としたものです（`level` / `title` / `artist` などは文字列に正規化）。GitHub Pages の表は **`filtered_data_enriched.json`**（同じ行に出自列などが残る）を元に `browser_rows.json` が生成されます。`custom_level` は既定では beatoraja 向けにも残ります。不要なら `beatoraja_strip_chart_keys` に `custom_level` を追加してください。`beatoraja_strip_chart_keys` で beatoraja 側から除外するキーを上書きできます（詳細は [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md)）。
 
 詳細なデータフローは [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) を参照してください。
 
