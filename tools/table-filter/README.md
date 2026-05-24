@@ -20,13 +20,16 @@
 - **`source_table_display_names`**: 任意。`source_header_urls` と同じ長さの配列で、行の `source_table_names` と Pages メタ用の**表示名**を上書き（詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)）。
 - **`source_table_short_names`**: 任意。同じ長さの配列で、行の `source_table_short_names`（略称）と Pages メタの略称レジェンドに使う（例: `sl` / `st`）。
 - **`source_data_url`**: **単一ヘッダー時のみ**有効。データ JSON の URL でヘッダー内 `data_url` を上書き。**複数ヘッダー時は無視**（警告あり）。
-- **`sql_where`**: `SELECT ... FROM song WHERE (` の直後に連結される条件式。`minbpm` / `maxbpm` は `song` の列名。
+- **`sql_where`**, **`sql_where_preset`**, **`sql_where_disable_identifier_whitelist`**: `SELECT ... FROM song WHERE (` の断片。プリセット指定時は固定 SQL のみ。既定では識別子ホワイトリストあり（詳細は [docs/filter-config-schema.md](../../docs/filter-config-schema.md)）。
 - **`use_relative_data_url`**: 既定 `true`。`true` のとき生成ヘッダーの `data_url` は **`filtered_data.json` のようなファイル名のみ**（`SITE_BASE_URL` は不要）。`false` のときだけ **`site_base_url`**（または環境変数 **`SITE_BASE_URL`**）で絶対 URL を組み立てる。
 - **`site_base_url`**: `use_relative_data_url` が `false` のときに必須。`https://<owner>.github.io/<repo>/table` のような **ディレクトリ URL（末尾スラッシュなし）**。相対 `data_url` のときは空でよい。
 - **`custom_level_mapping`**, **`custom_level_field`**, **`custom_level_source_key`**, **`custom_level_unmapped`**: 元表ごとのレベルを独自列に写す（詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)）。
 - **`enabled`**, **`skip_if_no_songdata`**: フィルタのスキップ挙動。詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)。
 - **`output_dir`**, **`output_data_filename`**, **`output_data_enriched_filename`**, **`output_header_filename`**, **`output_level_stats_filename`**: 出力先とファイル名（既定は `docs/table/` 配下、`level_stats.json` は元難易度表別・レベル別集計用）。
-- **`output_header_name`**: 任意。合成ヘッダー JSON の **`name` が空**のときに使う表示名（空ならスクリプト既定の英語名）。beatoraja の `TableData.validate()` で `name` が必須のため。
+- **`output_header_name`**: 任意。合成ヘッダー JSON の **`name`**（beatoraja の表名）。空なら元ヘッダーまたはスクリプト既定。
+- **`page_title`**: 任意。GitHub Pages の `<title>` / 見出し（未設定時は `output_header_name`）。
+- **`beatoraja_empty_rows_policy`**: 任意。`fail`（既定）で beatoraja 向け 0 件時に `filter_table.py` が終了コード 1。
+- **`http_fetch_timeout_seconds`**, **`http_fetch_retries`**, **`http_fetch_backoff_seconds`**: 外部 URL 取得のタイムアウト・再試行。
 - **`beatoraja_strip_chart_keys`**: beatoraja 向け `filtered_data.json` から除くキー（未指定時は `source_*` 出自列に加え `id`）。空配列なら除去しない。
 
 ## ローカル実行
@@ -44,4 +47,4 @@ export SITE_BASE_URL="https://あなた.github.io/リポジトリ名/table"
 
 ## SQL インジェクション対策
 
-スクリプトは断片に `;` やコメント、`ATTACH` など一部キーワードを拒否します。それでも **信頼できる設定ファイルだけ**をリポジトリにコミットしてください。
+スクリプトは断片に `;` やコメント、`ATTACH` など一部キーワードを拒否し、**既定では `song` 列名以外の識別子**も拒否します。それでも **信頼できる設定ファイルだけ**をリポジトリにコミットしてください。高度な式が必要なときだけ **`sql_where_disable_identifier_whitelist`: true** を検討してください。

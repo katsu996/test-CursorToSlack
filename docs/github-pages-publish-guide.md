@@ -30,7 +30,7 @@ GitHub で **Public** リポジトリを作成します。名前は任意（例:
 
 | パス | 役割 |
 |------|------|
-| `.github/workflows/pages.yml` | `docs/` を GitHub Pages にデプロイするワークフロー（任意で難易度表フィルタを実行） |
+| `.github/workflows/pages.yml` | `docs/` を GitHub Pages にデプロイするワークフロー（`ruff` / `unittest` / 設定例キー検証 → 難易度表フィルタ → スモークテスト → デプロイ） |
 | `docs/.nojekyll` | Jekyll を無効化し、**そのまま静的ファイル**として配信する |
 | `docs/` 以下の JSON や HTML | 公開したい中身（難易度表 JSON はここに配置、または Actions で `docs/table/` に生成） |
 | `tools/table-filter/`（任意） | `songdata.db` と SQL で元表を絞り込む場合にコピー |

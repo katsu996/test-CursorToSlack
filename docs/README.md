@@ -16,6 +16,9 @@
 |------|----------|
 | GitHub Pages の仕組み・別リポジトリへのコピー | [github-pages-publish-guide.md](./github-pages-publish-guide.md) |
 | Actions・フィルタスクリプトの処理内容 | [github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md) |
+| beatoraja 向け難易度表 JSON の前提 | [beatoraja-jbmstable-table-json.md](./beatoraja-jbmstable-table-json.md) |
+| `filter_config.json` キー一覧 | [filter-config-schema.md](./filter-config-schema.md) |
+| フロント移行の判断材料 | [frontend-migration-costs.md](./frontend-migration-costs.md) |
 | beatoraja 楽曲 DB 仕様 | [bms-beatoraja-song-db.md](./bms-beatoraja-song-db.md) |
 | 仮想フォルダ要件 | [requirements-filtered-bms-folder-tool.md](./requirements-filtered-bms-folder-tool.md) |
 | 難易度表 URL・自作公開 | [beatoraja-difficulty-table-url-and-filtered-publish.md](./beatoraja-difficulty-table-url-and-filtered-publish.md) |

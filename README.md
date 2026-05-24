@@ -39,7 +39,13 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **NULL 行:** `minbpm` / `maxbpm` が NULL の譜面は上記のように `IS NOT NULL` を付けないと条件に入らないことがあります。
 
-**セキュリティ:** スクリプトは `;` や `ATTACH` など一部パターンを拒否しますが、**信頼できる内容だけ**をコミットしてください。
+**プリセット SQL:** **`sql_where_preset`** に `const_bpm`（等速）または `var_bpm`（変速）を書くと、**固定の安全な SQL だけ**を使います（このとき **`sql_where` は無視**されます）。
+
+**識別子の制限:** 既定では `sql_where` に現れる識別子は **`song` テーブルの列名**に限定されます。複雑な式が必要なときだけ **`sql_where_disable_identifier_whitelist` を `true`** にしてください（**信頼できる内容のみ**コミットすること）。
+
+**セキュリティ:** スクリプトは `;` や `ATTACH` など一部パターンを拒否しますが、上記のとおり**信頼できる内容だけ**をコミットしてください。
+
+**beatoraja が 0 件のとき:** **`beatoraja_empty_rows_policy`** が **`fail`（既定）**のとき、`filter_table.py` は **終了コード 1** となり Actions が失敗します（空の難易度表をデプロイしない）。緩めたい場合のみ `warn` などに変更してください。
 
 ### 4. 元難易度表の URL を変える・足す
 
@@ -56,7 +62,9 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **Pages に出す表の表示名（任意）:** **`source_table_display_names`** を `source_header_urls` と同じ長さの文字列配列で書くと、行の「出自（フル）」列と、Pages トップのメタ「元難易度表（表示名）」にその名前が使われます（stellabms の SL / ST を「Satellite」「Stella」などに変えたいとき）。**`source_table_short_names`** も同じ長さの配列で書くと、行の「シンボル」列（例: `sl` / `st`）とメタ「元難易度表（略称）」に使われます（空の要素はそのインデックスの略称なし）。**`source_table_display_names`** の空要素だけ、ヘッダー JSON の `name` / `title` にフォールバックします。Pages の **`browser_rows.json` には元 URL を載せません**（取得元 URL はこの `filter_config.json` を参照）。
 
-**合成難易度表ヘッダーの `name`（任意）:** **`output_header_name`** に文字列を書くと、**`filtered_header.json` の `name`**（beatoraja に表示される表名）と **Pages トップ（`index.html`）のタイトル**に使われます。空のときは元ヘッダーの `name` がそのまま使われ、それも空ならスクリプト既定の英語名になります。beatoraja は **`name` が空の表を拒否**します。
+**合成難易度表ヘッダーの `name`（任意）:** **`output_header_name`** に文字列を書くと、**`filtered_header.json` の `name`**（beatoraja に表示される表名）に使われます。空のときは元ヘッダーの `name` がそのまま使われ、それも空ならスクリプト既定の英語名になります。beatoraja は **`name` が空の表を拒否**します。
+
+**Pages のタイトルだけ変えたい（任意）:** **`page_title`** に文字列を書くと、GitHub Pages の **`<title>` とトップの見出し**に使われます（未設定時は `output_header_name` と同じ）。
 
 ### 5. フィルタそのものをオフにしたい・難易度表取得を止めたい
 
@@ -146,6 +154,9 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 | **Actions・Python スクリプトの処理内容**（フィルタ、マージ、制限） | [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) |
 | `docs/` ディレクトリの役割（公開ルート） | [docs/README.md](docs/README.md) |
 | フィルタの CLI・設定キーの開発者向けメモ | [tools/table-filter/README.md](tools/table-filter/README.md) |
-| 保守・改善バックログ（優先順位付き） | [todo.md](todo.md) |
+| beatoraja 向け難易度表 JSON の前提（回帰防止） | [docs/beatoraja-jbmstable-table-json.md](docs/beatoraja-jbmstable-table-json.md) |
+| `filter_config.json` のキー一覧（スキーマ） | [docs/filter-config-schema.md](docs/filter-config-schema.md) |
+| 静的 UI から Vite+React 移行を検討するときの整理 | [docs/frontend-migration-costs.md](docs/frontend-migration-costs.md) |
+| 保守・改善バックログ（優先度の意味と定期メンテ） | [todo.md](todo.md) |
 
 ワークフロー定義: [.github/workflows/pages.yml](.github/workflows/pages.yml)

@@ -3,7 +3,10 @@
   "enabled": true,
   "skip_if_no_songdata": true,
   "songdata_db": "data/songdata.db",
+  "beatoraja_empty_rows_policy": "fail",
+  "sql_where_preset": "",
   "sql_where": "minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm",
+  "sql_where_disable_identifier_whitelist": false,
   "source_header_urls": [
     "https://stellabms.xyz/sl/table_rec.html",
     "https://stellabms.xyz/st/table_rec.html"
@@ -23,11 +26,17 @@
   "output_data_enriched_filename": "filtered_data_enriched.json",
   "output_header_filename": "filtered_header.json",
   "output_header_name": "K Original難易度表",
-  "_output_header_name_comment": "beatoraja の表名（filtered_header.json の name）および Pages トップのタイトル。空でないときは元ヘッダーの name より優先されます。",
+  "_output_header_name_comment": "beatoraja の表名（filtered_header.json の name）。空でないときは元ヘッダーの name より優先。",
+  "page_title": "K Original難易度表",
+  "_page_title_comment": "GitHub Pages のタイトル（未設定時は output_header_name）",
   "output_level_stats_filename": "level_stats.json",
+  "browser_rows_filename": "browser_rows.json",
   "use_relative_data_url": true,
   "_use_relative_data_url_comment": "false にすると data_url を絶対 URL にし、そのとき site_base_url または SITE_BASE_URL が必要",
   "site_base_url": "",
+  "http_fetch_timeout_seconds": 120,
+  "http_fetch_retries": 3,
+  "http_fetch_backoff_seconds": 2.0,
   "custom_level_mapping": [
     { "12": 12, "11": 11, "10": 10 },
     { "1": 13, "2": 14, "3": 15 }

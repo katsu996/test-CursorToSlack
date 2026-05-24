@@ -15,6 +15,8 @@ import sqlite3
 import sys
 from typing import Any
 
+from sql_where_guard import resolve_sql_where
+
 DEFAULT_CONFIG = "tools/table-filter/filter_config.json"
 
 
@@ -179,12 +181,12 @@ def main() -> None:
         for i in range(n_src)
     ]
 
-    page_title = str(cfg.get("output_header_name") or "").strip()
+    page_title = str(cfg.get("page_title") or cfg.get("output_header_name") or "").strip()
     meta = {
         "row_count": len(rows_out),
         "matched_songdata": sum(1 for x in rows_out if x["db"] is not None),
         "page_title": page_title,
-        "sql_where": str(cfg.get("sql_where", "")).strip(),
+        "sql_where": resolve_sql_where(cfg),
         "table_rows_source_file": data_source_note,
         "source_table_display_names": display_names,
         "source_table_short_names": short_names,
@@ -193,9 +195,9 @@ def main() -> None:
         "custom_level_field": str(cfg.get("custom_level_field") or "custom_level").strip() or "custom_level",
         "custom_level_source_key": str(cfg.get("custom_level_source_key") or "level").strip() or "level",
         "custom_level_unmapped": str(cfg.get("custom_level_unmapped") or "omit").strip() or "omit",
-        "custom_level_mapping_count": len(cfg["custom_level_mapping"])
-        if isinstance(cfg.get("custom_level_mapping"), list)
-        else 0,
+        "custom_level_mapping_count": (
+            len(cfg["custom_level_mapping"]) if isinstance(cfg.get("custom_level_mapping"), list) else 0
+        ),
     }
 
     _save_json(browser_path, {"meta": meta, "rows": rows_out})

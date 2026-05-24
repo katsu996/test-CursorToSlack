@@ -20,18 +20,32 @@
 
 | 順序 | 処理 | 入力 | 主な出力 |
 |------|------|------|----------|
+| 0 | `ruff check` / `unittest` / `check_filter_config_example_sync.py` | `tools/table-filter/` | 静的解析・テスト・設定例のキー整合 |
 | 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`（beatoraja 用・拡張列除去）、`filtered_data_enriched.json`（Pages 用・出自列あり）、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
 | 2 | `build_pages_table.py` | 同上設定、`filtered_data_enriched.json`（無ければ `filtered_data.json`）、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の一覧表用） |
-| 3 | Pages アーティファクト | `docs/` ディレクトリ全体 | GitHub Pages にアップロード |
+| 3 | `smoke_check_outputs.py` | 生成済み `docs/table/*.json` | 空データやヘッダー不備があれば **終了コード 1** |
+| 4 | Pages アーティファクト | `docs/` ディレクトリ全体 | GitHub Pages にアップロード |
 
 - **`data_url`（生成ヘッダー）:** 既定（`use_relative_data_url` 未指定または `true`）では **`filtered_data.json` のようなファイル名のみ**を書き、jbmstable-parser が **ヘッダー JSON の URL と同じディレクトリ**からデータを取得します。`use_relative_data_url: false` のときだけ `site_base_url` または環境変数 **`SITE_BASE_URL`** が必要で、`${SITE_BASE_URL}/filtered_data.json` 形式にします。
 - **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空・`songdata.db` 不在（`skip_if_no_songdata: true`）などでも **0 で終了**し、後段の `build_pages_table.py` が続きます。
+- **beatoraja 向けデータが 0 件:** 既定の **`beatoraja_empty_rows_policy: fail`** のとき **`filter_table.py` は終了コード 1** となり、その後の `build_pages_table.py` / スモーク / デプロイは実行されません（空の難易度表を公開しない）。
 - **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について、**元表データ行全体**と **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**の行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です（`version` 2 以降は同一行に「SQL 前」「SQL 後」の列比較用の `level_rows` を含みます）。GitHub Pages では **`level-stats.html`** が `./table/level_stats.json` を直接読み込んで表示します。
 - **`build_pages_table.py`:** `filtered_data_enriched.json` が無ければ `filtered_data.json` を読みます。どちらも無い場合は **空の `browser_rows.json`**（理由を `meta` に記録）を書き、Pages デプロイは失敗させません。
 
+## `filter_table.py` のモジュール分割
+
+取得・SQL 検証・beatoraja 向け整形・レベル集計の補助は次に分割しています（`filter_table.py` がオーケストレーションします）。
+
+| ファイル | 役割 |
+|----------|------|
+| `http_fetch.py` | 外部 JSON/HTML の取得（タイムアウト・リトライ・指数バックオフ・stderr ログ） |
+| `sql_where_guard.py` | `sql_where_preset` / 自由記述 `sql_where` の解決、`;` 等の禁止、**識別子ホワイトリスト**（`sql_where_disable_identifier_whitelist` で無効化可） |
+| `beatoraja_rows.py` | 行の正規化・厳格条件チェック・ヘッダー `course` 空配列の除去・`beatoraja_strip_chart_keys` |
+| `level_stats.py` | `level_stats.json` 用のレベルバケット化・ソート・比較行の生成 |
+
 ## `filter_table.py` のデータフロー（概要）
 
-1. **`sql_where`** を検証し、`SELECT DISTINCT md5, sha256 FROM song WHERE (<sql_where>)` で **許可ハッシュ集合**を得る。
+1. **`sql_where`**（または **`sql_where_preset`**）を解決し、検証したうえで `SELECT DISTINCT md5, sha256 FROM song WHERE (<断片>)` で **許可ハッシュ集合**を得る。
 2. 各 **元ヘッダー**を取得（URL が `.html` のときは `<meta name="bmstable">` からヘッダー JSON URL を解決）。
 3. ヘッダーの **`data_url`** を取得（相対ならヘッダー URL に `urljoin`）。単一ソースかつ **`source_data_url`** があればそちらを優先。
 4. データ配列の各行について **`md5` / `sha256`** が許可集合に含まれる行だけ残す。

@@ -3,19 +3,8 @@
 songdata.db の song テーブルに対する WHERE 断片で許可ハッシュ集合を作り、
 難易度表のヘッダー JSON / データ JSON を突き合わせてフィルタした結果を docs に書き出す。
 
-複数元表をマージするときは各行に source_table_index / source_table_names などを付与する。
-`source_table_display_names` があれば `source_table_names` のラベルに優先して使う。
-`source_table_short_names` があれば `source_table_short_names`（略称の配列）に優先して使う。
-
+処理の分割先: http_fetch / sql_where_guard / beatoraja_rows / level_stats。
 beatoraja の songdata.db（テーブル song）を想定。実行は GitHub Actions でもローカルでも可（標準ライブラリのみ）。
-
-成功時、難易度表データに加え、元表ごとのレベル別曲数（SQL 条件通過後と、元表データ行全体）を
-`output_level_stats_filename`（既定: `level_stats.json`）にも書き出す。
-
-beatoraja（jbmstable-parser）はデータ行に厳格な条件があるため、`output_data_filename`（既定 `filtered_data.json`）には
-出自メタ等を除いた行だけを書き、GitHub Pages 用の拡張列付きは `output_data_enriched_filename`（既定 `filtered_data_enriched.json`）に保存する。
-生成ヘッダーの `data_url` は既定でファイル名のみ（ヘッダー JSON と同じディレクトリから解決）とし、
-`use_relative_data_url: false` のときだけ `site_base_url` / `SITE_BASE_URL` で絶対 URL を組み立てる。
 """
 
 from __future__ import annotations
@@ -26,30 +15,23 @@ import os
 import re
 import sqlite3
 import sys
-import urllib.request
 from typing import Any, Mapping, MutableMapping, Sequence
 from urllib.parse import urljoin
 
-DEFAULT_CONFIG = "tools/table-filter/filter_config.json"
-
-# beatoraja / jbmstable-parser の decodeJSONTableData(..., accept=false) が要求する行条件に合わせ、
-# また Pages 用に付与した拡張キーはデータ部から除外する（仕様: exch-bms2/jbmstable-parser）。
-_DEFAULT_BEATORAJA_STRIP_CHART_KEYS: frozenset[str] = frozenset(
-    (
-        "source_table_index",
-        "source_table_names",
-        "source_table_short_names",
-        "source_header_json_url",
-        "source_table_register_url",
-        # LR2 用の数値 id など、仕様外で型が揺れると不具合の原因になり得るため除外
-        "id",
-    )
+from beatoraja_rows import (
+    normalize_beatoraja_chart_row,
+    row_passes_beatoraja_strict_decoder,
+    sanitize_chart_row_for_beatoraja,
+    sanitize_header_for_beatoraja,
+    strip_keys_cfg,
+    validate_json_field_name,
 )
+from http_fetch import fetch_bytes
+from level_stats import level_bucket_for_stats, merge_level_compare_rows, sort_level_stat_keys
+from sql_where_guard import die as _die
+from sql_where_guard import resolve_sql_where, validate_sql_where
 
-
-def _die(msg: str, code: int = 1) -> None:
-    print(msg, file=sys.stderr)
-    raise SystemExit(code)
+DEFAULT_CONFIG = "tools/table-filter/filter_config.json"
 
 
 def _load_json(path: str) -> Any:
@@ -64,15 +46,6 @@ def _save_json(path: str, obj: Any) -> None:
         f.write("\n")
 
 
-def _fetch_url(url: str, timeout: float = 120.0) -> bytes:
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": "beatoraja-table-filter/1.0 (GitHub Actions; +https://github.com)"},
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read()
-
-
 def _normalize_cfg_header_urls(cfg: Mapping[str, Any]) -> list[str]:
     urls_raw = cfg.get("source_header_urls")
     if isinstance(urls_raw, list):
@@ -84,14 +57,10 @@ def _normalize_cfg_header_urls(cfg: Mapping[str, Any]) -> list[str]:
 
 
 def _resolve_bmstable_header_url(page_or_json_url: str) -> str:
-    """
-    難易度表登録用 HTML（<meta name="bmstable" content="header.json">）または
-    ヘッダー JSON の URL を受け取り、ヘッダー JSON の絶対 URL を返す。
-    """
     u = page_or_json_url.strip()
     low = u.lower()
     if low.endswith(".htm") or low.endswith(".html"):
-        raw = _fetch_url(u).decode("utf-8", errors="replace")
+        raw = fetch_bytes(u).decode("utf-8", errors="replace")
         m = re.search(
             r'<meta\s+name=["\']bmstable["\']\s+content=["\']([^"\']+)["\']',
             raw,
@@ -111,7 +80,6 @@ def _resolve_bmstable_header_url(page_or_json_url: str) -> str:
 
 
 def _header_display_name(header_obj: Mapping[str, Any], idx: int) -> str:
-    """ヘッダー JSON の name / title などから、マージ後の行に付与する表ラベルを決める。"""
     for key in ("name", "Name", "title", "Title"):
         v = header_obj.get(key)
         if v is not None:
@@ -122,11 +90,6 @@ def _header_display_name(header_obj: Mapping[str, Any], idx: int) -> str:
 
 
 def _table_display_label(cfg: Mapping[str, Any], idx: int, header_obj: Mapping[str, Any]) -> str:
-    """
-    source_table_names / Pages 向けの表ラベル。
-    filter_config の source_table_display_names[i] が非空ならそれを優先し、
-    無ければヘッダー JSON の name / title などにフォールバックする。
-    """
     raw = cfg.get("source_table_display_names")
     if isinstance(raw, list) and idx < len(raw):
         s = str(raw[idx]).strip()
@@ -136,10 +99,6 @@ def _table_display_label(cfg: Mapping[str, Any], idx: int, header_obj: Mapping[s
 
 
 def _table_short_label(cfg: Mapping[str, Any], idx: int) -> str:
-    """
-    行の source_table_short_names に入れる略称（1 表あたり 1 文字列）。
-    source_table_short_names[i] が非空ならそれを、無ければ空（Pages 側は表番号などにフォールバック可）。
-    """
     raw = cfg.get("source_table_short_names")
     if isinstance(raw, list) and idx < len(raw):
         return str(raw[idx]).strip()
@@ -147,7 +106,6 @@ def _table_short_label(cfg: Mapping[str, Any], idx: int) -> str:
 
 
 def _merge_course_parts(parts: list[Any]) -> Any:
-    """複数ヘッダーの course をトップレベル配列として連結（空は None）。"""
     merged: list[Any] = []
     for p in parts:
         if p is None:
@@ -173,38 +131,8 @@ def _row_dedupe_key(row: Mapping[str, Any]) -> str | None:
     return None
 
 
-def _validate_sql_where(fragment: str) -> None:
-    if not fragment or not fragment.strip():
-        _die("設定 sql_where が空です。例: minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm")
-    frag = fragment.strip()
-    if len(frag) > 500:
-        _die("sql_where が長すぎます（上限 500 文字）。")
-    lower = frag.lower()
-    banned_sub = (";", "--", "/*", "*/")
-    for b in banned_sub:
-        if b in frag:
-            _die(f"sql_where に禁止部分 '{b}' が含まれています。")
-    banned_words = (
-        "attach",
-        "detach",
-        "pragma",
-        "sqlite_",
-        "drop ",
-        "delete ",
-        "insert ",
-        "update ",
-        "create ",
-        "replace ",
-        "trigger ",
-        "vacuum",
-    )
-    for w in banned_words:
-        if w in lower:
-            _die(f"sql_where に禁止キーワードに該当する部分が含まれています: {w.strip()!r}")
-
-
-def _query_allowed_hashes(db_path: str, sql_where: str) -> tuple[set[str], set[str]]:
-    _validate_sql_where(sql_where)
+def _query_allowed_hashes(db_path: str, sql_where: str, *, strict_identifiers: bool) -> tuple[set[str], set[str]]:
+    validate_sql_where(sql_where, strict_identifiers=strict_identifiers)
     md5s: set[str] = set()
     sha256s: set[str] = set()
     sql = f"SELECT DISTINCT md5, sha256 FROM song WHERE ({sql_where})"
@@ -263,17 +191,7 @@ def _filter_course_object(obj: MutableMapping[str, Any], md5s: set[str], sha256s
     return new_obj
 
 
-def _validate_json_field_name(name: str, label: str) -> None:
-    if not name:
-        _die(f"{label} が空です。")
-    if len(name) > 64:
-        _die(f"{label} が長すぎます（上限 64 文字）。")
-    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
-        _die(f"{label} は英字またはアンダースコアで始まり、英数字とアンダースコアのみ使えます: {name!r}")
-
-
 def _normalize_level_map(raw: Any) -> dict[str, Any]:
-    """custom_level_mapping の各要素（オブジェクト）をレベル文字列キーへ正規化する。"""
     if not isinstance(raw, dict):
         return {}
     out: dict[str, Any] = {}
@@ -285,7 +203,6 @@ def _normalize_level_map(raw: Any) -> dict[str, Any]:
 
 
 def _row_level_lookup_keys(raw_lvl: Any) -> list[str]:
-    """表 JSON のレベル値からマップ検索用キーの候補（型の揺れを吸収）。"""
     if raw_lvl is None:
         return []
     keys: list[str] = []
@@ -319,65 +236,7 @@ def _row_level_lookup_keys(raw_lvl: Any) -> list[str]:
     return out
 
 
-_UNSET_LEVEL_LABEL = "(未設定)"
-
-
-def _level_bucket_for_stats(raw_lvl: Any) -> str:
-    """
-    レベル別件数集計用のバケット文字列。表 JSON の level の型揺れをできるだけ同じ桶に寄せる。
-    """
-    if raw_lvl is None:
-        return _UNSET_LEVEL_LABEL
-    if isinstance(raw_lvl, bool):
-        return str(raw_lvl).lower()
-    if isinstance(raw_lvl, int):
-        return str(raw_lvl)
-    if isinstance(raw_lvl, float):
-        if raw_lvl.is_integer():
-            return str(int(raw_lvl))
-        s = str(raw_lvl).strip()
-        return s if s else _UNSET_LEVEL_LABEL
-    s = str(raw_lvl).strip()
-    if not s:
-        return _UNSET_LEVEL_LABEL
-    try:
-        f = float(s.replace(",", ""))
-        if f.is_integer():
-            return str(int(f))
-    except ValueError:
-        pass
-    return s
-
-
-def _sort_level_stat_keys(keys: list[str]) -> list[str]:
-    """数値らしいキーを先に昇順、最後に (未設定)。"""
-
-    def sort_key(k: str) -> tuple[int, float, str]:
-        if k == _UNSET_LEVEL_LABEL:
-            return (2, 0.0, k)
-        try:
-            return (0, float(int(k)), k)
-        except ValueError:
-            pass
-        try:
-            return (1, float(k), k)
-        except ValueError:
-            return (1, 0.0, k)
-
-    return sorted(keys, key=sort_key)
-
-
-def _merge_level_compare_rows(by_sql: dict[str, int], by_all: dict[str, int]) -> list[dict[str, Any]]:
-    """SQL 条件後・条件前のレベル別件数を同一行に並べる（Pages 用）。"""
-    keys = _sort_level_stat_keys(list(set(by_sql.keys()) | set(by_all.keys())))
-    return [{"level": k, "after_sql": by_sql.get(k, 0), "before_sql": by_all.get(k, 0)} for k in keys]
-
-
 def _apply_custom_level(row: MutableMapping[str, Any], source_idx: int, cfg: Mapping[str, Any]) -> None:
-    """
-    source_header_urls の並びと同じインデックスのマップで、元表のレベルを独自レベル列に書き込む。
-    custom_level_mapping[i] は {元レベル文字列: 独自レベル（数値または文字列）} 形式のオブジェクト。
-    """
     maps_raw = cfg.get("custom_level_mapping")
     if not isinstance(maps_raw, Sequence) or isinstance(maps_raw, (str, bytes)):
         return
@@ -389,8 +248,8 @@ def _apply_custom_level(row: MutableMapping[str, Any], source_idx: int, cfg: Map
 
     out_key = str(cfg.get("custom_level_field") or "custom_level").strip() or "custom_level"
     src_key = str(cfg.get("custom_level_source_key") or "level").strip() or "level"
-    _validate_json_field_name(out_key, "custom_level_field")
-    _validate_json_field_name(src_key, "custom_level_source_key")
+    validate_json_field_name(out_key, "custom_level_field")
+    validate_json_field_name(src_key, "custom_level_source_key")
 
     raw_lvl = row.get(src_key)
     for lk in _row_level_lookup_keys(raw_lvl):
@@ -406,7 +265,6 @@ def _apply_custom_level(row: MutableMapping[str, Any], source_idx: int, cfg: Map
 
 
 def _filter_course_structure(course: Any, md5s: set[str], sha256s: set[str]) -> Any:
-    """course は配列の配列や単一配列など差異があるため、dict で charts を持つノードだけを対象に再帰する。"""
     if isinstance(course, list):
         out: list[Any] = []
         for item in course:
@@ -431,84 +289,16 @@ def _filter_course_structure(course: Any, md5s: set[str], sha256s: set[str]) -> 
     return course
 
 
-def _strip_keys_cfg(cfg: Mapping[str, Any]) -> frozenset[str]:
-    """
-    beatoraja 向けデータ JSON から除外するキー。
-    None（未指定）なら既定（出自メタ等）。空配列なら除外なし。
-    """
-    raw = cfg.get("beatoraja_strip_chart_keys")
-    if raw is None:
-        return _DEFAULT_BEATORAJA_STRIP_CHART_KEYS
-    if isinstance(raw, list):
-        return frozenset(str(x).strip() for x in raw if str(x).strip())
-    return _DEFAULT_BEATORAJA_STRIP_CHART_KEYS
-
-
-def _sanitize_chart_row_for_beatoraja(row: Mapping[str, Any], strip_keys: frozenset[str]) -> dict[str, Any]:
-    return {k: v for k, v in row.items() if k not in strip_keys}
-
-
-def _normalize_beatoraja_chart_row(row: MutableMapping[str, Any]) -> None:
-    """
-    jbmstable-parser / beatoraja が想定する文字列中心の形に寄せる。
-    数値の level や空タイトルは SongData.validate や getElements のソートで落ちやすい。
-    """
-    lv = row.get("level")
-    if lv is not None and not isinstance(lv, str):
-        row["level"] = str(lv).strip()
-
-    for key in ("artist", "url", "url_diff"):
-        v = row.get(key)
-        if v is None:
-            row[key] = ""
-        elif not isinstance(v, str):
-            row[key] = str(v)
-
-    t = row.get("title")
-    if t is None:
-        row["title"] = "（無題）"
-    elif not isinstance(t, str):
-        row["title"] = str(t)
-    if not str(row.get("title", "")).strip():
-        row["title"] = "（無題）"
-
-    for hkey in ("md5", "sha256"):
-        hv = row.get(hkey)
-        if hv is not None and not isinstance(hv, str):
-            row[hkey] = str(hv)
-
-
-def _row_passes_beatoraja_strict_decoder(row: Mapping[str, Any]) -> bool:
-    """
-    jbmstable-parser の DifficultyTableParser.decodeJSONTableData(..., accept=false)
-    と同様に、level 必須かつ md5 または sha256 の文字列表現が長さ 24 超であること。
-    """
-    if row.get("level") is None:
+def _empty_rows_policy_fail(cfg: Mapping[str, Any]) -> bool:
+    raw = str(cfg.get("beatoraja_empty_rows_policy", "fail")).strip().lower()
+    if raw in ("fail", "error", "true", "1", "yes", "on"):
+        return True
+    if raw in ("warn", "warning", "allow", "ignore", "skip", "0", "false", "no", "off"):
         return False
-    md5 = row.get("md5")
-    sha = row.get("sha256")
-    md5_ok = md5 is not None and len(str(md5).strip()) > 24
-    sha_ok = sha is not None and len(str(sha).strip()) > 24
-    return md5_ok or sha_ok
-
-
-def _sanitize_header_for_beatoraja(header: MutableMapping[str, Any], cfg: Mapping[str, Any]) -> None:
-    """
-    course が空配列のヘッダは jbmstable-parser が IndexOutOfBounds するためキーごと削除。
-    name が空だと beatoraja の TableData.validate() が失敗し「難易度表の値が不正です」になるため補完する。
-    """
-    c = header.get("course")
-    if isinstance(c, list) and len(c) == 0:
-        header.pop("course", None)
-
-    forced = str(cfg.get("output_header_name") or "").strip()
-    if forced:
-        header["name"] = forced
-    else:
-        name = str(header.get("name") or "").strip()
-        if not name:
-            fb = "Filtered difficulty table (songdata)"
-            header["name"] = fb
+    if raw == "auto":
+        return os.environ.get("GITHUB_ACTIONS") == "true"
+    print(f"警告: 不明な beatoraja_empty_rows_policy: {raw!r}（fail とみなします）", file=sys.stderr)
+    return True
 
 
 def main() -> None:
@@ -599,8 +389,9 @@ def main() -> None:
             raise SystemExit(0)
         _die(f"songdata.db が見つかりません: {songdata}")
 
-    sql_where = str(cfg.get("sql_where", "")).strip()
-    md5s, sha256s = _query_allowed_hashes(songdata, sql_where)
+    sql_where = resolve_sql_where(cfg)
+    strict_id = not bool(cfg.get("sql_where_disable_identifier_whitelist"))
+    md5s, sha256s = _query_allowed_hashes(songdata, sql_where, strict_identifiers=strict_id)
     print(f"許可ハッシュ数: md5={len(md5s)}, sha256={len(sha256s)} (WHERE {sql_where!r})")
 
     merged_rows: list[dict[str, Any]] = []
@@ -618,8 +409,17 @@ def main() -> None:
             file=sys.stderr,
         )
 
+    fetch_timeout = float(cfg.get("http_fetch_timeout_seconds") or 120.0)
+    fetch_retries = int(cfg.get("http_fetch_retries") or 3)
+    fetch_backoff = float(cfg.get("http_fetch_backoff_seconds") or 2.0)
+
     for idx, header_json_url in enumerate(resolved_json_urls):
-        raw_header = _fetch_url(header_json_url)
+        raw_header = fetch_bytes(
+            header_json_url,
+            timeout=fetch_timeout,
+            retries=fetch_retries,
+            backoff_seconds=fetch_backoff,
+        )
         header_obj = json.loads(raw_header.decode("utf-8"))
         if not isinstance(header_obj, dict):
             _die(f"ヘッダー JSON のトップレベルはオブジェクトである必要があります: {header_json_url}")
@@ -642,7 +442,7 @@ def main() -> None:
         else:
             data_url = urljoin(header_json_url, data_url_raw)
 
-        raw_data = _fetch_url(data_url)
+        raw_data = fetch_bytes(data_url, timeout=fetch_timeout, retries=fetch_retries, backoff_seconds=fetch_backoff)
         data_obj = json.loads(raw_data.decode("utf-8"))
         if not isinstance(data_obj, list):
             _die(f"データ JSON のトップレベルは配列である必要があります: {data_url}")
@@ -657,20 +457,21 @@ def main() -> None:
         for row in filtered_part:
             if not isinstance(row, dict):
                 continue
-            b = _level_bucket_for_stats(row.get(level_field))
+            b = level_bucket_for_stats(row.get(level_field))
             by_level[b] = by_level.get(b, 0) + 1
         by_level_all: dict[str, int] = {}
         for row in data_obj:
             if not isinstance(row, dict):
                 continue
-            b = _level_bucket_for_stats(row.get(level_field))
+            b = level_bucket_for_stats(row.get(level_field))
             by_level_all[b] = by_level_all.get(b, 0) + 1
         total_all = sum(by_level_all.values())
-        sorted_level_keys = _sort_level_stat_keys(list(by_level.keys()))
+
+        sorted_level_keys = sort_level_stat_keys(list(by_level.keys()))
         by_level_ordered = {k: by_level[k] for k in sorted_level_keys}
-        sorted_all_keys = _sort_level_stat_keys(list(by_level_all.keys()))
+        sorted_all_keys = sort_level_stat_keys(list(by_level_all.keys()))
         by_level_all_ordered = {k: by_level_all[k] for k in sorted_all_keys}
-        level_rows = _merge_level_compare_rows(by_level, by_level_all)
+        level_rows = merge_level_compare_rows(by_level, by_level_all)
         per_source_level_stats.append(
             {
                 "index": idx + 1,
@@ -755,14 +556,13 @@ def main() -> None:
     header_path = os.path.join(out_dir, header_name)
 
     if use_relative_data_url:
-        # 元表と同様にファイル名のみ。beatoraja / jbmstable-parser はヘッダー JSON の URL を基準に解決する。
         new_header["data_url"] = os.path.basename(data_name)
     else:
         new_header["data_url"] = f"{site_base}/{data_name}"
 
-    _sanitize_header_for_beatoraja(new_header, cfg)
+    sanitize_header_for_beatoraja(new_header, cfg)
 
-    strip_keys = _strip_keys_cfg(cfg)
+    strip_keys = strip_keys_cfg(cfg)
     enriched_name = (
         str(cfg.get("output_data_enriched_filename") or "filtered_data_enriched.json").strip()
         or "filtered_data_enriched.json"
@@ -773,9 +573,9 @@ def main() -> None:
     dropped = 0
     beatoraja_rows: list[dict[str, Any]] = []
     for r in filtered_data:
-        clean = _sanitize_chart_row_for_beatoraja(r, strip_keys)
-        _normalize_beatoraja_chart_row(clean)
-        if _row_passes_beatoraja_strict_decoder(clean):
+        clean = sanitize_chart_row_for_beatoraja(r, strip_keys)
+        normalize_beatoraja_chart_row(clean)
+        if row_passes_beatoraja_strict_decoder(clean):
             beatoraja_rows.append(clean)
         else:
             dropped += 1
@@ -793,6 +593,12 @@ def main() -> None:
             " 元表とハッシュが交差する行が少なくとも 1 件残るようにしてください。",
             file=sys.stderr,
         )
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            print("::error title=難易度表フィルタ::beatoraja 向けデータ行が 0 件です", file=sys.stderr)
+
+    policy_fail = _empty_rows_policy_fail(cfg)
+    if not beatoraja_rows and policy_fail:
+        raise SystemExit(1)
 
     _save_json(data_path, beatoraja_rows)
     _save_json(header_path, new_header)

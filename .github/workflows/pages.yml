@@ -30,13 +30,29 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14.3"
+
+      - name: Install ruff
+        run: pip install "ruff~=0.9.0"
+
+      - name: Ruff check
+        run: python3 -m ruff check tools/table-filter/
+
+      - name: filter_config.example.json のキー検証
+        run: python3 tools/table-filter/check_filter_config_example_sync.py
+
+      - name: Unit tests (table-filter)
+        working-directory: tools/table-filter
+        run: python3 -m unittest discover -s tests -v
 
       - name: Build filtered difficulty table (optional)
         run: python3 tools/table-filter/filter_table.py --config tools/table-filter/filter_config.json
 
       - name: Build merged table for Pages top page
         run: python3 tools/table-filter/build_pages_table.py --config tools/table-filter/filter_config.json
+
+      - name: Smoke check generated JSON
+        run: python3 tools/table-filter/smoke_check_outputs.py --config tools/table-filter/filter_config.json
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
