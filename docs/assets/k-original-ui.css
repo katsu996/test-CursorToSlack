@@ -384,11 +384,18 @@
     td.chart-cell { white-space: nowrap; }
     th.cell-max,
     td.cell-max {
-      max-width: 16rem;
+      /* 約50文字相当（ch: 0 字幅基準、ic: 漢字セル幅基準。未対応は ch のみ） */
+      max-width: 50ch;
       white-space: normal;
       word-break: break-word;
       overflow-wrap: anywhere;
       vertical-align: top;
+    }
+    @supports (width: 1ic) {
+      th.cell-max,
+      td.cell-max {
+        max-width: 50ic;
+      }
     }
     tr:nth-child(even) td { background-color: hsl(var(--row-alt) / 0.85); }
     tr:hover td { background-color: hsl(var(--accent)); }
