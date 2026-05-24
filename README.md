@@ -101,7 +101,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 （`<owner>` と `<repo>` は実際の値に置き換えてください。）
 
-**Pages のトップ:** `index.html` のフッターに、上記と同じパスの **`filtered_header.json` を開くリンク**があります（新しいタブで JSON が表示されます）。Table URL の確認や共有に使えます。一覧表の右端の **Chat** 列は、難易度表行の **`md5`** から [bms-score-viewer](https://bms-score-viewer.pages.dev/)（`view?md5=…`）へのリンクです。
+**Pages のトップ:** `index.html` のフッターに、上記と同じパスの **`filtered_header.json` を開くリンク**があります（新しいタブで JSON が表示されます）。Table URL の確認や共有に使えます。一覧表の右端の **Chart** 列は、難易度表行の **`md5`** から [bms-score-viewer](https://bms-score-viewer.pages.dev/)（`view?md5=…`）へのリンクです。
 
 **サイトのトップだけ**（例: `https://<ユーザー>.github.io/<リポジトリ名>/`）を Table URL に入れると、beatoraja は **HTML モード**でページを取得します。トップの **`docs/index.html` に `<meta name="bmstable" content="table/filtered_header.json">` を入れてある**ため、この URL でもヘッダー JSON に辿り着けます。ただし **末尾スラッシュ無し**（`…/repo`）の URL では jbmstable-parser の相対解決がずれることがあるため、**末尾 `/` 付き**か、確実には上記の **`filtered_header.json` 直リンク**を推奨します。
 

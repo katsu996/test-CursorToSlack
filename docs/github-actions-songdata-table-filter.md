@@ -111,7 +111,7 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 | `source_table_legend_short` | `["1. sl", "2. st", ...]` のように略称版。メタ「統合難易度表（略称）」に使います。 |
 | `table_rows_source_file` | `build_pages_table.py` が読んだデータ JSON のファイル名（`filtered_data_enriched.json` または `filtered_data.json`）。 |
 
-**Pages トップの UI:** `docs/index.html` は **行の並び替え・キーワード／出自の難易度表チェック・列の表示**を **1 つの折りたたみパネル**（「並び替え・絞り込み・列の表示」）にまとめています（既定は閉じた状態）。フッターから **`table/filtered_header.json` へのリンク**があり、beatoraja 登録用ヘッダーをブラウザで直接開けます。**全列をチェックボックスで表示／非表示**できます。表の右端に **Chat** 列があり、行の **`md5`**（32 桁の hex）から [bms-score-viewer](https://bms-score-viewer.pages.dev/) 形式のリンク（`view?md5=…`）を生成します。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
+**Pages トップの UI:** `docs/index.html` は **行の並び替え・キーワード／出自の難易度表チェック・列の表示**を **1 つの折りたたみパネル**（「並び替え・絞り込み・列の表示」）にまとめています（既定は閉じた状態）。フッターから **`table/filtered_header.json` へのリンク**があり、beatoraja 登録用ヘッダーをブラウザで直接開けます。**全列をチェックボックスで表示／非表示**できます。表の右端に **Chart** 列があり、行の **`md5`**（32 桁の hex）から [bms-score-viewer](https://bms-score-viewer.pages.dev/) 形式のリンク（`view?md5=…`）を生成します。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
 
 **統合難易度表別の曲数サマリー:** `filter_table.py` が `level_stats.json` に書き出す集計を、**`level-stats.html`**（`./table/level_stats.json` を fetch）で表示します。トップの `index.html` は難易度表の一覧のみです。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。各元表カードの表は、同一レベルについて **曲数（SQL 後）**（`songdata.db` の条件でハッシュ交差した行）と **曲数（SQL 前）**（元表 JSON の全データ行）を並べて比較できます。フィルタがスキップされたビルドでは `level_stats.json` が無いことがあり、その場合は当該ページでエラー表示になります。
 
