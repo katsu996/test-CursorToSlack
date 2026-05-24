@@ -47,26 +47,63 @@ def _save_json(path: str, obj: Any) -> None:
         f.write("\n")
 
 
+def _json_from_http_body(raw: bytes, *, kind: str, url: str) -> Any:
+    """GET 本文を JSON として読む。HTML や壊れた JSON のときは分かりやすく終了する。"""
+    text = raw.decode("utf-8", errors="replace").lstrip("\ufeff \t\r\n")
+    if text.startswith("<"):
+        _die(
+            f"{kind} の取得結果が HTML です（JSON ではありません）。"
+            f" Cloudflare や URL 誤りの可能性があります: {url}"
+        )
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        preview = text[:200].replace("\n", " ")
+        _die(f"{kind} の JSON 解析に失敗しました: {url}\n  先頭: {preview!r}\n  {exc}")
+
+
 def _resolve_bmstable_header_url(page_or_json_url: str) -> str:
+    """
+    ヘッダー JSON の URL を返す。
+
+    - ``*.json`` はそのまま（1 回目の GET は main 側で行う）。
+    - それ以外（``*.html`` やディレクトリ URL など）は 1 回 GET し、
+      HTML なら ``<meta name="bmstable">`` からヘッダー相対 URL を解決する。
+      JSON 本文なら（拡張子なしの直リンク想定）同じ URL を返す。
+    """
     u = page_or_json_url.strip()
     low = u.lower()
-    if low.endswith(".htm") or low.endswith(".html"):
-        raw = fetch_bytes(u).decode("utf-8", errors="replace")
+    if low.endswith(".json"):
+        return u
+
+    raw = fetch_bytes(u).decode("utf-8", errors="replace")
+    stripped = raw.lstrip("\ufeff \t\r\n")
+    if stripped.startswith("<"):
         m = re.search(
             r'<meta\s+name=["\']bmstable["\']\s+content=["\']([^"\']+)["\']',
-            raw,
+            stripped,
             re.IGNORECASE,
         )
         if not m:
             m = re.search(
                 r'<meta\s+content=["\']([^"\']+)["\']\s+name=["\']bmstable["\']',
-                raw,
+                stripped,
                 re.IGNORECASE,
             )
         if not m:
             _die(f"HTML から bmstable の meta が取得できません: {u}")
         rel = m.group(1).strip()
         return urljoin(u, rel)
+
+    try:
+        json.loads(stripped)
+    except json.JSONDecodeError as exc:
+        preview = stripped[:160].replace("\n", " ")
+        _die(
+            "ヘッダー URL が JSON として解釈できず、HTML（bmstable）でもありません。"
+            f" Cloudflare 等でブロックされている可能性があります: {u}\n"
+            f"  先頭: {preview!r}  エラー: {exc}"
+        )
     return u
 
 
@@ -397,7 +434,7 @@ def main() -> None:
             retries=fetch_retries,
             backoff_seconds=fetch_backoff,
         )
-        header_obj = json.loads(raw_header.decode("utf-8"))
+        header_obj = _json_from_http_body(raw_header, kind="ヘッダー", url=header_json_url)
         if not isinstance(header_obj, dict):
             _die(f"ヘッダー JSON のトップレベルはオブジェクトである必要があります: {header_json_url}")
 
@@ -421,7 +458,7 @@ def main() -> None:
             data_url = urljoin(header_json_url, data_url_raw)
 
         raw_data = fetch_bytes(data_url, timeout=fetch_timeout, retries=fetch_retries, backoff_seconds=fetch_backoff)
-        data_obj = json.loads(raw_data.decode("utf-8"))
+        data_obj = _json_from_http_body(raw_data, kind="データ", url=data_url)
         if not isinstance(data_obj, list):
             _die(f"データ JSON のトップレベルは配列である必要があります: {data_url}")
         filtered_part = _filter_data_array(data_obj, md5s, sha256s)

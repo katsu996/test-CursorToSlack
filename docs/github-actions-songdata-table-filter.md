@@ -128,9 +128,9 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 
 ## 例: stellabms（HTML からヘッダー JSON を解決）
 
-stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の `filter_config.json` の **`source_tables`** では、Satellite（`sl/table.html`）・Stella（`st/table_rec.html`）・Starlight（`sr/table.html`）に加え、[通常難易度表（☆）](https://darksabun.club/table/archive/normal1/)・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) を列挙しています。
+stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の `filter_config.json` の **`source_tables`** では、Satellite（`sl/table.html`）・Stella（`st/table.html`）・Starlight（`sr/table.html`）・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) の 4 本を列挙しています（Actions で安定して取得できる組み合わせ）。
 
-**注意:** `darksabun.club` は Cloudflare 等のボット対策があり、**GitHub Actions のランナーから HTML が取得できず**フィルタが失敗することがあります。その場合は当該ソースを一時的に外すか、取得可能なミラー・直リンクのヘッダー JSON に差し替えてください。
+**通常難易度表（☆）**（[darksabun.club のアーカイブ](https://darksabun.club/table/archive/normal1/) など）は **Cloudflare により GitHub Actions のランナーから取得できない**ことが多いため、既定設定には含めていません。手元で取れる **ヘッダー JSON の HTTPS 直 URL** やミラーが分かる場合だけ、`source_tables` に要素を追加してください。ディレクトリ URL（末尾 `/`）だけを書くと、ツールは **HTML として 1 回取得して `bmstable` を探す**ため、チャレンジ用 HTMLしか返らない URLは失敗します。
 
 **フィルタ後の行数が 0 に近い場合:** 元表のハッシュと **`songdata.db` の `song` に存在する行**の交差だけが残ります。さらに **`sql_where`** で BPM などを絞るため、**DB に無い譜面**や **条件不一致**は落ちます。表を埋めたい場合は **beatoraja で譜面を読み込んだうえで DB を更新**し、再度コミットしてください。
 
