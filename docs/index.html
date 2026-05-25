@@ -55,6 +55,7 @@
     <div id="err" class="err" hidden></div>
     <div class="scroll shadcn-card" id="scroll" hidden>
       <table id="tbl">
+        <colgroup id="tbl-colgroup"></colgroup>
         <thead id="thead"></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -107,7 +108,7 @@
     source_table_short_names: "シンボル",
     source_table_names: "出自（フル）",
     md5: "MD5", sha256: "SHA256", title: "表タイトル", artist: "表アーティスト",
-    level: "表レベル", custom_level: "独自レベル", url: "リンク", url_diff: "差分URL",
+    note: "表メモ", level: "表レベル", custom_level: "独自レベル", url: "リンク", url_diff: "差分URL",
     subtitle: "サブタイトル", genre: "ジャンル", subartist: "サブアーティスト",
     folder: "フォルダID", difficulty: "difficulty", maxbpm: "max BPM", minbpm: "min BPM",
     length: "長さ(秒?)", notes: "ノーツ数", charthash: "charthash", date: "ファイル日時"
@@ -155,7 +156,7 @@
       }
     }
     var tablePri = [
-      "id", "source_table_index", "source_table_short_names", "source_table_names", "title", "artist", "level", "custom_level",
+      "id", "source_table_index", "source_table_short_names", "source_table_names", "title", "note", "artist", "level", "custom_level",
       "md5", "sha256"
     ];
     var dbPriFull = [
@@ -279,6 +280,90 @@
       }
       var meta = data.meta || {};
       var rows = Array.isArray(data.rows) ? data.rows : [];
+      var colWidths = {};
+      try {
+        var _cw = localStorage.getItem("k-original-col-widths-v2");
+        if (_cw) colWidths = JSON.parse(_cw) || {};
+      } catch (_e0) {}
+
+      function colKeysList(vTKeys, vDKeys) {
+        var keys = [];
+        var ti;
+        if (vTKeys.length) {
+          for (ti = 0; ti < vTKeys.length; ti++) keys.push("t:" + vTKeys[ti]);
+        } else keys.push("t:_empty");
+        if (vDKeys.length) {
+          for (ti = 0; ti < vDKeys.length; ti++) keys.push("d:" + vDKeys[ti]);
+        } else keys.push("d:_empty");
+        keys.push("chart");
+        return keys;
+      }
+      function persistColWidths() {
+        try {
+          localStorage.setItem("k-original-col-widths-v2", JSON.stringify(colWidths));
+        } catch (_e1) {}
+      }
+      function rebuildColgroup(vTKeys, vDKeys) {
+        var cg = document.getElementById("tbl-colgroup");
+        if (!cg) return;
+        cg.innerHTML = "";
+        var keys = colKeysList(vTKeys, vDKeys);
+        for (var ci = 0; ci < keys.length; ci++) {
+          var ck = keys[ci];
+          var col = document.createElement("col");
+          var sw = colWidths[ck];
+          if (sw) col.style.width = sw;
+          else if (ck.indexOf("t:") === 0) {
+            var rk = ck.slice(2);
+            if (rk !== "_empty" && isTableClampKey(rk)) col.style.width = "50ch";
+          } else if (ck === "chart") col.style.width = "4.5rem";
+          col.setAttribute("data-col-key", ck);
+          cg.appendChild(col);
+        }
+      }
+      function initColResize(trh2, vTKeys, vDKeys) {
+        var cg = document.getElementById("tbl-colgroup");
+        if (!cg || !trh2) return;
+        var keys = colKeysList(vTKeys, vDKeys);
+        var ths = trh2.querySelectorAll("th");
+        if (ths.length !== keys.length || cg.children.length !== keys.length) return;
+        for (var hi = 0; hi < ths.length; hi++) {
+          (function (idx) {
+            var th = ths[idx];
+            var prev = th.querySelector(".col-resize-handle");
+            if (prev) prev.remove();
+            var handle = document.createElement("span");
+            handle.className = "col-resize-handle";
+            handle.title = "ドラッグで列幅を変更";
+            th.appendChild(handle);
+            handle.addEventListener("mousedown", function (downEv) {
+              downEv.preventDefault();
+              downEv.stopPropagation();
+              var startX = downEv.clientX;
+              var colEl = cg.children[idx];
+              var rect = colEl.getBoundingClientRect();
+              var startW = rect.width;
+              function move(ev) {
+                var w = Math.max(64, startW + (ev.clientX - startX));
+                colEl.style.width = w + "px";
+              }
+              function up() {
+                document.removeEventListener("mousemove", move);
+                document.removeEventListener("mouseup", up);
+                colWidths[keys[idx]] = colEl.style.width;
+                persistColWidths();
+                document.body.style.cursor = "";
+                document.body.classList.remove("col-resizing");
+              }
+              document.addEventListener("mousemove", move);
+              document.addEventListener("mouseup", up);
+              document.body.style.cursor = "col-resize";
+              document.body.classList.add("col-resizing");
+            });
+          })(hi);
+        }
+      }
+
       var pt = meta.page_title && String(meta.page_title).trim();
       if (pt) {
         var h1el = document.getElementById("site-h1");
@@ -459,6 +544,8 @@
         thChart2.textContent = "Chart";
         trh2.appendChild(thChart2);
         thead.appendChild(trh2);
+        rebuildColgroup(vTKeys, vDKeys);
+        initColResize(trh2, vTKeys, vDKeys);
       }
 
       function buildColPicker() {

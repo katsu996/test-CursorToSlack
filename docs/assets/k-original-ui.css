@@ -359,6 +359,12 @@
       overflow: auto;
       max-height: min(78vh, 900px);
     }
+    /* 列幅は colgroup + table-layout: fixed（ドラッグリサイズ用） */
+    #tbl {
+      table-layout: fixed;
+      width: max-content;
+      min-width: 100%;
+    }
     table {
       border-collapse: collapse;
       font-size: 0.8125rem;
@@ -377,6 +383,7 @@
       top: 0;
       z-index: 2;
       font-weight: 600;
+      overflow: visible;
     }
     th.group-t { background-color: hsl(var(--group-t)); color: hsl(var(--foreground)); }
     th.group-d { background-color: hsl(var(--group-d)); color: hsl(var(--foreground)); }
@@ -384,8 +391,9 @@
     td.chart-cell { white-space: nowrap; }
     th.cell-max,
     td.cell-max {
-      /* 約50文字相当（ch: 0 字幅基準、ic: 漢字セル幅基準。未対応は ch のみ） */
-      max-width: 50ch;
+      /* 既定列幅は col の 50ch。ここは折り返し優先（狭い列でも最低限読めるよう min） */
+      min-width: 50ch;
+      max-width: none;
       white-space: normal;
       word-break: break-word;
       overflow-wrap: anywhere;
@@ -394,8 +402,26 @@
     @supports (width: 1ic) {
       th.cell-max,
       td.cell-max {
-        max-width: 50ic;
+        min-width: 50ic;
       }
+    }
+    th .col-resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      cursor: col-resize;
+      z-index: 4;
+      user-select: none;
+      touch-action: none;
+    }
+    th .col-resize-handle:hover {
+      background-color: hsl(var(--primary) / 0.18);
+    }
+    body.col-resizing {
+      user-select: none;
+      cursor: col-resize !important;
     }
     tr:nth-child(even) td { background-color: hsl(var(--row-alt) / 0.85); }
     tr:hover td { background-color: hsl(var(--accent)); }

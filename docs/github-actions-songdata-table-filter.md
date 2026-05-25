@@ -111,7 +111,7 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 | `source_table_legend_short` | `["1. sl", "2. st", ...]` のように略称版。メタ「統合難易度表（略称）」に使います。 |
 | `table_rows_source_file` | `build_pages_table.py` が読んだデータ JSON のファイル名（`filtered_data_enriched.json` または `filtered_data.json`）。 |
 
-**Pages トップの UI:** `docs/index.html` は **行の並び替え・キーワード／出自の難易度表チェック・列の表示**を **1 つの折りたたみパネル**（「並び替え・絞り込み・列の表示」）にまとめています（既定は閉じた状態）。フッターから **`table/filtered_header.json` へのリンク**があり、beatoraja 登録用ヘッダーをブラウザで直接開けます。**全列をチェックボックスで表示／非表示**できます。表の右端に **Chart** 列があり、行の **`md5`**（32 桁の hex）から [bms-score-viewer](https://bms-score-viewer.pages.dev/) 形式のリンク（`view?md5=…`）を生成します。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
+**Pages トップの UI:** `docs/index.html` は **行の並び替え・キーワード／出自の難易度表チェック・列の表示**を **1 つの折りたたみパネル**（「並び替え・絞り込み・列の表示」）にまとめています（既定は閉じた状態）。フッターから **`table/filtered_header.json` へのリンク**があり、beatoraja 登録用ヘッダーをブラウザで直接開けます。**全列をチェックボックスで表示／非表示**できます。表の右端に **Chart** 列があり、行の **`md5`**（32 桁の hex）から [bms-score-viewer](https://bms-score-viewer.pages.dev/) 形式のリンク（`view?md5=…`）を生成します。**表タイトル**・**表メモ**列は既定で約 50 文字相当の幅（`colgroup`）を確保し、**各列ヘッダー右端をドラッグ**して列幅を変更できます（ブラウザの `localStorage` に保存）。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
 
 **統合難易度表別の曲数サマリー:** `filter_table.py` が `level_stats.json` に書き出す集計を、**`level-stats.html`**（`./table/level_stats.json` を fetch）で表示します。トップの `index.html` は難易度表の一覧のみです。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。各元表カードの表は、同一レベルについて **曲数（SQL 後）**（`songdata.db` の条件でハッシュ交差した行）と **曲数（SQL 前）**（元表 JSON の全データ行）を並べて比較できます。フィルタがスキップされたビルドでは `level_stats.json` が無いことがあり、その場合は当該ページでエラー表示になります。
 
@@ -128,9 +128,9 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 
 ## 例: stellabms（HTML からヘッダー JSON を解決）
 
-stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の `filter_config.json` の **`source_tables`** では、Satellite（`sl/table.html`）・Stella（`st/table.html`）・Starlight（`sr/table.html`）・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) の 4 本を列挙しています（Actions で安定して取得できる組み合わせ）。
+stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の `filter_config.json` の **`source_tables`** では、Satellite（`sl/table.html`）・Stella（`st/table.html`）・Starlight（`sr/table.html`）・[通常難易度表（☆）](https://darksabun.club/table/archive/normal1/)（ディレクトリ URL から HTML を取得して `bmstable` を解決）・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) の 5 本を列挙しています。
 
-**通常難易度表（☆）**（[darksabun.club のアーカイブ](https://darksabun.club/table/archive/normal1/) など）は **Cloudflare により GitHub Actions のランナーから取得できない**ことが多いため、既定設定には含めていません。手元で取れる **ヘッダー JSON の HTTPS 直 URL** やミラーが分かる場合だけ、`source_tables` に要素を追加してください。ディレクトリ URL（末尾 `/`）だけを書くと、ツールは **HTML として 1 回取得して `bmstable` を探す**ため、チャレンジ用 HTMLしか返らない URLは失敗します。
+**通常難易度表（☆）の注意:** [darksabun.club](https://darksabun.club/table/archive/normal1/) は **Cloudflare により GitHub Actions のランナーから取得できない**ことがあります。その場合は `filter_table.py` が失敗し、ワークフローが止まります。対処としては、(1) 当該 `source_tables` 要素を一時的に削除する、(2) **ヘッダー JSON の HTTPS 直 URL** やミラーに差し替える、のいずれかが必要です。ディレクトリ URL（末尾 `/`）だけを書くと、ツールは **HTML として 1 回取得して `bmstable` を探す**ため、チャレンジ用 HTMLしか返らない URLは失敗します。
 
 **フィルタ後の行数が 0 に近い場合:** 元表のハッシュと **`songdata.db` の `song` に存在する行**の交差だけが残ります。さらに **`sql_where`** で BPM などを絞るため、**DB に無い譜面**や **条件不一致**は落ちます。表を埋めたい場合は **beatoraja で譜面を読み込んだうえで DB を更新**し、再度コミットしてください。
 
