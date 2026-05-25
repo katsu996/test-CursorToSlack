@@ -27,16 +27,37 @@
         <span class="filter-chevron" aria-hidden="true">▼</span>
       </button>
       <div id="toolbar-panel" class="filter-collapse-panel" hidden role="region" aria-labelledby="toolbar-panel-toggle">
-        <div class="sortbar">
-          <label for="sort-col">行の並び替え（基準列）</label>
-          <select id="sort-col" class="shadcn-select" disabled>
-            <option value="">元の順（データの行順）</option>
-          </select>
-          <label for="sort-dir">順序</label>
-          <select id="sort-dir" class="shadcn-select" disabled>
-            <option value="asc">昇順</option>
-            <option value="desc">降順</option>
-          </select>
+        <div class="sortbar sortbar-multi">
+          <div class="sort-priority-row">
+            <span class="sort-priority-label">優先順位1</span>
+            <select id="sort-col-1" class="shadcn-select" aria-label="優先順位1の列" disabled>
+              <option value="">（なし）</option>
+            </select>
+            <select id="sort-dir-1" class="shadcn-select sort-dir-select" aria-label="優先順位1の順序" disabled>
+              <option value="asc">昇順</option>
+              <option value="desc">降順</option>
+            </select>
+          </div>
+          <div class="sort-priority-row">
+            <span class="sort-priority-label">優先順位2</span>
+            <select id="sort-col-2" class="shadcn-select" aria-label="優先順位2の列" disabled>
+              <option value="">（なし）</option>
+            </select>
+            <select id="sort-dir-2" class="shadcn-select sort-dir-select" aria-label="優先順位2の順序" disabled>
+              <option value="asc">昇順</option>
+              <option value="desc">降順</option>
+            </select>
+          </div>
+          <div class="sort-priority-row">
+            <span class="sort-priority-label">優先順位3</span>
+            <select id="sort-col-3" class="shadcn-select" aria-label="優先順位3の列" disabled>
+              <option value="">（なし）</option>
+            </select>
+            <select id="sort-dir-3" class="shadcn-select sort-dir-select" aria-label="優先順位3の順序" disabled>
+              <option value="asc">昇順</option>
+              <option value="desc">降順</option>
+            </select>
+          </div>
         </div>
         <div class="toolbar">
           <label for="q">キーワード</label>
@@ -174,12 +195,6 @@
     return first.concat(rest);
   }
 
-  function defaultColumnVisible(k, section) {
-    if (section === "db" && (k === "title" || k === "artist")) return false;
-    if (section === "db" && (k === "md5" || k === "sha256")) return false;
-    return !HIDDEN_KEYS[k];
-  }
-
   function esc(s) {
     var d = document.createElement("div");
     d.textContent = s;
@@ -262,8 +277,12 @@
   var tbody = document.getElementById("tbody");
   var q = document.getElementById("q");
   var countEl = document.getElementById("count");
-  var sortCol = document.getElementById("sort-col");
-  var sortDir = document.getElementById("sort-dir");
+  var sortCol1 = document.getElementById("sort-col-1");
+  var sortDir1 = document.getElementById("sort-dir-1");
+  var sortCol2 = document.getElementById("sort-col-2");
+  var sortDir2 = document.getElementById("sort-dir-2");
+  var sortCol3 = document.getElementById("sort-col-3");
+  var sortDir3 = document.getElementById("sort-dir-3");
 
   fetch("./table/browser_rows.json", { cache: "no-store" })
     .then(function (r) {
@@ -280,6 +299,25 @@
       }
       var meta = data.meta || {};
       var rows = Array.isArray(data.rows) ? data.rows : [];
+      var pagesUi = meta.pages_ui && typeof meta.pages_ui === "object" ? meta.pages_ui : {};
+      var colWidthsDefault =
+        pagesUi.column_widths && typeof pagesUi.column_widths === "object" ? pagesUi.column_widths : {};
+      var visDefaults =
+        pagesUi.column_visible_defaults && typeof pagesUi.column_visible_defaults === "object"
+          ? pagesUi.column_visible_defaults
+          : {};
+
+      function defaultColumnVisible(k, section) {
+        var secKey = section === "table" ? "table" : "db";
+        var sec = visDefaults[secKey];
+        if (sec && typeof sec === "object" && Object.prototype.hasOwnProperty.call(sec, k)) {
+          return !!sec[k];
+        }
+        if (section === "db" && (k === "title" || k === "artist")) return false;
+        if (section === "db" && (k === "md5" || k === "sha256")) return false;
+        return !HIDDEN_KEYS[k];
+      }
+
       var colWidths = {};
       try {
         var _cw = localStorage.getItem("k-original-col-widths-v2");
@@ -313,10 +351,15 @@
           var col = document.createElement("col");
           var sw = colWidths[ck];
           if (sw) col.style.width = sw;
-          else if (ck.indexOf("t:") === 0) {
-            var rk = ck.slice(2);
-            if (rk !== "_empty" && isTableClampKey(rk)) col.style.width = "50ch";
-          } else if (ck === "chart") col.style.width = "4.5rem";
+          else {
+            var defAny = colWidthsDefault[ck];
+            if (typeof defAny === "string" && defAny.trim()) {
+              col.style.width = defAny.trim();
+            } else if (ck.indexOf("t:") === 0) {
+              var rk = ck.slice(2);
+              if (rk !== "_empty" && isTableClampKey(rk)) col.style.width = "50ch";
+            } else if (ck === "chart") col.style.width = "4.5rem";
+          }
           col.setAttribute("data-col-key", ck);
           cg.appendChild(col);
         }
@@ -376,13 +419,19 @@
         ["songdata と一致", meta.matched_songdata],
         ["SQL 条件", meta.sql_where]
       ];
-      var leg = meta.source_table_legend;
-      if (Array.isArray(leg) && leg.length) {
-        pairs.push(["統合難易度表（表示名）", leg.join(" ／ ")]);
+      var metaShortsForLine = Array.isArray(meta.source_table_short_names) ? meta.source_table_short_names : [];
+      var metaDisplaysForLine = Array.isArray(meta.source_table_display_names) ? meta.source_table_display_names : [];
+      var srcLineParts = [];
+      for (var li = 0; li < metaShortsForLine.length || li < metaDisplaysForLine.length; li++) {
+        var shL = li < metaShortsForLine.length ? String(metaShortsForLine[li] || "").trim() : "";
+        var dnL = li < metaDisplaysForLine.length ? String(metaDisplaysForLine[li] || "").trim() : "";
+        if (!shL && !dnL) continue;
+        if (!shL) shL = dnL;
+        if (!dnL) dnL = shL;
+        srcLineParts.push(shL + "(" + dnL + ")");
       }
-      var legS = meta.source_table_legend_short;
-      if (Array.isArray(legS) && legS.length) {
-        pairs.push(["統合難易度表（略称）", legS.join(" ／ ")]);
+      if (srcLineParts.length) {
+        pairs.push(["難易度表", srcLineParts.join(" · ")]);
       }
       if (meta.custom_level_mapping_count) {
         pairs.push(
@@ -427,8 +476,9 @@
           return;
         }
         filterSrcBar.innerHTML = "";
-        var lead = document.createElement("span");
-        lead.textContent = "難易度表（1つ以上チェックした表のみ表示。すべてオフのときは行を表示しません）:";
+        var lead = document.createElement("div");
+        lead.className = "filter-src-lead";
+        lead.textContent = "難易度表（1つ以上チェックした表のみ表示。すべてオフのときは行を表示しません）";
         filterSrcBar.appendChild(lead);
         entries.forEach(function (e) {
           sourceFilterState[e.short] = true;
@@ -441,7 +491,7 @@
             refresh();
           });
           lab.appendChild(inp);
-          lab.appendChild(document.createTextNode(e.short + "（" + e.label + "）"));
+          lab.appendChild(document.createTextNode(e.short + "(" + e.label + ")"));
           filterSrcBar.appendChild(lab);
         });
         filterSrcBar.hidden = false;
@@ -598,33 +648,41 @@
         return parts.join(" ") + " " + JSON.stringify(t) + " " + JSON.stringify(d);
       }
 
-      function fillSortSelect() {
-        while (sortCol.options.length > 1) sortCol.remove(1);
+      function fillSortSelect(sortSelect) {
+        if (!sortSelect) return;
+        while (sortSelect.options.length > 1) sortSelect.remove(1);
         allTKeys.forEach(function (k) {
           var opt = document.createElement("option");
           opt.value = "table:" + k;
           opt.textContent = "表: " + tableColTitle(k);
-          sortCol.appendChild(opt);
+          sortSelect.appendChild(opt);
         });
         allDKeys.forEach(function (k) {
           var opt = document.createElement("option");
           opt.value = "db:" + k;
           opt.textContent = "DB: " + dbColTitle(k);
-          sortCol.appendChild(opt);
+          sortSelect.appendChild(opt);
         });
       }
 
-      fillSortSelect();
+      fillSortSelect(sortCol1);
+      fillSortSelect(sortCol2);
+      fillSortSelect(sortCol3);
       if (allTKeys.indexOf("title") >= 0) {
-        sortCol.value = "table:title";
+        sortCol1.value = "table:title";
       } else if (allDKeys.indexOf("title") >= 0) {
-        sortCol.value = "db:title";
+        sortCol1.value = "db:title";
       } else {
-        sortCol.value = "";
+        sortCol1.value = "";
       }
-      sortDir.value = "asc";
-      sortCol.disabled = false;
-      sortDir.disabled = false;
+      sortDir1.value = "asc";
+      sortCol2.value = "";
+      sortDir2.value = "asc";
+      sortCol3.value = "";
+      sortDir3.value = "asc";
+      [sortCol1, sortDir1, sortCol2, sortDir2, sortCol3, sortDir3].forEach(function (el) {
+        if (el) el.disabled = false;
+      });
 
       function render(list) {
         var vTKeys = visibleKeys(allTKeys, visT);
@@ -657,11 +715,26 @@
       }
 
       function applySort(base) {
-        var spec = (sortCol.value || "").trim();
-        if (!spec) return base.slice();
-        var dir = sortDir.value === "desc" ? -1 : 1;
+        var levels = [];
+        [
+          { c: sortCol1, d: sortDir1 },
+          { c: sortCol2, d: sortDir2 },
+          { c: sortCol3, d: sortDir3 }
+        ].forEach(function (pair) {
+          if (!pair.c) return;
+          var spec = String(pair.c.value || "").trim();
+          if (!spec) return;
+          var dir = pair.d && pair.d.value === "desc" ? -1 : 1;
+          levels.push({ spec: spec, dir: dir });
+        });
+        if (!levels.length) return base.slice();
         return base.slice().sort(function (r1, r2) {
-          return dir * compareVals(getSortValue(r1, spec), getSortValue(r2, spec));
+          for (var li = 0; li < levels.length; li++) {
+            var L = levels[li];
+            var cmp = compareVals(getSortValue(r1, L.spec), getSortValue(r2, L.spec));
+            if (cmp !== 0) return L.dir * cmp;
+          }
+          return 0;
         });
       }
 
@@ -676,8 +749,9 @@
       refresh();
       q.disabled = false;
       q.addEventListener("input", refresh);
-      sortCol.addEventListener("change", refresh);
-      sortDir.addEventListener("change", refresh);
+      [sortCol1, sortDir1, sortCol2, sortDir2, sortCol3, sortDir3].forEach(function (el) {
+        if (el) el.addEventListener("change", refresh);
+      });
 
       scrollEl.hidden = false;
     })

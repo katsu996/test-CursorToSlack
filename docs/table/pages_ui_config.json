@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "column_widths": {
+    "t:title": "50ch",
+    "t:note": "50ch",
+    "chart": "4.5rem"
+  },
+  "column_visible_defaults": {
+    "table": {},
+    "db": {
+      "title": false,
+      "artist": false,
+      "md5": false,
+      "sha256": false
+    }
+  }
+}

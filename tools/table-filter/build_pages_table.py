@@ -69,6 +69,18 @@ def main() -> None:
     browser_name = cfg.get("browser_rows_filename", "browser_rows.json")
     browser_path = os.path.join(out_dir, browser_name)
 
+    pages_ui_cfg_rel = str(cfg.get("pages_ui_config_path") or "").strip() or "docs/table/pages_ui_config.json"
+    pages_ui_cfg_path = pages_ui_cfg_rel
+    if not os.path.isabs(pages_ui_cfg_path):
+        pages_ui_cfg_path = os.path.normpath(os.path.join(os.getcwd(), pages_ui_cfg_rel))
+    pages_ui: dict[str, Any] = {}
+    if os.path.isfile(pages_ui_cfg_path):
+        try:
+            loaded_ui = _load_json(pages_ui_cfg_path)
+            pages_ui = loaded_ui if isinstance(loaded_ui, dict) else {}
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"警告: pages_ui_config の読み込み失敗（無視）: {pages_ui_cfg_path}: {e}", file=sys.stderr)
+
     if not os.path.isfile(filtered_path):
         print(
             f"filtered_data が無いため空の browser_rows を出力: {enriched_path} / {default_data_path}",
@@ -80,6 +92,8 @@ def main() -> None:
                 "meta": {
                     "reason": "filtered_data.json が無い（フィルタ未実行またはスキップ）",
                     "filtered_path_candidates": [enriched_path, default_data_path],
+                    "pages_ui": pages_ui,
+                    "pages_ui_config_path": pages_ui_cfg_rel,
                 },
                 "rows": [],
             },
@@ -89,7 +103,10 @@ def main() -> None:
     filtered = _load_json(filtered_path)
     if not isinstance(filtered, list):
         print("filtered_data のトップレベルが配列ではありません。", file=sys.stderr)
-        _save_json(browser_path, {"meta": {"reason": "invalid filtered_data"}, "rows": []})
+        _save_json(
+            browser_path,
+            {"meta": {"reason": "invalid filtered_data", "pages_ui": pages_ui, "pages_ui_config_path": pages_ui_cfg_rel}, "rows": []},
+        )
         return
 
     md5s: set[str] = set()
@@ -184,6 +201,8 @@ def main() -> None:
         "custom_level_mapping_count": (
             len(cfg["custom_level_mapping"]) if isinstance(cfg.get("custom_level_mapping"), list) else 0
         ),
+        "pages_ui": pages_ui,
+        "pages_ui_config_path": pages_ui_cfg_rel,
     }
 
     _save_json(browser_path, {"meta": meta, "rows": rows_out})

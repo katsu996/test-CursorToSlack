@@ -30,6 +30,7 @@ EXPECTED_KEYS: frozenset[str] = frozenset(
         "page_title",
         "output_level_stats_filename",
         "browser_rows_filename",
+        "pages_ui_config_path",
         "site_base_url",
         "use_relative_data_url",
         "custom_level_mapping",

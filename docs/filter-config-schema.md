@@ -25,6 +25,7 @@
 | `page_title` | 任意 | GitHub Pages の `<title>` / `h1`（未設定時は `output_header_name`） |
 | `output_level_stats_filename` | 任意 | レベル集計 JSON 名 |
 | `browser_rows_filename` | 任意 | `build_pages_table.py` の出力名 |
+| `pages_ui_config_path` | 任意 | Pages 用 UI 設定 JSON のパス（空なら `docs/table/pages_ui_config.json`） |
 | `site_base_url` | 条件付き | `use_relative_data_url: false` のとき必須 |
 | `use_relative_data_url` | 任意 | 既定 `true` で `data_url` はファイル名のみ |
 | `http_fetch_timeout_seconds` | 任意 | 外部取得タイムアウト秒 |

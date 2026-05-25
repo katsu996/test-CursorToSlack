@@ -47,6 +47,8 @@
   "_page_title_comment": "GitHub Pages のタイトル（未設定時は output_header_name）",
   "output_level_stats_filename": "level_stats.json",
   "browser_rows_filename": "browser_rows.json",
+  "pages_ui_config_path": "",
+  "_pages_ui_config_path_comment": "空なら docs/table/pages_ui_config.json。Pages 用の列幅・列の既定表示を編集する JSON。",
   "use_relative_data_url": true,
   "_use_relative_data_url_comment": "false にすると data_url を絶対 URL にし、そのとき site_base_url または SITE_BASE_URL が必要",
   "site_base_url": "",

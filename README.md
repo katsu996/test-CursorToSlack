@@ -69,6 +69,14 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **Pages のタイトルだけ変えたい（任意）:** **`page_title`** に文字列を書くと、GitHub Pages の **`<title>` とトップの見出し**に使われます（未設定時は `output_header_name` と同じ）。
 
+### Pages トップの列幅・列の既定表示（任意）
+
+1. **`docs/table/pages_ui_config.json`** の **`column_widths`**（例: `t:title` / `d:genre` / `chart`）と **`column_visible_defaults`**（`table` / `db` ごとの列キー → 表示なら `true`）を編集します。  
+2. 別パスに置きたい場合は **`tools/table-filter/filter_config.json`** の **`pages_ui_config_path`** にそのパスを書きます（空なら上記の既定パスです）。  
+3. **`build_pages_table.py` が走るビルド**（`main` への push など）のあと、`browser_rows.json` の **`meta.pages_ui`** に反映されます。
+
+詳細は **[docs/pages-ui-config.md](docs/pages-ui-config.md)** を参照してください。
+
 ### 5. フィルタそのものをオフにしたい・難易度表取得を止めたい
 
 次のいずれかで、**外部表の取得と `docs/table/` への生成**はスキップされます（Pages の `docs/` 静的ファイルのデプロイは続きます）。

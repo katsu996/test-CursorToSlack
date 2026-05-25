@@ -32,6 +32,7 @@
 - **`beatoraja_empty_rows_policy`**: 任意。`fail`（既定）で beatoraja 向け 0 件時に `filter_table.py` が終了コード 1。
 - **`http_fetch_timeout_seconds`**, **`http_fetch_retries`**, **`http_fetch_backoff_seconds`**: 外部 URL 取得のタイムアウト・再試行。
 - **`beatoraja_strip_chart_keys`**: beatoraja 向け `filtered_data.json` から除くキー（未指定時は `source_*` 出自列に加え `id`）。空配列なら除去しない。
+- **`pages_ui_config_path`**: 任意。Pages トップ用 UI 設定 JSON のパス（空なら `docs/table/pages_ui_config.json`）。`build_pages_table.py` が `browser_rows.json` の `meta.pages_ui` に埋め込む（[docs/pages-ui-config.md](../../docs/pages-ui-config.md)）。
 
 ## ローカル実行
 

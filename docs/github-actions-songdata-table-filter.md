@@ -107,11 +107,15 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 |------|------|
 | `source_table_display_names` | 設定どおりの表示名配列（未設定インデックスは空文字）。 |
 | `source_table_short_names` | 設定どおりの略称配列（未設定インデックスは空文字）。 |
-| `source_table_legend` | `["1. 表示名A", "2. 表示名B", ...]` 形式。`index.html` のメタ「統合難易度表（表示名）」にそのまま使います。 |
-| `source_table_legend_short` | `["1. sl", "2. st", ...]` のように略称版。メタ「統合難易度表（略称）」に使います。 |
+| `source_table_legend` | `["1. 表示名A", ...]` 形式（互換・デバッグ用）。 |
+| `source_table_legend_short` | `["1. sl", ...]` 形式（互換用）。 |
 | `table_rows_source_file` | `build_pages_table.py` が読んだデータ JSON のファイル名（`filtered_data_enriched.json` または `filtered_data.json`）。 |
+| `pages_ui` | [`table/pages_ui_config.json`](./table/pages_ui_config.json) の内容を埋め込み（仕様は [pages-ui-config.md](./pages-ui-config.md)）。列幅・列の既定表示を制御。 |
+| `pages_ui_config_path` | 読み込んだ UI 設定ファイルの相対パス（ログ・デバッグ用）。 |
 
-**Pages トップの UI:** `docs/index.html` は **行の並び替え・キーワード／出自の難易度表チェック・列の表示**を **1 つの折りたたみパネル**（「並び替え・絞り込み・列の表示」）にまとめています（既定は閉じた状態）。フッターから **`table/filtered_header.json` へのリンク**があり、beatoraja 登録用ヘッダーをブラウザで直接開けます。**全列をチェックボックスで表示／非表示**できます。表の右端に **Chart** 列があり、行の **`md5`**（32 桁の hex）から [bms-score-viewer](https://bms-score-viewer.pages.dev/) 形式のリンク（`view?md5=…`）を生成します。**表タイトル**・**表メモ**列は既定で約 50 文字相当の幅（`colgroup`）を確保し、**各列ヘッダー右端をドラッグ**して列幅を変更できます（ブラウザの `localStorage` に保存）。既定でオフの列は従来どおり（`path`・`url` など）で、必要ならチェックで表示します。
+詳細は **[Pages 用 UI 設定](pages-ui-config.md)** を参照してください。
+
+**Pages トップの UI:** `docs/index.html` は **優先順位 1〜3 までの複合並び替え**（各段で列と昇順／降順を指定。すべて「（なし）」のときは元の行順）、**キーワード／難易度表チェック・列の表示**を **1 つの折りたたみパネル**（「並び替え・絞り込み・列の表示」）にまとめています（既定は閉じた状態）。フッターから **`table/filtered_header.json` へのリンク**があり、beatoraja 登録用ヘッダーをブラウザで直接開けます。**全列をチェックボックスで表示／非表示**できます（既定は `meta.pages_ui.column_visible_defaults` と組み込み既定の合成）。**列の既定幅**は同じく `meta.pages_ui.column_widths`（`t:title` / `d:列名` / `chart` など）で調整します。表の右端に **Chart** 列があり、行の **`md5`**（32 桁の hex）から [bms-score-viewer](https://bms-score-viewer.pages.dev/) 形式のリンク（`view?md5=…`）を生成します。**表タイトル**・**表メモ**列は `column_widths` 未指定時でも約 `50ch` の既定幅があり、**各列ヘッダー右端をドラッグ**して列幅を変更できます（ブラウザの `localStorage` に保存し、ドラッグ値が `column_widths` より優先）。メタ情報の「難易度表」は **`sl(Satellite) · st(Stella)`** のように略称と表示名を 1 行にまとめています。出自フィルタの見出しは **「難易度表（1つ以上チェックした表のみ表示。すべてオフのときは行を表示しません）」** で、チェックは **`sl(Satellite)`** 形式です。
 
 **統合難易度表別の曲数サマリー:** `filter_table.py` が `level_stats.json` に書き出す集計を、**`level-stats.html`**（`./table/level_stats.json` を fetch）で表示します。トップの `index.html` は難易度表の一覧のみです。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。各元表カードの表は、同一レベルについて **曲数（SQL 後）**（`songdata.db` の条件でハッシュ交差した行）と **曲数（SQL 前）**（元表 JSON の全データ行）を並べて比較できます。フィルタがスキップされたビルドでは `level_stats.json` が無いことがあり、その場合は当該ページでエラー表示になります。
 
