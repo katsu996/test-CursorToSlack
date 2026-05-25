@@ -133,10 +133,11 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 - **`custom_level_unmapped`:** マップにキーが無かったとき。`omit`（既定） / `source` または `original` / `null`。
 - **重複行:** 複数ソースで同一ハッシュが出た場合は **先勝ち**のソースインデックスだけがマップに使われます（2 枚目以降は `source_table_names` / `source_table_short_names` にだけ表名・略称が足され、`custom_level` は上書きしません）。
 - **`course` 内のチャート行**には現状マップを適用していません（データ配列のメイン行のみ）。
+- **既定の K Original 対応表:** [`tools/table-filter/source_tables.json`](../tools/table-filter/source_tables.json) の各ソースに **`custom_level_mapping`** を入れており、☆（通常）・▽（第2通常）・sr（Starlight）・sl（Satellite）の **元表 `level` 文字列**を、運用上の **統合スケール 1〜31** に寄せています。表記ゆれ対策で ☆ 表には **`"☆12"` のように記号付きキー**も重ねてあります。Satellite の **`0`〜`12`** は表の後半ブロック（`sl0`〜`sl12` に相当する帯）を優先したマッピングです。行ごとの解釈を変えたい場合は同ファイルを編集してコミットしてください。
 
 ## 例: stellabms（HTML からヘッダー JSON を解決）
 
-stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の **`tools/table-filter/source_tables.json`**（`filter_config.json` の **`source_tables_path`** から読み込み）では、Satellite（`sl/table.html`）・Stella（`st/table.html`）・Starlight（`sr/table.html`）・[通常難易度表（☆）](https://darksabun.club/table/archive/normal1/)（ディレクトリ URL から HTML を取得して `bmstable` を解決）・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) の 5 本を列挙しています。
+stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の **`tools/table-filter/source_tables.json`**（`filter_config.json` の **`source_tables_path`** から読み込み）では、Starlight（`sr/table.html`）・Satellite（`sl/table.html`）・[通常難易度表（☆）](https://darksabun.club/table/archive/normal1/)（ディレクトリ URL から HTML を取得して `bmstable` を解決）・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) の **4 本**を列挙しています（Stella 等を足す場合は同ファイルにオブジェクトを追加し、`filter_config.json` の `source_tables_path` を維持してください）。
 
 **通常難易度表（☆）の注意:** [darksabun.club](https://darksabun.club/table/archive/normal1/) は **Cloudflare により GitHub Actions のランナーから取得できない**ことがあります。その場合は `filter_table.py` が失敗し、ワークフローが止まります。対処としては、(1) 当該 `source_tables` 要素を一時的に削除する、(2) **ヘッダー JSON の HTTPS 直 URL** やミラーに差し替える、のいずれかが必要です。ディレクトリ URL（末尾 `/`）だけを書くと、ツールは **HTML として 1 回取得して `bmstable` を探す**ため、チャレンジ用 HTMLしか返らない URLは失敗します。
 
