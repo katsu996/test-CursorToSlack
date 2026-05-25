@@ -1,6 +1,6 @@
 // pages_ui_config.json（JSONC 風）
 // `tools/table-filter/build_pages_table.py` が読み込むとき、`//` 行コメントと `/* */` を除去してから JSON として解釈します。
-// キーの並びは GitHub Pages トップの表（`docs/index.html`）の左から右の列順に合わせています（DB の右に IR 3 列、その右に Chart）。
+// キーの並びは GitHub Pages トップの表の左から右の列順に合わせています（`index_table` の列順・IR・Chart と `column_widths` を参照）。
 {
   "version": 1,
   "column_widths": {
@@ -16,7 +16,7 @@
     // "t:custom_level": "7ch",
     // "t:md5": "22ch",
     // "t:sha256": "28ch",
-    // --- 上記 tablePri に無い難易度表列（アルファベット順）---
+    // --- 上記 index_table.table_column_order に無い難易度表列（アルファベット順）---
     // "t:adddate": "10ch",
     // "t:backbmp": "10ch",
     // "t:banner": "10ch",
@@ -84,7 +84,7 @@
   },
   "column_visible_defaults": {
     "table": {
-      // --- 難易度表列: 表左→右（index.html の tablePri と同順、その他はアルファベット順）---
+      // --- 難易度表列: 表左→右（index_table.table_column_order と同順、その他はアルファベット順）---
       "id": false,
       "source_table_index": false,
       "source_table_short_names": true,
@@ -123,14 +123,14 @@
       "subtitle": true,
       "tag": false,
       "url": false,
-      "url_diff": false,
-      // --- 将来 jbmstable の行に列が増えたとき用 ---
+      "url_diff": false
+      // --- 将来 jbmstable の行に列が増えたとき用（末尾カンマにしない: コメント除去後の JSON 互換のため）---
       // "comment": false,
       // "name": false,
       // "text": false
     },
     "db": {
-      // --- song 列: DB ブロック左→右（index.html の dbPriFull と同順）---
+      // --- song 列: DB ブロック左→右（index_table.db_column_order と同順）---
       "title": false,
       "subtitle": true,
       "subartist": true,
@@ -159,9 +159,138 @@
       "date": true,
       "adddate": false,
       "favorite": false,
-      "charthash": true,
-      // --- song テーブルに列が増えたとき用 ---
+      "charthash": true
+      // --- song テーブルに列が増えたとき用（末尾カンマにしない）---
       // "new_column": true
+    }
+  },
+  "index_table": {
+    "table_column_order": [
+      "id",
+      "source_table_index",
+      "source_table_short_names",
+      "source_table_names",
+      "title",
+      "note",
+      "artist",
+      "level",
+      "custom_level",
+      "md5",
+      "sha256"
+    ],
+    "db_column_order": [
+      "title",
+      "subtitle",
+      "subartist",
+      "artist",
+      "genre",
+      "path",
+      "minbpm",
+      "maxbpm",
+      "notes",
+      "length",
+      "level",
+      "difficulty",
+      "md5",
+      "sha256",
+      "folder",
+      "preview",
+      "banner",
+      "stagefile",
+      "backbmp",
+      "tag",
+      "parent",
+      "mode",
+      "judge",
+      "feature",
+      "content",
+      "date",
+      "adddate",
+      "favorite",
+      "charthash"
+    ],
+    "table_clamp_keys": ["title", "note"],
+    "column_labels": {
+      "id": "表 ID",
+      "source_table_index": "出自表（番号）",
+      "source_table_short_names": "シンボル",
+      "source_table_names": "出自（フル）",
+      "md5": "MD5",
+      "sha256": "SHA256",
+      "title": "表タイトル",
+      "artist": "表アーティスト",
+      "note": "表メモ",
+      "level": "表レベル",
+      "custom_level": "独自レベル",
+      "url": "リンク",
+      "url_diff": "差分URL",
+      "subtitle": "サブタイトル",
+      "genre": "ジャンル",
+      "subartist": "サブアーティスト",
+      "folder": "フォルダID",
+      "difficulty": "difficulty",
+      "maxbpm": "max BPM",
+      "minbpm": "min BPM",
+      "length": "長さ(秒?)",
+      "notes": "ノーツ数",
+      "charthash": "charthash",
+      "date": "ファイル日時"
+    },
+    "column_hidden_fallback": {
+      "id": true,
+      "source_table_index": true,
+      "source_table_names": true,
+      "path": true,
+      "preview": true,
+      "banner": true,
+      "stagefile": true,
+      "backbmp": true,
+      "tag": true,
+      "parent": true,
+      "mode": true,
+      "judge": true,
+      "feature": true,
+      "content": true,
+      "favorite": true,
+      "adddate": true,
+      "url": true,
+      "url_diff": true,
+      "source_header_json_url": true,
+      "source_table_register_url": true,
+      "folder": true
+    },
+    "group_labels": {
+      "table": "難易度表 JSON の列",
+      "db": "songdata.db（song）の列",
+      "ir": "IR",
+      "chart": "Chart"
+    },
+    "ir_subcolumns": [
+      {
+        "colgroup_key": "ir:lr2ir",
+        "header": "LR2IR",
+        "hash_kind": "md5",
+        "href_template": "http://www.dream-pro.info/~lavalse/LR2IR/search.cgi?mode=ranking&bmsmd5={value}"
+      },
+      {
+        "colgroup_key": "ir:minir",
+        "header": "MinIR",
+        "hash_kind": "sha256",
+        "href_template": "https://www.gaftalk.com/minir/#/viewer/song/{value}/0"
+      },
+      {
+        "colgroup_key": "ir:mocha",
+        "header": "Mocha",
+        "hash_kind": "sha256",
+        "href_template": "https://mocha-repository.info/song.php?sha256={value}"
+      }
+    ],
+    "chart_column": {
+      "colgroup_key": "chart",
+      "header": "Chart",
+      "link_label": "Chart",
+      "hash_kind": "md5",
+      "href_template": "https://bms-score-viewer.pages.dev/view?md5={value}"
     }
   }
 }

@@ -48,7 +48,10 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 | `tools/table-filter/smoke_check_outputs.py` | デプロイ前の生成物スモークテスト |
 | `tools/table-filter/filter_config.json` | 実行時設定（SQL, URL 等） |
 | `data/songdata.db` | beatoraja の楽曲データベース（SQLite） |
-| `docs/table/pages_ui_config.json` | Pages トップの列幅・列の既定表示（`build_pages_table.py` が `meta.pages_ui` に埋め込み。`//` コメント可、`pages_ui_json.py` で除去）。DB の右に IR 3 列（`ir:lr2ir` 等）、その右に Chart |
+| `docs/table/pages_ui_config.json` | Pages トップの列幅・既定表示・`index_table`（列順・ラベル・IR/Chart URL 等。`build_pages_table.py` が `meta.pages_ui` に埋め込み。`//` コメント可） |
+| `docs/assets/pages-index-toolbar-collapse.js` | トップのツールバー折りたたみ |
+| `docs/assets/pages-index-column-runtime.js` | `index_table` のマージと列見出しヘルパ |
+| `docs/assets/pages-index-main.js` | `browser_rows.json` の取得と表描画 |
 | `docs/pages-ui-config.md` | 上記 JSON のキー説明 |
 | `.github/workflows/pages.yml` | CI/CD ワークフロー定義 |
 

@@ -41,8 +41,6 @@
 | **T008** | **P1** | **`browser_rows.json` の `meta.pages_ui`**: CI でスキーマ／必須キーの検証を行い、壊れた設定を早期検知する。 |
 | **T009** | **P1** | **`workflow_dispatch`**: `.github/workflows/pages.yml` に手動実行を追加し、再デプロイやデバッグをしやすくする。 |
 | **T010** | **P1** | **Dependabot / Actions の更新方針**: ピン留めと更新頻度、マージ前の確認項目を `docs/` に短くまとめる。 |
-| **T011** | **P2** | **`docs/index.html` の JavaScript 分割**: 機能単位で外部 `.js` に分け、可読性と差分の見やすさを上げる。 |
-| **T012** | **P2** | **列定義の単一ソース化**: `LABELS`・IR・Chart・幅キーなどを JSON または生成スクリプトに集約し、HTML と二重管理を減らす。 |
 | **T013** | **P2** | **`ubuntu-latest` で `actions/setup-python` の 3.14.3 が取れない場合の代替**（利用可能なマイナーへの一時ピン、`allow-prerelease` 等）を [`docs/github-actions-songdata-table-filter.md`](docs/github-actions-songdata-table-filter.md) に追記する。 |
 | **T014** | **P2** | **`source_tables.json` の CI 検証**: スキーマ検証に加え、到達性チェックをどこまで行うか方針を決めて実装する。 |
 | **T015** | **P3** | GitHub Pages の「並び替え・絞り込み・列の表示」パネルの開閉状態を `sessionStorage` に保存し、再訪問時に復元する。 |

@@ -73,7 +73,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 ### Pages トップの列幅・列の既定表示（任意）
 
-1. **`docs/table/pages_ui_config.json`** の **`column_widths`**（例: `t:title` / `d:genre` / `chart`）と **`column_visible_defaults`**（`table` / `db` ごとの列キー → 表示なら `true`）を編集します。同梱ファイルでは `//` コメントで列幅テンプレや将来列用の雛形を置いてあり、ビルド時に除去されます（詳細は [docs/pages-ui-config.md](docs/pages-ui-config.md)）。`song` の全列と難易度表側の想定列は `true` / `false` で明示しています。  
+1. **`docs/table/pages_ui_config.json`** の **`column_widths`**（例: `t:title` / `d:genre` / `chart`）と **`column_visible_defaults`**（`table` / `db` ごとの列キー → 表示なら `true`）、必要に応じて **`index_table`**（列順・見出しラベル・IR/Chart の URL 形式など）を編集します。同梱ファイルでは `//` コメントで列幅テンプレや将来列用の雛形を置いてあり、ビルド時に除去されます（詳細は [docs/pages-ui-config.md](docs/pages-ui-config.md)）。`song` の全列と難易度表側の想定列は `true` / `false` で明示しています。  
 2. 別パスに置きたい場合は **`tools/table-filter/filter_config.json`** の **`pages_ui_config_path`** にそのパスを書きます（空なら上記の既定パスです）。  
 3. **`build_pages_table.py` が走るビルド**（`main` への push など）のあと、`browser_rows.json` の **`meta.pages_ui`** に反映されます。
 
@@ -111,7 +111,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 （`<owner>` と `<repo>` は実際の値に置き換えてください。）
 
-**Pages のトップ:** `index.html` のフッターに、上記と同じパスの **`filtered_header.json` を開くリンク**があります（新しいタブで JSON が表示されます）。Table URL の確認や共有に使えます。一覧表の **IR**（LR2IR / MinIR / Mocha）と右端の **Chart** は、難易度表行の **`md5`**（LR2IR・Chart）および **`sha256`**（MinIR・Mocha）から外部ビューアへのリンクです。
+**Pages のトップ:** `index.html` のフッターに、上記と同じパスの **`filtered_header.json` を開くリンク**があります（新しいタブで JSON が表示されます）。Table URL の確認や共有に使えます。一覧表の **IR**（LR2IR / MinIR / Mocha）と右端の **Chart** の URL は **`pages_ui_config.json` の `index_table`**（`browser_rows.json` の `meta.pages_ui` に埋め込み）で変更できます。既定では難易度表行の **`md5`**（LR2IR・Chart）および **`sha256`**（MinIR・Mocha）から外部ビューアへのリンクです。
 
 **サイトのトップだけ**（例: `https://<ユーザー>.github.io/<リポジトリ名>/`）を Table URL に入れると、beatoraja は **HTML モード**でページを取得します。トップの **`docs/index.html` に `<meta name="bmstable" content="table/filtered_header.json">` を入れてある**ため、この URL でもヘッダー JSON に辿り着けます。ただし **末尾スラッシュ無し**（`…/repo`）の URL では jbmstable-parser の相対解決がずれることがあるため、**末尾 `/` 付き**か、確実には上記の **`filtered_header.json` 直リンク**を推奨します。
 

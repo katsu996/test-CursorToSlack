@@ -6,7 +6,7 @@
 2. **`source_tables`**（または **`source_tables_path`** で読む別 JSON）で指定した各難易度表（ヘッダー JSON の URL。HTML なら `bmstable` の meta から解決）を取得し、**そのハッシュが集合に含まれる行だけ**残したうえで、**beatoraja 用**の `filtered_data.json` と **Pages 用**の `filtered_data_enriched.json` を出力する。
 3. ヘッダー JSON の **`data_url` を、既定ではデータファイル名のみ**（例: `filtered_data.json`）にし、beatoraja が **ヘッダーと同じディレクトリ**から取得できるようにした `filtered_header.json` を出力する（絶対 URL が必要なときは `use_relative_data_url: false` と `site_base_url` を使う）。
 4. `filter_table.py` は各元表について **`sql_where` 通過後・重複マージ前**の行をレベル列別に数え、あわせて **SQL 条件を掛ける前の元表データ行**も同じレベル列で数え、`level_stats.json`（`level_rows` で前後を同一表の行に並べる）を出力する（既定ファイル名は `output_level_stats_filename`）。
-5. `build_pages_table.py` が `filtered_data_enriched.json`（無ければ `filtered_data.json`）と `song` を突き合わせ `browser_rows.json` を生成する。`docs/index.html` が一覧を表示し、`docs/level-stats.html` が `level_stats.json` を読んで統合難易度表別のレベル別件数を表示する。
+5. `build_pages_table.py` が `filtered_data_enriched.json`（無ければ `filtered_data.json`）と `song` を突き合わせ `browser_rows.json` を生成する。`docs/index.html` と `docs/assets/pages-index-*.js` が一覧を表示し、`docs/level-stats.html` が `level_stats.json` を読んで統合難易度表別のレベル別件数を表示する。
 6. 複数の元表をマージするとき、**各行に出自情報**（`source_table_index`・`source_table_short_names`・`source_table_names` など）を付与する。同一譜面が複数表に載っている場合は `source_table_names` / `source_table_short_names` に複数の表ラベルが入る（`source_table_index` は先勝ちの表の番号のまま）。
 
 **運用で触る設定・手順**（SQL、URL、DB の置き場所、push、Table URL）は **[リポジトリ直下の README.md](../../README.md)** を参照してください。
