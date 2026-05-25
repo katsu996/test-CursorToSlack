@@ -28,6 +28,7 @@
       --group-d: 142 76% 94%;
       --group-chart: 262 83% 96%;
       --group-ir: 35 90% 93%;
+      --group-trail: 214 72% 94%;
       --row-alt: 240 5% 98%;
       --link: 221 83% 53%;
     }
@@ -56,6 +57,7 @@
         --group-d: 143 64% 14%;
         --group-chart: 262 35% 18%;
         --group-ir: 32 45% 18%;
+        --group-trail: 214 40% 18%;
         --row-alt: 240 4% 9%;
         --link: 217 91% 60%;
       }
@@ -84,6 +86,7 @@
       --group-d: 143 64% 14%;
       --group-chart: 262 35% 18%;
       --group-ir: 32 45% 18%;
+      --group-trail: 214 40% 18%;
       --row-alt: 240 4% 9%;
       --link: 217 91% 60%;
     }
@@ -111,6 +114,7 @@
       --group-d: 142 76% 94%;
       --group-chart: 262 83% 96%;
       --group-ir: 35 90% 93%;
+      --group-trail: 214 72% 94%;
       --row-alt: 240 5% 98%;
       --link: 221 83% 53%;
     }
@@ -412,6 +416,7 @@
     th.group-d { background-color: hsl(var(--group-d)); color: hsl(var(--foreground)); }
     th.group-ir { background-color: hsl(var(--group-ir)); color: hsl(var(--foreground)); }
     th.group-chart { background-color: hsl(var(--group-chart)); color: hsl(var(--foreground)); }
+    th.group-trail { background-color: hsl(var(--group-trail)); color: hsl(var(--foreground)); }
     td.ir-cell { white-space: nowrap; }
     td.chart-cell { white-space: nowrap; }
     th.cell-max,

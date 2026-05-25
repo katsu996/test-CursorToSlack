@@ -2,7 +2,7 @@
 
 GitHub Pages のトップ（`docs/index.html` と `docs/assets/pages-index-*.js`）が参照する **列の既定幅**、**列チェックの既定 ON/OFF**、**列順・ラベル・IR/Chart リンク**を、主にこの JSON で調整できます。
 
-同梱の `docs/table/pages_ui_config.json` では、`column_widths` / `column_visible_defaults` の **オブジェクト内のキー順**をトップの表の **左から右**（`index_table.table_column_order`、続けてアルファベット順の追加列、`index_table.db_column_order`、その右に **IR**（`ir_subcolumns` の `colgroup_key` 順）、最後に **`chart_column.colgroup_key`（通常 `chart`）**）に合わせています。
+同梱の `docs/table/pages_ui_config.json` では、`column_widths` / `column_visible_defaults` の **オブジェクト内のキー順**をトップの表の **左から右**（`index_table.table_column_order`、続けてアルファベット順の追加列、`index_table.db_column_order`、**IR**（`ir_subcolumns` の `colgroup_key` 順）、**`chart_column.colgroup_key`（通常 `chart`）**、最後に **`trailing_table_columns`**（既定は独自レベル `custom_level` のみ））に合わせています。
 
 ## 読み込み
 
@@ -19,7 +19,7 @@ GitHub Pages のトップ（`docs/index.html` と `docs/assets/pages-index-*.js`
 
 ## `column_widths`
 
-`<colgroup>` の既定幅。キーは表の列が **`t:` + 列名**、DB 列が **`d:` + 列名**、IR 列（LR2IR / MinIR / Mocha）が **`ir:lr2ir`** / **`ir:minir`** / **`ir:mocha`**、Chart 列が **`chart`** です。
+`<colgroup>` の既定幅。キーは表の列が **`t:` + 列名**、DB 列が **`d:` + 列名**、IR 列（LR2IR / MinIR / Mocha）が **`ir:lr2ir`** / **`ir:minir`** / **`ir:mocha`**、Chart 列が **`chart`**、末尾ブロック（`trailing_table_columns`、既定は **`t:custom_level`**）です。
 
 例:
 
@@ -31,7 +31,8 @@ GitHub Pages のトップ（`docs/index.html` と `docs/assets/pages-index-*.js`
   "ir:lr2ir": "4.5rem",
   "ir:minir": "4.5rem",
   "ir:mocha": "4.5rem",
-  "chart": "4.5rem"
+  "chart": "4.5rem",
+  "t:custom_level": "7ch"
 }
 ```
 
@@ -39,15 +40,15 @@ GitHub Pages のトップ（`docs/index.html` と `docs/assets/pages-index-*.js`
 
 ## `column_visible_defaults`
 
-列表示パネルの **初期チェック** です。`table` / `db` ごとに、列キー → **`true`（表示）** / **`false`（非表示）** を書きます。
+列表示パネルの **初期チェック** です。`table` / `db` に加え、**`ir`** / **`chart`**（IR 3 列まとめて・Chart 1 列）を **`true` / `false`** で指定できます（未指定時は `true`）。
 
 リポジトリ同梱の `docs/table/pages_ui_config.json` では、`index_table.column_hidden_fallback` および DB 側の既定非表示（`title` / `artist` / `md5` / `sha256`）と整合するよう、多くの列を **`false` として明示**しています。運用で既定を変えたいときはこのオブジェクトを編集してください。将来列が増えたとき用の **`// "key": true,` 形式のテンプレ行**も同梱しています。
 
-ここに **無い列** は、`index_table.column_hidden_fallback`（`docs/assets/pages-index-column-runtime.js` の既定とマージ）および上記 DB 4 列の既定オフにフォールバックします。新しい列キーがデータに現れた場合も、未指定なら従来どおり表示されます。
+ここに **無い列** は、`index_table.column_hidden_fallback`（`docs/assets/pages-index-column-runtime.js` の既定とマージ）および上記 DB 4 列の既定オフにフォールバックします。新しい列キーがデータに現れた場合も、未指定なら従来どおり表示されます。**`ir` / `chart`** は `table` / `db` とは別トップレベルキーです。
 
 ## `index_table`（列定義の単一ソース）
 
-トップ表の **難易度表 / DB の優先列順**、**見出しラベル**、**長文折り返し対象**（`table_clamp_keys`）、**既定で隠す列**（`column_hidden_fallback`）、**1 段目グループ見出し**（`group_labels`）、**IR 各列**（`ir_subcolumns`: `colgroup_key` / `header` / `hash_kind` / `href_template` の `{value}`）、**Chart 列**（`chart_column`）をまとめます。`build_pages_table.py` が `meta.pages_ui` に埋め込むため、**`browser_rows.json` を取得すればフロントは追加の fetch なし**で解決できます。
+トップ表の **難易度表 / DB の優先列順**（`table_column_order` / `db_column_order`）、**表データの末尾に出す列**（**`trailing_table_columns`**。IR・Chart の**さらに右**に描画。既定は `custom_level` のみ）、**見出しラベル**、**長文折り返し対象**（`table_clamp_keys`）、**既定で隠す列**（`column_hidden_fallback`）、**1 段目グループ見出し**（`group_labels` に `trailing` で末尾ブロック名）、**IR 各列**（`ir_subcolumns`: `colgroup_key` / `header` / `hash_kind` / `href_template` の `{value}`）、**Chart 列**（`chart_column`）をまとめます。`build_pages_table.py` が `meta.pages_ui` に埋め込むため、**`browser_rows.json` を取得すればフロントは追加の fetch なし**で解決できます。
 
 古い `browser_rows.json` だけ手元に残っている場合は、`pages-index-column-runtime.js` 内の **`DEFAULT_INDEX_TABLE`** が同等の既定値にフォールバックします（リポジトリの `index_table` と同期しておくこと）。
 

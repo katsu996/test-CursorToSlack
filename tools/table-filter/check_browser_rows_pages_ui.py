@@ -50,6 +50,14 @@ def validate_pages_ui(pages_ui: Any) -> list[str]:
         for ck in ("colgroup_key", "href_template", "hash_kind"):
             if ck not in cc:
                 errs.append(f"chart_column に '{ck}' がありません")
+    tt = it.get("trailing_table_columns")
+    if tt is not None:
+        if not isinstance(tt, list):
+            errs.append("index_table.trailing_table_columns は配列である必要があります")
+        else:
+            for i, x in enumerate(tt):
+                if not isinstance(x, str) or not x.strip():
+                    errs.append(f"trailing_table_columns[{i}] は非空の文字列である必要があります")
     cw = pages_ui.get("column_widths")
     if not isinstance(cw, dict):
         errs.append("column_widths がオブジェクトではありません")

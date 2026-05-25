@@ -69,3 +69,6 @@ class TestLoadPagesUiConfig(unittest.TestCase):
         cc = it.get("chart_column")
         self.assertIsInstance(cc, dict)
         self.assertEqual(cc.get("colgroup_key"), "chart")
+        trail = it.get("trailing_table_columns")
+        self.assertIsInstance(trail, list)
+        self.assertIn("custom_level", trail)

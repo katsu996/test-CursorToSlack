@@ -13,12 +13,13 @@
       "source_table_names",
       "title",
       "note",
+      "comment",
       "artist",
       "level",
-      "custom_level",
       "md5",
       "sha256"
     ],
+    trailing_table_columns: ["custom_level"],
     db_column_order: [
       "title",
       "subtitle",
@@ -61,6 +62,7 @@
       title: "表タイトル",
       artist: "表アーティスト",
       note: "表メモ",
+      comment: "表コメント",
       level: "表レベル",
       custom_level: "独自レベル",
       url: "リンク",
@@ -104,7 +106,8 @@
       table: "難易度表 JSON の列",
       db: "songdata.db（song）の列",
       ir: "IR",
-      chart: "Chart"
+      chart: "Chart",
+      trailing: "独自レベル"
     },
     ir_subcolumns: [
       {
@@ -154,6 +157,12 @@
     var tableOrder = Array.isArray(it.table_column_order) && it.table_column_order.length
       ? it.table_column_order.slice()
       : def.table_column_order.slice();
+    var trailOrder =
+      Array.isArray(it.trailing_table_columns) && it.trailing_table_columns.length
+        ? it.trailing_table_columns.slice()
+        : def.trailing_table_columns
+          ? def.trailing_table_columns.slice()
+          : [];
     var dbOrder = Array.isArray(it.db_column_order) && it.db_column_order.length
       ? it.db_column_order.slice()
       : def.db_column_order.slice();
@@ -174,6 +183,7 @@
     var chartCol = Object.assign({}, def.chart_column, shallowCopy(it.chart_column));
     return {
       table_column_order: tableOrder,
+      trailing_table_columns: trailOrder,
       db_column_order: dbOrder,
       column_labels: labels,
       table_clamp_keys: clampKeys,

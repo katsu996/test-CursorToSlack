@@ -1,6 +1,6 @@
 // pages_ui_config.json（JSONC 風）
 // `tools/table-filter/build_pages_table.py` が読み込むとき、`//` 行コメントと `/* */` を除去してから JSON として解釈します。
-// キーの並びは GitHub Pages トップの表の左から右の列順に合わせています（`index_table` の列順・IR・Chart と `column_widths` を参照）。
+// キーの並びは GitHub Pages トップの表の左から右の列順に合わせています（`index_table.table_column_order` → DB → IR → Chart → `trailing_table_columns` と `column_widths` を参照）。
 {
   "version": 1,
   "column_widths": {
@@ -13,7 +13,6 @@
     "t:note": "50ch",
     // "t:artist": "14ch",
     // "t:level": "7ch",
-    // "t:custom_level": "7ch",
     // "t:md5": "22ch",
     // "t:sha256": "28ch",
     // --- 上記 index_table.table_column_order に無い難易度表列（アルファベット順）---
@@ -79,8 +78,10 @@
     "ir:lr2ir": "4.5rem",
     "ir:minir": "4.5rem",
     "ir:mocha": "4.5rem",
-    // --- Chart 列（右端）---
-    "chart": "4.5rem"
+    // --- Chart 列 ---
+    "chart": "4.5rem",
+    // --- 末尾ブロック（trailing_table_columns・既定は独自レベル）---
+    "t:custom_level": "7ch"
   },
   "column_visible_defaults": {
     "table": {
@@ -90,7 +91,8 @@
       "source_table_short_names": true,
       "source_table_names": false,
       "title": true,
-      "note": true,
+      "note": false,
+      "comment": false,
       "artist": true,
       "level": true,
       "custom_level": true,
@@ -125,7 +127,6 @@
       "url": false,
       "url_diff": false
       // --- 将来 jbmstable の行に列が増えたとき用（末尾カンマにしない: コメント除去後の JSON 互換のため）---
-      // "comment": false,
       // "name": false,
       // "text": false
     },
@@ -162,7 +163,9 @@
       "charthash": true
       // --- song テーブルに列が増えたとき用（末尾カンマにしない）---
       // "new_column": true
-    }
+    },
+    "ir": true,
+    "chart": true
   },
   "index_table": {
     "table_column_order": [
@@ -172,12 +175,13 @@
       "source_table_names",
       "title",
       "note",
+      "comment",
       "artist",
       "level",
-      "custom_level",
       "md5",
       "sha256"
     ],
+    "trailing_table_columns": ["custom_level"],
     "db_column_order": [
       "title",
       "subtitle",
@@ -220,6 +224,7 @@
       "title": "表タイトル",
       "artist": "表アーティスト",
       "note": "表メモ",
+      "comment": "表コメント",
       "level": "表レベル",
       "custom_level": "独自レベル",
       "url": "リンク",
@@ -257,13 +262,15 @@
       "url_diff": true,
       "source_header_json_url": true,
       "source_table_register_url": true,
-      "folder": true
+      "folder": true,
+      "comment": true
     },
     "group_labels": {
       "table": "難易度表 JSON の列",
       "db": "songdata.db（song）の列",
       "ir": "IR",
-      "chart": "Chart"
+      "chart": "Chart",
+      "trailing": "独自レベル"
     },
     "ir_subcolumns": [
       {

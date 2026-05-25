@@ -66,6 +66,28 @@
     return typeof val === "number" && Number.isFinite(val);
   }
 
+  function tablePriOrderForCollect(runtime) {
+    var pri = runtime.table_column_order.slice();
+    var tra = Array.isArray(runtime.trailing_table_columns) ? runtime.trailing_table_columns : [];
+    for (var ti = 0; ti < tra.length; ti++) {
+      if (pri.indexOf(tra[ti]) < 0) pri.push(tra[ti]);
+    }
+    return pri;
+  }
+
+  function splitVisibleTableKeys(vTKeys, runtime) {
+    var ts = new Set(Array.isArray(runtime.trailing_table_columns) ? runtime.trailing_table_columns : []);
+    var main = [];
+    for (var si = 0; si < vTKeys.length; si++) {
+      if (!ts.has(vTKeys[si])) main.push(vTKeys[si]);
+    }
+    var order = Array.isArray(runtime.trailing_table_columns) ? runtime.trailing_table_columns : [];
+    var trail = order.filter(function (k) {
+      return vTKeys.indexOf(k) >= 0;
+    });
+    return { main: main, trail: trail };
+  }
+
   function collectAllKeys(rows, key, runtime) {
     var s = {};
     for (var i = 0; i < rows.length; i++) {
@@ -77,7 +99,7 @@
         }
       }
     }
-    var pri = key === "table" ? runtime.table_column_order : runtime.db_column_order;
+    var pri = key === "table" ? tablePriOrderForCollect(runtime) : runtime.db_column_order;
     var arr = Object.keys(s);
     var first = [];
     for (var p = 0; p < pri.length; p++) {
@@ -278,6 +300,17 @@
           : {};
       var hiddenFb = runtime.column_hidden_fallback;
 
+      function defaultExtraVisible(key) {
+        if (visDefaults && typeof visDefaults === "object" && Object.prototype.hasOwnProperty.call(visDefaults, key)) {
+          return !!visDefaults[key];
+        }
+        return true;
+      }
+      var visIr = defaultExtraVisible("ir");
+      var visChart = defaultExtraVisible("chart");
+      var defaultVisIr = visIr;
+      var defaultVisChart = visChart;
+
       function defaultColumnVisible(k, section) {
         var secKey = section === "table" ? "table" : "db";
         var sec = visDefaults[secKey];
@@ -296,23 +329,31 @@
       } catch (_e0) {}
 
       function colKeysList(vTKeys, vDKeys) {
+        var sp = splitVisibleTableKeys(vTKeys, runtime);
+        var vTMain = sp.main;
+        var vTTrail = sp.trail;
         var keys = [];
         var ti;
-        if (vTKeys.length) {
-          for (ti = 0; ti < vTKeys.length; ti++) keys.push("t:" + vTKeys[ti]);
+        if (vTMain.length) {
+          for (ti = 0; ti < vTMain.length; ti++) keys.push("t:" + vTMain[ti]);
         } else keys.push("t:_empty");
         if (vDKeys.length) {
           for (ti = 0; ti < vDKeys.length; ti++) keys.push("d:" + vDKeys[ti]);
         } else keys.push("d:_empty");
         var irs = runtime.ir_subcolumns || [];
-        for (var ii = 0; ii < irs.length; ii++) {
-          if (irs[ii].colgroup_key) keys.push(String(irs[ii].colgroup_key));
+        if (visIr) {
+          for (var ii = 0; ii < irs.length; ii++) {
+            if (irs[ii].colgroup_key) keys.push(String(irs[ii].colgroup_key));
+          }
         }
-        if (runtime.chart_column && runtime.chart_column.colgroup_key) {
-          keys.push(String(runtime.chart_column.colgroup_key));
-        } else {
-          keys.push("chart");
+        if (visChart) {
+          if (runtime.chart_column && runtime.chart_column.colgroup_key) {
+            keys.push(String(runtime.chart_column.colgroup_key));
+          } else {
+            keys.push("chart");
+          }
         }
+        for (ti = 0; ti < vTTrail.length; ti++) keys.push("t:" + vTTrail[ti]);
         return keys;
       }
       function persistColWidths() {
@@ -551,11 +592,15 @@
       }
 
       function rebuildThead(vTKeys, vDKeys) {
-        thead.innerHTML = "";
+        var sp = splitVisibleTableKeys(vTKeys, runtime);
+        var vTMain = sp.main;
+        var vTTrail = sp.trail;
+        var irCols = runtime.ir_subcolumns || [];
         var gl = runtime.group_labels || {};
+        thead.innerHTML = "";
         var trh1 = document.createElement("tr");
         var thT = document.createElement("th");
-        thT.colSpan = Math.max(1, vTKeys.length);
+        thT.colSpan = Math.max(1, vTMain.length);
         thT.className = "group-t";
         thT.textContent = gl.table || "難易度表 JSON の列";
         trh1.appendChild(thT);
@@ -564,27 +609,37 @@
         thD.className = "group-d";
         thD.textContent = gl.db || "songdata.db（song）の列";
         trh1.appendChild(thD);
-        var thIr = document.createElement("th");
-        var irCols = runtime.ir_subcolumns || [];
-        thIr.colSpan = Math.max(1, irCols.length);
-        thIr.className = "group-ir";
-        thIr.textContent = gl.ir || "IR";
-        trh1.appendChild(thIr);
-        var thChart = document.createElement("th");
-        thChart.colSpan = 1;
-        thChart.className = "group-chart";
-        thChart.textContent = gl.chart || "Chart";
-        trh1.appendChild(thChart);
+        if (visIr && irCols.length) {
+          var thIr = document.createElement("th");
+          thIr.colSpan = Math.max(1, irCols.length);
+          thIr.className = "group-ir";
+          thIr.textContent = gl.ir || "IR";
+          trh1.appendChild(thIr);
+        }
+        if (visChart) {
+          var thChart = document.createElement("th");
+          thChart.colSpan = 1;
+          thChart.className = "group-chart";
+          thChart.textContent = gl.chart || "Chart";
+          trh1.appendChild(thChart);
+        }
+        if (vTTrail.length) {
+          var thTr = document.createElement("th");
+          thTr.colSpan = Math.max(1, vTTrail.length);
+          thTr.className = "group-trail";
+          thTr.textContent = gl.trailing || "独自レベル";
+          trh1.appendChild(thTr);
+        }
         thead.appendChild(trh1);
 
         var trh2 = document.createElement("tr");
-        vTKeys.forEach(function (k) {
+        vTMain.forEach(function (k) {
           var th = document.createElement("th");
           th.className = "group-t" + (PI.isTableClampKey(k, runtime) ? " cell-max" : "");
           th.textContent = PI.tableColTitle(k, runtime);
           trh2.appendChild(th);
         });
-        if (!vTKeys.length) {
+        if (!vTMain.length) {
           var th0 = document.createElement("th");
           th0.className = "group-t";
           th0.textContent = "（表データなし）";
@@ -602,16 +657,26 @@
           th1.textContent = "（DB列なし）";
           trh2.appendChild(th1);
         }
-        irCols.forEach(function (col) {
-          var thi = document.createElement("th");
-          thi.className = "group-ir";
-          thi.textContent = col.header || col.colgroup_key || "—";
-          trh2.appendChild(thi);
+        if (visIr) {
+          irCols.forEach(function (col) {
+            var thi = document.createElement("th");
+            thi.className = "group-ir";
+            thi.textContent = col.header || col.colgroup_key || "—";
+            trh2.appendChild(thi);
+          });
+        }
+        if (visChart) {
+          var thChart2 = document.createElement("th");
+          thChart2.className = "group-chart";
+          thChart2.textContent = (runtime.chart_column && runtime.chart_column.header) || "Chart";
+          trh2.appendChild(thChart2);
+        }
+        vTTrail.forEach(function (k) {
+          var th3 = document.createElement("th");
+          th3.className = "group-trail";
+          th3.textContent = PI.tableColTitle(k, runtime);
+          trh2.appendChild(th3);
         });
-        var thChart2 = document.createElement("th");
-        thChart2.className = "group-chart";
-        thChart2.textContent = (runtime.chart_column && runtime.chart_column.header) || "Chart";
-        trh2.appendChild(thChart2);
         thead.appendChild(trh2);
         rebuildColgroup(vTKeys, vDKeys);
         initColResize(trh2, vTKeys, vDKeys);
@@ -654,6 +719,52 @@
         }
         addGroup("難易度表 JSON の列", "t", allTKeys, visT, "表: ");
         addGroup("songdata.db（song）の列", "d", allDKeys, visD, "DB: ");
+        var wrapX = document.createElement("div");
+        wrapX.className = "colbar-group";
+        var hx = document.createElement("div");
+        hx.className = "colbar-group-title ir";
+        hx.textContent = "IR・Chart";
+        wrapX.appendChild(hx);
+        var picksX = document.createElement("div");
+        picksX.className = "colpick-wrap";
+        function addExtraCheckbox(labelText, get, set) {
+          var lab = document.createElement("label");
+          lab.className = "colpick";
+          var inp = document.createElement("input");
+          inp.type = "checkbox";
+          inp.checked = get();
+          inp.addEventListener("change", function () {
+            set(inp.checked);
+            currentPage = 1;
+            var vT = visibleKeys(allTKeys, visT);
+            var vD = visibleKeys(allDKeys, visD);
+            rebuildThead(vT, vD);
+            refresh();
+          });
+          lab.appendChild(inp);
+          lab.appendChild(document.createTextNode(labelText));
+          picksX.appendChild(lab);
+        }
+        addExtraCheckbox(
+          "IR（LR2IR / MinIR / Mocha）",
+          function () {
+            return visIr;
+          },
+          function (v) {
+            visIr = v;
+          }
+        );
+        addExtraCheckbox(
+          "Chart",
+          function () {
+            return visChart;
+          },
+          function (v) {
+            visChart = v;
+          }
+        );
+        wrapX.appendChild(picksX);
+        colbarInner.appendChild(wrapX);
       }
 
       function rowText(r) {
@@ -692,7 +803,9 @@
       fillSortSelect(sortCol1);
       fillSortSelect(sortCol2);
       fillSortSelect(sortCol3);
-      if (allTKeys.indexOf("title") >= 0) {
+      if (selectHasValue(sortCol1, "table:custom_level")) {
+        sortCol1.value = "table:custom_level";
+      } else if (allTKeys.indexOf("title") >= 0) {
         sortCol1.value = "table:title";
       } else if (allDKeys.indexOf("title") >= 0) {
         sortCol1.value = "db:title";
@@ -781,6 +894,16 @@
             visD[k] = !!setD[k];
           });
         }
+        if (p.has("ir")) {
+          var irv = (p.get("ir") || "").toLowerCase();
+          if (irv === "0" || irv === "false") visIr = false;
+          else if (irv === "1" || irv === "true") visIr = true;
+        }
+        if (p.has("ch")) {
+          var chv = (p.get("ch") || "").toLowerCase();
+          if (chv === "0" || chv === "false") visChart = false;
+          else if (chv === "1" || chv === "true") visChart = true;
+        }
         var pgn = parseInt(p.get("pg") || "1", 10);
         if (Number.isFinite(pgn) && pgn >= 1) currentPage = pgn;
         if (p.get("tb") === "1" && toolbarPanel && toolbarToggle) {
@@ -796,21 +919,27 @@
       function render(list) {
         var vTKeys = visibleKeys(allTKeys, visT);
         var vDKeys = visibleKeys(allDKeys, visD);
+        var sp = splitVisibleTableKeys(vTKeys, runtime);
+        var vTMain = sp.main;
+        var vTTrail = sp.trail;
         tbody.innerHTML = "";
         list.forEach(function (r) {
           var tr = document.createElement("tr");
           var t = r.table || {};
           var d = r.db || {};
-          vTKeys.forEach(function (k) {
+          vTMain.forEach(function (k) {
             tr.insertAdjacentHTML("beforeend", cellHtml(t[k], "table", k, runtime));
           });
-          if (!vTKeys.length) tr.insertAdjacentHTML("beforeend", '<td class="empty">—</td>');
+          if (!vTMain.length) tr.insertAdjacentHTML("beforeend", '<td class="empty">—</td>');
           vDKeys.forEach(function (k) {
             tr.insertAdjacentHTML("beforeend", cellHtml(d ? d[k] : "", "db", k, runtime));
           });
           if (!vDKeys.length) tr.insertAdjacentHTML("beforeend", '<td class="empty">—</td>');
-          tr.insertAdjacentHTML("beforeend", irCellsHtml(t, runtime));
-          tr.insertAdjacentHTML("beforeend", chartCellHtml(t, runtime));
+          if (visIr) tr.insertAdjacentHTML("beforeend", irCellsHtml(t, runtime));
+          if (visChart) tr.insertAdjacentHTML("beforeend", chartCellHtml(t, runtime));
+          vTTrail.forEach(function (k) {
+            tr.insertAdjacentHTML("beforeend", cellHtml(t[k], "table", k, runtime));
+          });
           tbody.appendChild(tr);
         });
       }
@@ -860,6 +989,8 @@
           var kd = allDKeys[vj];
           if (visD[kd] !== defaultVisD[kd]) return false;
         }
+        if (visIr !== defaultVisIr) return false;
+        if (visChart !== defaultVisChart) return false;
         return true;
       }
 
@@ -881,7 +1012,7 @@
           return;
         }
         var p = u.searchParams;
-        ["q", "s1", "d1", "s2", "d2", "s3", "d3", "src", "tcols", "dcols", "pg", "tb"].forEach(function (k) {
+        ["q", "s1", "d1", "s2", "d2", "s3", "d3", "src", "tcols", "dcols", "ir", "ch", "pg", "tb"].forEach(function (k) {
           p.delete(k);
         });
         var qv = (q.value || "").trim();
@@ -922,6 +1053,8 @@
               })
               .join(",")
           );
+          if (visIr !== defaultVisIr) p.set("ir", visIr ? "1" : "0");
+          if (visChart !== defaultVisChart) p.set("ch", visChart ? "1" : "0");
         }
         if (currentPage > 1) p.set("pg", String(currentPage));
         if (toolbarPanel && toolbarToggle && !toolbarPanel.hidden) p.set("tb", "1");
