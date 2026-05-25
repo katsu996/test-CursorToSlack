@@ -171,6 +171,6 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 | beatoraja 向け難易度表 JSON の前提（回帰防止） | [docs/beatoraja-jbmstable-table-json.md](docs/beatoraja-jbmstable-table-json.md) |
 | `filter_config.json` のキー一覧（スキーマ） | [docs/filter-config-schema.md](docs/filter-config-schema.md) |
 | 静的 UI から Vite+React 移行を検討するときの整理 | [docs/frontend-migration-costs.md](docs/frontend-migration-costs.md) |
-| 保守・改善バックログ（優先度の意味と定期メンテ） | [todo.md](todo.md) |
+| 保守・改善バックログ（`T###` の Todo No・優先度・定期メンテ・バックログ表） | [todo.md](todo.md) |
 
 ワークフロー定義: [.github/workflows/pages.yml](.github/workflows/pages.yml)
