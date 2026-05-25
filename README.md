@@ -113,6 +113,8 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **Pages のトップ:** `index.html` のフッターに、上記と同じパスの **`filtered_header.json` を開くリンク**があります（新しいタブで JSON が表示されます）。Table URL の確認や共有に使えます。一覧表の **IR**（LR2IR / MinIR / Mocha）と右端の **Chart** の URL は **`pages_ui_config.json` の `index_table`**（`browser_rows.json` の `meta.pages_ui` に埋め込み）で変更できます。既定では難易度表行の **`md5`**（LR2IR・Chart）および **`sha256`**（MinIR・Mocha）から外部ビューアへのリンクです。
 
+**一覧の URL クエリ（状態の共有）:** 並び替え・キーワード・難易度表チェック・列の表示・ページ送り・ツールバー開閉をクエリに反映し、同じ表示をリンクで再現できます（アドレスは `history.replaceState` で更新されます）。例: `?q=foo`、`?s1=table:title&d1=asc`（`s2`/`d2`、`s3`/`d3` も同様）、`?src=sl,st`（表示する略称のみ。クエリに **`src` を付けたときだけ** 表チェックを上書き）、`?tcols=title,level&dcols=minbpm`（表示する列キーのカンマ区切り。付けたときだけ上書き）、`?pg=2`（1 ページあたり最大 150 行）、`?tb=1`（ツールバーを開いた状態）。既定と同じ値はクエリから省かれます。
+
 **サイトのトップだけ**（例: `https://<ユーザー>.github.io/<リポジトリ名>/`）を Table URL に入れると、beatoraja は **HTML モード**でページを取得します。トップの **`docs/index.html` に `<meta name="bmstable" content="table/filtered_header.json">` を入れてある**ため、この URL でもヘッダー JSON に辿り着けます。ただし **末尾スラッシュ無し**（`…/repo`）の URL では jbmstable-parser の相対解決がずれることがあるため、**末尾 `/` 付き**か、確実には上記の **`filtered_header.json` 直リンク**を推奨します。
 
 生成される `filtered_header.json` の **`data_url` は既定で `filtered_data.json` のみ**（ヘッダーと同じパス上の相対指定）です。`SITE_BASE_URL` の誤りでデータが取れない問題を避けるための挙動です。**絶対 URL で出したい場合**は `tools/table-filter/filter_config.json` で **`use_relative_data_url` を `false`** にし、**`site_base_url`**（またはローカルでは環境変数 **`SITE_BASE_URL`**）をセットしてください。

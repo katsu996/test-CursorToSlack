@@ -7,6 +7,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      note:
+        description: 手動実行メモ（ログ用・任意）
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -26,6 +32,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Workflow dispatch note
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "workflow_dispatch note=${{ github.event.inputs.note }}"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -50,6 +61,9 @@ jobs:
 
       - name: Build merged table for Pages top page
         run: python3 tools/table-filter/build_pages_table.py --config tools/table-filter/filter_config.json
+
+      - name: Validate browser_rows meta.pages_ui
+        run: python3 tools/table-filter/check_browser_rows_pages_ui.py --path docs/table/browser_rows.json
 
       - name: Smoke check generated JSON
         run: python3 tools/table-filter/smoke_check_outputs.py --config tools/table-filter/filter_config.json

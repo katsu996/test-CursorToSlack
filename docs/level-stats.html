@@ -5,46 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>K Original難易度表 — 統合難易度表別の曲数</title>
   <link rel="stylesheet" href="assets/k-original-ui.css" />
-  <script src="assets/theme-toggle.js"></script>
+  <script src="assets/theme-toggle.js" defer></script>
 </head>
 <body class="level-stats-page">
+  <a class="skip-link" href="#main-content">メインへスキップ</a>
   <div class="wrap">
     <header class="site-header">
-      <div class="site-head-main">
-        <p class="nav"><a href="./index.html">← K Original難易度表</a></p>
-        <h1>統合難易度表別の曲数</h1>
-      </div>
+      <h1 id="page-h1">統合難易度表別の曲数</h1>
       <button type="button" class="shadcn-btn" id="theme-toggle" aria-label="配色を切り替え">
         <span class="shadcn-btn-icon-wrap" id="theme-toggle-icon" aria-hidden="true"></span>
         <span class="shadcn-btn-text" id="theme-toggle-text">自動</span>
       </button>
     </header>
-    <p class="lead">
-      Actions が生成する <code>table/level_stats.json</code> を表示します。
-    </p>
+    <div id="load-status" class="load-status" role="status" aria-live="polite">集計データを読み込み中です…</div>
     <div id="meta" class="meta" hidden>
       <dl id="meta-dl"></dl>
     </div>
-    <div id="err" class="err" hidden></div>
-    <section id="level-stats-section" class="level-stats" hidden>
-      <h2>統合難易度表ごとのレベル別件数</h2>
-      <div id="level-stats-grid" class="level-stats-grid"></div>
-    </section>
+    <div id="err" class="err" role="alert" aria-live="assertive" hidden></div>
+    <button type="button" class="shadcn-btn" id="reload-data" hidden>再読み込み</button>
+    <main id="main-content" tabindex="-1">
+      <p class="nav" style="margin-bottom:0.75rem">
+        <a href="./index.html">← K Original難易度表（一覧）</a>
+      </p>
+      <section id="level-stats-section" class="level-stats" hidden>
+        <h2>統合難易度表ごとのレベル別件数</h2>
+        <div id="level-stats-grid" class="level-stats-grid"></div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <a class="shadcn-link" href="./index.html">一覧へ戻る</a>
+      <span class="footer-sep" aria-hidden="true">·</span>
+      <a class="shadcn-link" href="./table/filtered_header.json" target="_blank" rel="noopener noreferrer">beatoraja 用 <code>filtered_header.json</code></a>
+    </footer>
   </div>
   <script>
 (function () {
+  var loadStatus = document.getElementById("load-status");
   var metaEl = document.getElementById("meta");
   var metaDl = document.getElementById("meta-dl");
   var errEl = document.getElementById("err");
+  var reloadBtn = document.getElementById("reload-data");
   var levelSec = document.getElementById("level-stats-section");
   var levelGrid = document.getElementById("level-stats-grid");
+  var mainEl = document.getElementById("main-content");
+
+  if (mainEl) mainEl.setAttribute("aria-busy", "true");
 
   fetch("./table/level_stats.json", { cache: "no-store" })
     .then(function (r) {
-      if (!r.ok) throw new Error("level_stats.json を取得できません (" + r.status + ")。フィルタがスキップされたビルドではファイルが無いことがあります。");
+      if (!r.ok) throw new Error("level_stats.json を取得できません（HTTP " + r.status + "）。フィルタがスキップされたビルドではファイルが無いことがあります。");
       return r.json();
     })
     .then(function (ld) {
+      if (loadStatus) loadStatus.hidden = true;
+      if (reloadBtn) reloadBtn.hidden = true;
+      if (mainEl) mainEl.setAttribute("aria-busy", "false");
       metaDl.innerHTML = "";
       if (ld.sql_where) {
         var dt = document.createElement("dt");
@@ -148,8 +163,18 @@
       levelSec.hidden = false;
     })
     .catch(function (e) {
-      errEl.textContent = "集計データの読み込みに失敗しました: " + String(e.message || e);
+      if (loadStatus) loadStatus.hidden = true;
+      if (mainEl) mainEl.setAttribute("aria-busy", "false");
+      errEl.textContent =
+        "集計データの読み込みに失敗しました。ビルド成果物（table/level_stats.json）を確認してください。詳細: " +
+        String(e.message || e);
       errEl.hidden = false;
+      if (reloadBtn) {
+        reloadBtn.hidden = false;
+        reloadBtn.onclick = function () {
+          location.reload();
+        };
+      }
     });
 })();
   </script>

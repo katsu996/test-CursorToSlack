@@ -19,3 +19,23 @@
 
 - **0 件の `filtered_data.json`** は validate で必ず失敗する。CI では `beatoraja_empty_rows_policy: fail`（既定）と `smoke_check_outputs.py` で早期検知する。
 - **Table URL** が `.json` で終わらない場合は HTML モードになり、`<meta name="bmstable" content="...">` が必要（サイトトップ `index.html` に設定済み）。
+
+---
+
+## 本体・パーサ更新時のチェックリスト（互換追従）
+
+beatoraja または jbmstable-parser を更新したあと、次を順に確認すると差分に気づきやすいです。
+
+1. **上流の型・検証**  
+   - `TableData.validate()`（`TableData.java`）に新しい必須条件が無いか。  
+   - `DifficultyTableParser` / `decodeJSONTableData` の `accept=false` 条件に変化が無いか。
+2. **このリポジトリのテスト**  
+   - `cd tools/table-filter && python3 -m unittest discover -s tests -v`  
+   - `decodeJSONTableData` 相当の前提は `tests/test_beatoraja_rows.py` 等でカバーしている箇所を確認。
+3. **生成物**  
+   - `python3 tools/table-filter/filter_table.py --config tools/table-filter/filter_config.json`  
+   - `python3 tools/table-filter/build_pages_table.py --config tools/table-filter/filter_config.json`  
+   - `python3 tools/table-filter/smoke_check_outputs.py --config tools/table-filter/filter_config.json`  
+   - `python3 tools/table-filter/check_browser_rows_pages_ui.py --path docs/table/browser_rows.json`
+4. **このドキュメント**  
+   - 上記「データ行」「ヘッダー」の箇条書きを、実際のパーサ・本体のコードと突き合わせて追記・修正する。

@@ -23,8 +23,9 @@
 | 0 | `ruff check` / `unittest` / `check_filter_config_example_sync.py` | `tools/table-filter/` | 静的解析・テスト・設定例のキー整合 |
 | 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`（beatoraja 用・拡張列除去）、`filtered_data_enriched.json`（Pages 用・出自列あり）、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
 | 2 | `build_pages_table.py` | 同上設定、`filtered_data_enriched.json`（無ければ `filtered_data.json`）、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の一覧表用） |
-| 3 | `smoke_check_outputs.py` | 生成済み `docs/table/*.json` | 空データやヘッダー不備があれば **終了コード 1** |
-| 4 | Pages アーティファクト | `docs/` ディレクトリ全体 | GitHub Pages にアップロード |
+| 3 | `check_browser_rows_pages_ui.py` | `docs/table/browser_rows.json` | `meta.pages_ui` の必須キー（`index_table`・IR・Chart 等）が欠けていれば **終了コード 1** |
+| 4 | `smoke_check_outputs.py` | 生成済み `docs/table/*.json` | 空データやヘッダー不備があれば **終了コード 1** |
+| 5 | Pages アーティファクト | `docs/` ディレクトリ全体 | GitHub Pages にアップロード |
 
 - **`data_url`（生成ヘッダー）:** 既定（`use_relative_data_url` 未指定または `true`）では **`filtered_data.json` のようなファイル名のみ**を書き、jbmstable-parser が **ヘッダー JSON の URL と同じディレクトリ**からデータを取得します。`use_relative_data_url: false` のときだけ `site_base_url` または環境変数 **`SITE_BASE_URL`** が必要で、`${SITE_BASE_URL}/filtered_data.json` 形式にします。
 - **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空・`songdata.db` 不在（`skip_if_no_songdata: true`）などでも **0 で終了**し、後段の `build_pages_table.py` が続きます。

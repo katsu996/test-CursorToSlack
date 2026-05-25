@@ -30,6 +30,8 @@ cd docs && python3 -m http.server 8080
 ```bash
 python3 -m pip install ruff
 python3 -m ruff check tools/table-filter/
+python3 tools/table-filter/check_filter_config_example_sync.py
+python3 tools/table-filter/check_browser_rows_pages_ui.py --path docs/table/browser_rows.json
 cd tools/table-filter && python3 -m unittest discover -s tests -v
 ```
 
@@ -46,6 +48,7 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 | `tools/table-filter/level_stats.py` | レベル集計用ヘルパ |
 | `tools/table-filter/build_pages_table.py` | Pages 用 browser_rows.json 生成 |
 | `tools/table-filter/smoke_check_outputs.py` | デプロイ前の生成物スモークテスト |
+| `tools/table-filter/check_browser_rows_pages_ui.py` | `browser_rows.json` の `meta.pages_ui` 検証（CI） |
 | `tools/table-filter/filter_config.json` | 実行時設定（SQL, URL 等） |
 | `data/songdata.db` | beatoraja の楽曲データベース（SQLite） |
 | `docs/table/pages_ui_config.json` | Pages トップの列幅・既定表示・`index_table`（列順・ラベル・IR/Chart URL 等。`build_pages_table.py` が `meta.pages_ui` に埋め込み。`//` コメント可） |
