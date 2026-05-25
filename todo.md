@@ -36,22 +36,12 @@
 |---------|--------|------|
 | **T004** | **P0** | **複数ソース取得の部分失敗**: 一部の `source_tables` だけ取得失敗したときに、ビルド全体を止めるか・成功分だけで続行するか・リトライ方針を決め、`filter_table.py` と CI の挙動を揃える。 |
 | **T005** | **P0** | **`songdata.db` の肥大化と CI**: リポジトリ clone 時間、LFS の要否、Actions でのキャッシュ方針などを整理し、運用ドキュメントに反映する。 |
-| **T006** | **P0** | **beatoraja / jbmstable-parser 互換の追従**: 本体更新時に [`docs/beatoraja-jbmstable-table-json.md`](docs/beatoraja-jbmstable-table-json.md) をチェックリスト化し、差分が出たらテストと生成物で検知できるようにする。 |
-| **T007** | **P1** | **`smoke_check_outputs.py` の拡充**: IR 列・`meta.pages_ui` 埋め込み・主要アセット URL など、回帰しやすい出力を追加検証する。 |
-| **T008** | **P1** | **`browser_rows.json` の `meta.pages_ui`**: CI でスキーマ／必須キーの検証を行い、壊れた設定を早期検知する。 |
-| **T009** | **P1** | **`workflow_dispatch`**: `.github/workflows/pages.yml` に手動実行を追加し、再デプロイやデバッグをしやすくする。 |
 | **T010** | **P1** | **Dependabot / Actions の更新方針**: ピン留めと更新頻度、マージ前の確認項目を `docs/` に短くまとめる。 |
 | **T013** | **P2** | **`ubuntu-latest` で `actions/setup-python` の 3.14.3 が取れない場合の代替**（利用可能なマイナーへの一時ピン、`allow-prerelease` 等）を [`docs/github-actions-songdata-table-filter.md`](docs/github-actions-songdata-table-filter.md) に追記する。 |
 | **T014** | **P2** | **`source_tables.json` の CI 検証**: スキーマ検証に加え、到達性チェックをどこまで行うか方針を決めて実装する。 |
 | **T015** | **P3** | GitHub Pages の「並び替え・絞り込み・列の表示」パネルの開閉状態を `sessionStorage` に保存し、再訪問時に復元する。 |
 | **T016** | **P3** | `docs/table/` に短文の `index.html` を置き、`filtered_header.json` / `filtered_data.json` / `bmstable.html` への直リンクと beatoraja 登録時の注意を一覧する。 |
-| **T017** | **P3** | **URL クエリで状態共有**: フィルタ・並び替え・列表示などをクエリに反映し、リンクコピーで同じ表示を再現できるようにする。 |
 | **T018** | **P3** | **CSV エクスポート**: 表示中の行をダウンロードできる UI を検討する。 |
-| **T019** | **P3** | **仮想スクロールまたはページング**: 大量行でも操作が重くならない表示方式を検討する。 |
-| **T020** | **P3** | **アクセシビリティ**: キーボード操作、コントラスト、`aria-*`、フォーカス管理の見直し。 |
-| **T021** | **P3** | **ローディング／エラー UI**: `browser_rows.json` 取得失敗時や空データ時のメッセージを統一し、次に取れる行動を明示する。 |
-| **T022** | **P3** | **モバイル表示**: 横スクロール・ツールバー・列の多さを前提にレイアウトを調整する。 |
-| **T023** | **P3** | **`level-stats.html` とトップの体験揃え**: テーマ切替・ナビ・用語を `index.html` と整合させる。 |
 | **T024** | **P3** | **i18n**: 文言の外部化や英語切替の可否を検討する（工数とメンテコストのトレードオフ）。 |
 
 ---

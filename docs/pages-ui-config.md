@@ -8,6 +8,8 @@ GitHub Pages のトップ（`docs/index.html` と `docs/assets/pages-index-*.js`
 
 `tools/table-filter/build_pages_table.py` がこのファイルを読み、`browser_rows.json` の **`meta.pages_ui`** に埋め込みます。`filter_config.json` の **`pages_ui_config_path`** でパスを変えられます（未指定・空なら `docs/table/pages_ui_config.json`）。
 
+トップ一覧（`docs/index.html`）では、フィルタ・並び替え・列表示などの状態を **URL クエリ**に同期できます（`history.replaceState`）。パラメータの意味はリポジトリ直下の [README.md](../README.md)（「一覧の URL クエリ」）を参照してください。
+
 ## JSONC 風コメント（`//` / `/* */`）
 
 同梱ファイルの先頭や各オブジェクト内に、**`//` から行末まで**、または **`/*` … `*/`** のコメントを書けます。ビルド時に `tools/table-filter/pages_ui_json.py` が文字列リテラル以外のコメントだけを除去してから `json.loads` します。

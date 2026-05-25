@@ -12,6 +12,7 @@ import os
 import sys
 from typing import Any
 
+from check_browser_rows_pages_ui import validate_browser_rows
 from source_tables import load_resolved_filter_config, normalize_source_tables
 
 
@@ -90,6 +91,41 @@ def main() -> int:
         return 1
 
     print(f"smoke: OK（{header_name} / {data_name}、データ {len(data)} 行）")
+
+    browser_name = str(cfg.get("browser_rows_filename", "browser_rows.json")).strip() or "browser_rows.json"
+    browser_path = os.path.join(out_dir, browser_name)
+    if os.path.isfile(browser_path):
+        try:
+            br = _load_json(browser_path)
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"smoke: エラー: {browser_path} の読み込み失敗: {e}", file=sys.stderr)
+            return 1
+        br_errs = validate_browser_rows(br)
+        if br_errs:
+            for e in br_errs:
+                print(f"smoke: エラー: {e}", file=sys.stderr)
+            return 1
+        pu = (br.get("meta") or {}).get("pages_ui") if isinstance(br.get("meta"), dict) else None
+        ir = None
+        if isinstance(pu, dict) and isinstance(pu.get("index_table"), dict):
+            ir = pu["index_table"].get("ir_subcolumns")
+        if isinstance(ir, list):
+            print(f"smoke: browser_rows の pages_ui（IR {len(ir)} 列）を確認しました")
+    else:
+        print(f"smoke: 警告: {browser_path} が無いため browser_rows 検証をスキップ", file=sys.stderr)
+
+    repo_assets = [
+        "docs/index.html",
+        "docs/assets/pages-index-main.js",
+        "docs/assets/pages-index-column-runtime.js",
+        "docs/assets/pages-index-toolbar-collapse.js",
+        "docs/assets/theme-toggle.js",
+        "docs/assets/k-original-ui.css",
+    ]
+    for rel in repo_assets:
+        if not os.path.isfile(rel):
+            print(f"smoke: 警告: Pages 用アセットが見つかりません: {rel}", file=sys.stderr)
+
     return 0
 
 

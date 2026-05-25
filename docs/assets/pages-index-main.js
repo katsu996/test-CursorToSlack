@@ -214,6 +214,8 @@
     return parts;
   }
 
+  var PAGE_SIZE = 150;
+
   var metaEl = document.getElementById("meta");
   var metaDl = document.getElementById("meta-dl");
   var filterSrcBar = document.getElementById("filter-src-bar");
@@ -231,6 +233,22 @@
   var sortDir2 = document.getElementById("sort-dir-2");
   var sortCol3 = document.getElementById("sort-col-3");
   var sortDir3 = document.getElementById("sort-dir-3");
+  var loadStatus = document.getElementById("load-status");
+  var reloadBtn = document.getElementById("reload-data");
+  var paginationBar = document.getElementById("pagination-bar");
+  var pagePrev = document.getElementById("page-prev");
+  var pageNext = document.getElementById("page-next");
+  var pageIndicator = document.getElementById("page-indicator");
+  var toolbarToggle = document.getElementById("toolbar-panel-toggle");
+  var toolbarPanel = document.getElementById("toolbar-panel");
+
+  if (loadStatus) loadStatus.hidden = false;
+  if (errEl) {
+    errEl.hidden = true;
+    errEl.textContent = "";
+  }
+  var mainContent = document.getElementById("main-content");
+  if (mainContent) mainContent.setAttribute("aria-busy", "true");
 
   fetch("./table/browser_rows.json", { cache: "no-store" })
     .then(function (r) {
@@ -238,6 +256,9 @@
       return r.json();
     })
     .then(function (data) {
+      if (loadStatus) loadStatus.hidden = true;
+      if (reloadBtn) reloadBtn.hidden = true;
+      if (mainContent) mainContent.setAttribute("aria-busy", "false");
       if (!data || typeof data !== "object") {
         throw new Error("browser_rows.json の形式が不正です（トップレベルがオブジェクトではありません）。");
       }
@@ -451,8 +472,10 @@
           var inp = document.createElement("input");
           inp.type = "checkbox";
           inp.checked = true;
+          inp.dataset.short = e.short;
           inp.addEventListener("change", function () {
             sourceFilterState[e.short] = inp.checked;
+            currentPage = 1;
             refresh();
           });
           lab.appendChild(inp);
@@ -508,6 +531,18 @@
       allDKeys.forEach(function (k) {
         visD[k] = defaultColumnVisible(k, "db");
       });
+
+      var defaultVisT = {};
+      var defaultVisD = {};
+      allTKeys.forEach(function (k) {
+        defaultVisT[k] = visT[k];
+      });
+      allDKeys.forEach(function (k) {
+        defaultVisD[k] = visD[k];
+      });
+
+      var currentPage = 1;
+      var urlTimer = null;
 
       function visibleKeys(allKeys, vis) {
         return allKeys.filter(function (k) {
@@ -601,6 +636,7 @@
             inp.checked = !!vis[k];
             inp.addEventListener("change", function () {
               vis[k] = inp.checked;
+              currentPage = 1;
               var vT = visibleKeys(allTKeys, visT);
               var vD = visibleKeys(allDKeys, visD);
               rebuildThead(vT, vD);
@@ -672,6 +708,91 @@
         if (el) el.disabled = false;
       });
 
+      function readUrlSearchParams() {
+        try {
+          return new URL(window.location.href).searchParams;
+        } catch (e1) {
+          return new URLSearchParams();
+        }
+      }
+
+      function selectHasValue(sel, val) {
+        if (!sel || !val) return false;
+        for (var oi = 0; oi < sel.options.length; oi++) {
+          if (sel.options[oi].value === val) return true;
+        }
+        return false;
+      }
+
+      function applyUrlState() {
+        var p = readUrlSearchParams();
+        if (p.get("q")) q.value = p.get("q");
+        var pairs = [
+          ["s1", sortCol1, "d1", sortDir1],
+          ["s2", sortCol2, "d2", sortDir2],
+          ["s3", sortCol3, "d3", sortDir3]
+        ];
+        for (var pi = 0; pi < pairs.length; pi++) {
+          var pk = pairs[pi];
+          var sk = p.get(pk[0]);
+          if (sk && selectHasValue(pk[1], sk)) pk[1].value = sk;
+          var dk = (p.get(pk[2]) || "").toLowerCase();
+          if (dk === "asc" || dk === "desc") pk[3].value = dk;
+        }
+        if (p.has("src") && filterSrcBar && Object.keys(sourceFilterState).length) {
+          var raw = p.get("src");
+          var parts = raw
+            ? raw
+                .split(",")
+                .map(function (x) {
+                  return String(x || "").trim();
+                })
+                .filter(Boolean)
+            : [];
+          var en = {};
+          for (var pj = 0; pj < parts.length; pj++) en[parts[pj]] = true;
+          Object.keys(sourceFilterState).forEach(function (k) {
+            sourceFilterState[k] = !!en[k];
+          });
+          filterSrcBar.querySelectorAll("input[type=checkbox][data-short]").forEach(function (inp) {
+            var sh = inp.getAttribute("data-short");
+            if (sh) inp.checked = !!sourceFilterState[sh];
+          });
+        }
+        var tcols = p.get("tcols");
+        if (tcols && tcols.trim()) {
+          var setT = {};
+          tcols.split(",").forEach(function (x) {
+            var k = String(x || "").trim();
+            if (k) setT[k] = true;
+          });
+          allTKeys.forEach(function (k) {
+            visT[k] = !!setT[k];
+          });
+        }
+        var dcols = p.get("dcols");
+        if (dcols && dcols.trim()) {
+          var setD = {};
+          dcols.split(",").forEach(function (x) {
+            var k2 = String(x || "").trim();
+            if (k2) setD[k2] = true;
+          });
+          allDKeys.forEach(function (k) {
+            visD[k] = !!setD[k];
+          });
+        }
+        var pgn = parseInt(p.get("pg") || "1", 10);
+        if (Number.isFinite(pgn) && pgn >= 1) currentPage = pgn;
+        if (p.get("tb") === "1" && toolbarPanel && toolbarToggle) {
+          toolbarPanel.hidden = false;
+          toolbarToggle.setAttribute("aria-expanded", "true");
+          var chev = toolbarToggle.querySelector(".filter-chevron");
+          if (chev) chev.textContent = "▲";
+        }
+      }
+
+      applyUrlState();
+
       function render(list) {
         var vTKeys = visibleKeys(allTKeys, visT);
         var vDKeys = visibleKeys(allDKeys, visD);
@@ -692,7 +813,6 @@
           tr.insertAdjacentHTML("beforeend", chartCellHtml(t, runtime));
           tbody.appendChild(tr);
         });
-        countEl.textContent = list.length + " / " + rows.length + " 行を表示";
       }
 
       function applySearch() {
@@ -727,8 +847,122 @@
         });
       }
 
+      function filteredList() {
+        return applySort(applySourceFilter(applySearch()));
+      }
+
+      function visEqualDefaults() {
+        for (var vi = 0; vi < allTKeys.length; vi++) {
+          var kt = allTKeys[vi];
+          if (visT[kt] !== defaultVisT[kt]) return false;
+        }
+        for (var vj = 0; vj < allDKeys.length; vj++) {
+          var kd = allDKeys[vj];
+          if (visD[kd] !== defaultVisD[kd]) return false;
+        }
+        return true;
+      }
+
+      function allSourceFiltersOn() {
+        var ks = Object.keys(sourceFilterState);
+        if (!ks.length) return true;
+        for (var ai = 0; ai < ks.length; ai++) {
+          if (!sourceFilterState[ks[ai]]) return false;
+        }
+        return true;
+      }
+
+      function syncUrlToLocation() {
+        urlTimer = null;
+        var u;
+        try {
+          u = new URL(window.location.href);
+        } catch (e2) {
+          return;
+        }
+        var p = u.searchParams;
+        ["q", "s1", "d1", "s2", "d2", "s3", "d3", "src", "tcols", "dcols", "pg", "tb"].forEach(function (k) {
+          p.delete(k);
+        });
+        var qv = (q.value || "").trim();
+        if (qv) p.set("q", qv);
+        var sortPairs = [
+          ["s1", sortCol1, "d1", sortDir1],
+          ["s2", sortCol2, "d2", sortDir2],
+          ["s3", sortCol3, "d3", sortDir3]
+        ];
+        for (var si = 0; si < sortPairs.length; si++) {
+          var sp = sortPairs[si];
+          var spec = sp[1] && String(sp[1].value || "").trim();
+          if (spec) {
+            p.set(sp[0], spec);
+            p.set(sp[2], sp[3] && sp[3].value === "desc" ? "desc" : "asc");
+          }
+        }
+        if (!allSourceFiltersOn()) {
+          var en = Object.keys(sourceFilterState).filter(function (k) {
+            return sourceFilterState[k];
+          });
+          p.set("src", en.join(","));
+        }
+        if (!visEqualDefaults()) {
+          p.set(
+            "tcols",
+            allTKeys
+              .filter(function (k) {
+                return visT[k];
+              })
+              .join(",")
+          );
+          p.set(
+            "dcols",
+            allDKeys
+              .filter(function (k) {
+                return visD[k];
+              })
+              .join(",")
+          );
+        }
+        if (currentPage > 1) p.set("pg", String(currentPage));
+        if (toolbarPanel && toolbarToggle && !toolbarPanel.hidden) p.set("tb", "1");
+        var nextSearch = p.toString();
+        var next = u.pathname + (nextSearch ? "?" + nextSearch : "") + u.hash;
+        var cur = window.location.pathname + window.location.search + window.location.hash;
+        if (next !== cur) history.replaceState(null, "", next);
+      }
+
+      function scheduleUrlSync() {
+        if (urlTimer) clearTimeout(urlTimer);
+        urlTimer = setTimeout(syncUrlToLocation, 320);
+      }
+
+      function updatePaginationUi(totalFiltered, totalPages) {
+        if (!paginationBar) return;
+        if (totalFiltered <= PAGE_SIZE) {
+          paginationBar.hidden = true;
+          return;
+        }
+        paginationBar.hidden = false;
+        if (pageIndicator) pageIndicator.textContent = currentPage + " / " + totalPages + " ページ";
+        if (pagePrev) pagePrev.disabled = currentPage <= 1;
+        if (pageNext) pageNext.disabled = currentPage >= totalPages;
+      }
+
       function refresh() {
-        render(applySort(applySourceFilter(applySearch())));
+        var list = filteredList();
+        var totalFiltered = list.length;
+        var totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE) || 1);
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+        var start = (currentPage - 1) * PAGE_SIZE;
+        var slice = list.slice(start, start + PAGE_SIZE);
+        render(slice);
+        if (countEl) {
+          countEl.textContent =
+            slice.length + " / " + totalFiltered + " 行（このページ） / データ " + rows.length + " 行";
+        }
+        updatePaginationUi(totalFiltered, totalPages);
+        scheduleUrlSync();
       }
 
       buildColPicker();
@@ -737,15 +971,55 @@
 
       refresh();
       q.disabled = false;
-      q.addEventListener("input", refresh);
-      [sortCol1, sortDir1, sortCol2, sortDir2, sortCol3, sortDir3].forEach(function (el) {
-        if (el) el.addEventListener("change", refresh);
+      var qTimer = null;
+      q.addEventListener("input", function () {
+        currentPage = 1;
+        if (qTimer) clearTimeout(qTimer);
+        qTimer = setTimeout(function () {
+          refresh();
+        }, 200);
       });
+      [sortCol1, sortDir1, sortCol2, sortDir2, sortCol3, sortDir3].forEach(function (el) {
+        if (el)
+          el.addEventListener("change", function () {
+            currentPage = 1;
+            refresh();
+          });
+      });
+      if (pagePrev)
+        pagePrev.addEventListener("click", function () {
+          if (currentPage > 1) {
+            currentPage -= 1;
+            refresh();
+          }
+        });
+      if (pageNext)
+        pageNext.addEventListener("click", function () {
+          currentPage += 1;
+          refresh();
+        });
+
+      if (toolbarToggle)
+        toolbarToggle.addEventListener("click", function () {
+          setTimeout(scheduleUrlSync, 0);
+        });
 
       scrollEl.hidden = false;
     })
     .catch(function (e) {
-      errEl.textContent = "一覧データの読み込みに失敗しました: " + String(e.message || e);
-      errEl.hidden = false;
+      if (loadStatus) loadStatus.hidden = true;
+      if (mainContent) mainContent.setAttribute("aria-busy", "false");
+      if (errEl) {
+        errEl.textContent =
+          "一覧データの読み込みに失敗しました。ネットワークやビルド成果物（table/browser_rows.json）を確認してください。詳細: " +
+          String(e.message || e);
+        errEl.hidden = false;
+      }
+      if (reloadBtn) {
+        reloadBtn.hidden = false;
+        reloadBtn.onclick = function () {
+          location.reload();
+        };
+      }
     });
 })();
