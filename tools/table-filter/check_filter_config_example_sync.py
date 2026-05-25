@@ -20,6 +20,7 @@ EXPECTED_KEYS: frozenset[str] = frozenset(
         "sql_where_preset",
         "sql_where_disable_identifier_whitelist",
         "source_tables",
+        "source_tables_path",
         "source_header_url",
         "source_data_url",
         "output_dir",

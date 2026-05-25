@@ -7,34 +7,10 @@
   "sql_where_preset": "",
   "sql_where": "minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm",
   "sql_where_disable_identifier_whitelist": false,
-  "source_tables": [
-    {
-      "header_url": "https://stellabms.xyz/sl/table.html",
-      "display_name": "Satellite",
-      "short_name": "sl"
-    },
-    {
-      "header_url": "https://stellabms.xyz/st/table.html",
-      "display_name": "Stella",
-      "short_name": "st"
-    },
-    {
-      "header_url": "https://stellabms.xyz/sr/table.html",
-      "display_name": "Starlight",
-      "short_name": "sr"
-    },
-    {
-      "header_url": "https://darksabun.club/table/archive/normal1/",
-      "display_name": "通常難易度表",
-      "short_name": "☆"
-    },
-    {
-      "header_url": "https://bmsnormal2.syuriken.jp/table.html",
-      "display_name": "第2通常難易度表",
-      "short_name": "▽"
-    }
-  ],
-  "_source_tables_comment": "各要素に header_url（または url）・任意の display_name・short_name をまとめて書きます。後方互換で source_header_urls 等の分割配列も可。",
+  "source_tables_path": "source_tables.example.json",
+  "_source_tables_path_comment": "難易度表ソース一覧を別 JSON に分離（filter_config と同じディレクトリ基準の相対パス）。空にして source_tables をインラインでも可。",
+  "source_tables": [],
+  "_source_tables_comment": "インラインで書く場合の配列。source_tables_path が非空のときはファイル側が優先され、この配列は無視されます。",
   "source_header_url": "",
   "source_data_url": "",
   "output_dir": "docs/table",
@@ -55,13 +31,8 @@
   "http_fetch_timeout_seconds": 120,
   "http_fetch_retries": 3,
   "http_fetch_backoff_seconds": 2.0,
-  "custom_level_mapping": [
-    { "12": 12, "11": 11, "10": 10 },
-    { "1": 13, "2": 14, "3": 15 },
-    {},
-    {},
-    {}
-  ],
+  "custom_level_mapping": [],
+  "_custom_level_mapping_comment": "後方互換用。推奨は source_tables JSON 内の各要素の custom_level_mapping。トップレベル配列はエントリに無いインデックスのフォールバック。",
   "custom_level_field": "custom_level",
   "custom_level_source_key": "level",
   "custom_level_unmapped": "omit",

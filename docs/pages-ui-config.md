@@ -2,6 +2,8 @@
 
 GitHub Pages の `index.html` が参照する **列の既定幅** と **列チェックの既定 ON/OFF** を、JSON だけで調整できます。
 
+同梱の `docs/table/pages_ui_config.json` では、**オブジェクト内のキー順**をトップページの表の **左から右の列順**（難易度表ブロックは `index.html` の `tablePri`、続けてアルファベット順の追加列、DB ブロックは `dbPriFull`、最後に Chart 列）に合わせています。
+
 ## 読み込み
 
 `tools/table-filter/build_pages_table.py` がこのファイルを読み、`browser_rows.json` の **`meta.pages_ui`** に埋め込みます。`filter_config.json` の **`pages_ui_config_path`** でパスを変えられます（未指定・空なら `docs/table/pages_ui_config.json`）。

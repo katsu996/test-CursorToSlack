@@ -1,0 +1,37 @@
+[
+  {
+    "header_url": "https://stellabms.xyz/sl/table.html",
+    "display_name": "Satellite",
+    "short_name": "sl",
+    "custom_level_mapping": {
+      "12": 12,
+      "11": 11,
+      "10": 10
+    }
+  },
+  {
+    "header_url": "https://stellabms.xyz/st/table.html",
+    "display_name": "Stella",
+    "short_name": "st",
+    "custom_level_mapping": {
+      "1": 13,
+      "2": 14,
+      "3": 15
+    }
+  },
+  {
+    "header_url": "https://stellabms.xyz/sr/table.html",
+    "display_name": "Starlight",
+    "short_name": "sr"
+  },
+  {
+    "header_url": "https://darksabun.club/table/archive/normal1/",
+    "display_name": "通常難易度表",
+    "short_name": "☆"
+  },
+  {
+    "header_url": "https://bmsnormal2.syuriken.jp/table.html",
+    "display_name": "第2通常難易度表",
+    "short_name": "▽"
+  }
+]

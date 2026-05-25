@@ -9,7 +9,7 @@
 **はい。** 次を満たせば、ランナー上で「元表を取得 → `songdata.db` に SQL → ハッシュ交差でフィルタ → `docs/table/` に JSON 出力 → `docs/` 全体を GitHub Pages にデプロイ」まで完結します。
 
 1. 実行時に **`data/songdata.db`** がリポジトリに存在する（通常はコミット済み）。
-2. 統合難易度表のヘッダーが **HTTPS で取得できる**（`filter_config.json` の **`source_tables`**（推奨）または後方互換の **`source_header_urls`** / **`source_header_url`**）。データ本体は各ヘッダーの `data_url`（**相対パスはヘッダー JSON の URL を基準に解決**）または単一ソース時の `source_data_url`。
+2. 統合難易度表のヘッダーが **HTTPS で取得できる**（`filter_config.json` の **`source_tables`**（インラインまたは **`source_tables_path`** で読み込んだ別 JSON）、または後方互換の **`source_header_urls`** / **`source_header_url`**）。データ本体は各ヘッダーの `data_url`（**相対パスはヘッダー JSON の URL を基準に解決**）または単一ソース時の `source_data_url`。
 3. 生成ヘッダーの `data_url` は **既定でファイル名のみ**（例: `filtered_data.json`）とし、beatoraja がヘッダーと同じディレクトリ上のデータ JSON を取得できるようにします（`SITE_BASE_URL` は不要）。**絶対 URL で出したい場合のみ** `use_relative_data_url: false` と `site_base_url` / `SITE_BASE_URL` を併用します。
 
 **GitHub が提供していないもの:** ブラウザだけで手元の DB を渡す専用 UIはありません。DB は **リポジトリに載せて更新する** 想定です。
@@ -52,7 +52,7 @@
 5. 各ソースについて、**元表データの全行**をレベル列でバケット化した件数（SQL 条件前）と、**フィルタ通過行**について同様の集計（SQL 条件後）を作り、**重複マージより前**の意味で `level_stats.json` の `sources` に書き留める（`level_rows` で同一レベル行に前後件数を並べる。単一ヘッダーでも同様）。
 6. **複数ヘッダー**のときは、通過行を **`md5` / `sha256` で重複除去**して 1 本のデータ配列にマージ。`course` は各ヘッダー由来を **配列として連結**。合成ヘッダーは **先頭ヘッダーをベース**にし、`data_url` は既定で **`filtered_data.json` などファイル名のみ**（ヘッダーと同じ公開ディレクトリ上のデータを指す）。
 7. マージ時、データ行の各オブジェクトに **出自の難易度表**を示すフィールドを付与する（下記「出自」節）。
-8. **`custom_level_mapping` が設定されているとき**は、**新規に採用した行**（ハッシュありで `row_by_key` に初めて入る行、およびハッシュなしの行）について、**そのループの元ヘッダーインデックス**に対応するマップで、元のレベル列（既定: `level`）を引き、**`custom_level` 列（名前は `custom_level_field`）**に書き込む（下記「独自レベル」節）。
+8. **各ソースの `custom_level_mapping`**（または後方互換のトップレベル **`custom_level_mapping` 配列**）が設定されているときは、**新規に採用した行**（ハッシュありで `row_by_key` に初めて入る行、およびハッシュなしの行）について、**そのループの元ヘッダーインデックス**に対応するマップで、元のレベル列（既定: `level`）を引き、**`custom_level` 列（名前は `custom_level_field`）**に書き込む（下記「独自レベル」節）。
 
 ## beatoraja（jbmstable-parser）との互換
 
@@ -87,9 +87,11 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 
 **GitHub Pages の `index.html`:** 列が煩雑にならないよう、`source_header_json_url` と `source_table_register_url` は **画面上は非表示**にしていますが、**`filtered_data_enriched.json`**（および `browser_rows.json` の `table`）には残ります。**`url` / `url_diff`** も Pages の表では既定でオフ（列表示のチェックボックスでオンにできる）です。**beatoraja が読む `filtered_data.json`** からは出自列を除き、元表の `url` / `url_diff` はそのまま残します。**シンボル**（`source_table_short_names`）と**出自（フル）**は別列です。**表 ID**・**出自表（番号）**・**出自（フル）**・**フォルダID**（`song.folder`）も既定でオフです。
 
-### `source_tables`（推奨）
+### `source_tables` / `source_tables_path`（推奨）
 
-`filter_config.json` の **`source_tables`** はオブジェクトの配列です。各要素に **`header_url`**（または **`url`**）を書き、任意で **`display_name`**（出自フル名）、**`short_name`**（シンボル列・絞り込み用）を **同じオブジェクト内**にまとめられます。`custom_level_mapping` の **配列の何番目か**は、この **`source_tables` の並び**と対応します。
+難易度表ソースは **`source_tables`**（オブジェクトの配列）で指定します。一覧が長くなる場合は **`source_tables_path`** に別 JSON のパス（`filter_config.json` と同じディレクトリ基準の相対パス可）を書き、**トップが配列**、または **`{"source_tables": [...]}`** のファイルを置くと、`filter_table.py` が起動時に読み込んで **`source_tables` として扱います**（**パスが非空ならファイルが優先**され、インラインの `source_tables` は上書きされます）。
+
+各要素に **`header_url`**（または **`url`**）を書き、任意で **`display_name`**（出自フル名）、**`short_name`**（シンボル列・絞り込み用）、**`custom_level_mapping`**（オブジェクト。元レベル文字列 → 独自レベル）を **同じオブジェクト内**にまとめられます。
 
 ### `source_table_display_names`（後方互換・任意）
 
@@ -123,7 +125,8 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 
 **目的:** 難易度表 A の「レベル 12」と難易度表 B の「レベル 1」を、**同じ独自スケール上の数値（またはラベル）**に揃えたい場合に使います。
 
-- **`custom_level_mapping`:** **`source_tables`**（または正規化後のヘッダー URL 列）と **同じ順・同じ長さを推奨**の配列。`custom_level_mapping[i]` はオブジェクトで、**キー = 元表のレベルの文字列表現**、**値 = 独自レベル**（数値・文字列・`null` の値側は JSON 任意）。
+- **推奨:** 各 **`source_tables[]` 要素**（または **`source_tables_path`** で読んだ JSON の各要素）に **`custom_level_mapping`** オブジェクトを書きます。**キー = 元表のレベルの文字列表現**、**値 = 独自レベル**（数値・文字列・`null` の値側は JSON 任意）。
+- **後方互換:** `filter_config.json` のトップレベル **`custom_level_mapping`** に、ソースと **同じ順の配列**を置く方法も残しています。**エントリ側にオブジェクトがあるインデックスではそちらが優先**され、トップレベルは **エントリにマップが無いインデックスのフォールバック**としてだけ使われます。
 - **`custom_level_field`:** 出力 JSON に載せるキー名（既定 `custom_level`）。英字または `_` で始まり英数字と `_` のみ。
 - **`custom_level_source_key`:** 元表の行から読むレベル列名（既定 `level`）。
 - **`custom_level_unmapped`:** マップにキーが無かったとき。`omit`（既定） / `source` または `original` / `null`。
@@ -132,7 +135,7 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 
 ## 例: stellabms（HTML からヘッダー JSON を解決）
 
-stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の `filter_config.json` の **`source_tables`** では、Satellite（`sl/table.html`）・Stella（`st/table.html`）・Starlight（`sr/table.html`）・[通常難易度表（☆）](https://darksabun.club/table/archive/normal1/)（ディレクトリ URL から HTML を取得して `bmstable` を解決）・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) の 5 本を列挙しています。
+stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の **`tools/table-filter/source_tables.json`**（`filter_config.json` の **`source_tables_path`** から読み込み）では、Satellite（`sl/table.html`）・Stella（`st/table.html`）・Starlight（`sr/table.html`）・[通常難易度表（☆）](https://darksabun.club/table/archive/normal1/)（ディレクトリ URL から HTML を取得して `bmstable` を解決）・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) の 5 本を列挙しています。
 
 **通常難易度表（☆）の注意:** [darksabun.club](https://darksabun.club/table/archive/normal1/) は **Cloudflare により GitHub Actions のランナーから取得できない**ことがあります。その場合は `filter_table.py` が失敗し、ワークフローが止まります。対処としては、(1) 当該 `source_tables` 要素を一時的に削除する、(2) **ヘッダー JSON の HTTPS 直 URL** やミラーに差し替える、のいずれかが必要です。ディレクトリ URL（末尾 `/`）だけを書くと、ツールは **HTML として 1 回取得して `bmstable` を探す**ため、チャレンジ用 HTMLしか返らない URLは失敗します。
 

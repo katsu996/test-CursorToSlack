@@ -12,7 +12,7 @@ import os
 import sys
 from typing import Any
 
-from source_tables import normalize_source_tables
+from source_tables import load_resolved_filter_config, normalize_source_tables
 
 
 def _load_json(path: str) -> Any:
@@ -29,7 +29,7 @@ def main() -> int:
         print(f"smoke: 設定なしのためスキップ: {cfg_path}", file=sys.stderr)
         return 0
 
-    cfg = _load_json(cfg_path)
+    cfg = load_resolved_filter_config(cfg_path)
     if not cfg.get("enabled", True):
         print("smoke: enabled=false のためスキップ", file=sys.stderr)
         return 0

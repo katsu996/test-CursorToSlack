@@ -28,7 +28,14 @@ from beatoraja_rows import (
 )
 from http_fetch import fetch_bytes
 from level_stats import level_bucket_for_stats, merge_level_compare_rows, sort_level_stat_keys
-from source_tables import normalize_source_tables
+from source_tables import (
+    effective_custom_level_maps,
+    extract_source_table_entries,
+    load_resolved_filter_config,
+    normalize_level_map,
+    normalize_source_tables,
+    uses_explicit_source_table_objects,
+)
 from sql_where_guard import die as _die
 from sql_where_guard import resolve_sql_where, validate_sql_where
 
@@ -203,17 +210,6 @@ def _filter_course_object(obj: MutableMapping[str, Any], md5s: set[str], sha256s
     return new_obj
 
 
-def _normalize_level_map(raw: Any) -> dict[str, Any]:
-    if not isinstance(raw, dict):
-        return {}
-    out: dict[str, Any] = {}
-    for k, v in raw.items():
-        key = str(k).strip()
-        if key:
-            out[key] = v
-    return out
-
-
 def _row_level_lookup_keys(raw_lvl: Any) -> list[str]:
     if raw_lvl is None:
         return []
@@ -248,13 +244,15 @@ def _row_level_lookup_keys(raw_lvl: Any) -> list[str]:
     return out
 
 
-def _apply_custom_level(row: MutableMapping[str, Any], source_idx: int, cfg: Mapping[str, Any]) -> None:
-    maps_raw = cfg.get("custom_level_mapping")
-    if not isinstance(maps_raw, Sequence) or isinstance(maps_raw, (str, bytes)):
+def _apply_custom_level(
+    row: MutableMapping[str, Any],
+    source_idx: int,
+    maps_list: Sequence[Mapping[str, Any]],
+    cfg: Mapping[str, Any],
+) -> None:
+    if source_idx < 0 or source_idx >= len(maps_list):
         return
-    if source_idx < 0 or source_idx >= len(maps_raw):
-        return
-    m = _normalize_level_map(maps_raw[source_idx])
+    m = dict(maps_list[source_idx]) if maps_list[source_idx] else {}
     if not m:
         return
 
@@ -323,7 +321,7 @@ def main() -> None:
         print(f"設定ファイルが無いためスキップします: {cfg_path}", file=sys.stderr)
         raise SystemExit(0)
 
-    cfg = _load_json(cfg_path)
+    cfg = load_resolved_filter_config(cfg_path)
     if not cfg.get("enabled", True):
         print("filter_config の enabled が false のためスキップします。", file=sys.stderr)
         raise SystemExit(0)
@@ -338,20 +336,34 @@ def main() -> None:
 
     resolved_json_urls = [_resolve_bmstable_header_url(u) for u in header_urls_cfg]
     multi_source = len(resolved_json_urls) > 1
-    uses_source_tables_objects = isinstance(cfg.get("source_tables"), list) and bool(cfg.get("source_tables"))
-
-    maps_raw_warn = cfg.get("custom_level_mapping")
-    if isinstance(maps_raw_warn, list) and len(maps_raw_warn) > 0 and resolved_json_urls:
-        if len(maps_raw_warn) < len(resolved_json_urls):
+    uses_source_tables_objects = uses_explicit_source_table_objects(cfg)
+    level_maps = effective_custom_level_maps(cfg)
+    n_src = len(resolved_json_urls)
+    legacy_maps = cfg.get("custom_level_mapping")
+    if isinstance(legacy_maps, list) and legacy_maps and n_src:
+        if len(legacy_maps) < n_src:
             print(
-                "警告: custom_level_mapping の要素数が元ヘッダー数より少ないです（足りないインデックスはマップ無し）。",
+                "警告: custom_level_mapping（トップレベル配列）の要素数が元ヘッダー数より少ないです（足りないインデックスはマップ無し）。",
                 file=sys.stderr,
             )
-        if len(maps_raw_warn) > len(resolved_json_urls):
+        if len(legacy_maps) > n_src:
             print(
-                "警告: custom_level_mapping の要素数が元ヘッダー数より多いです（余った要素は無視されます）。",
+                "警告: custom_level_mapping（トップレベル配列）の要素数が元ヘッダー数より多いです（余った要素は無視されます）。",
                 file=sys.stderr,
             )
+    entries = extract_source_table_entries(cfg)
+    has_embedded = any(
+        isinstance(e.get("custom_level_mapping"), dict) and bool(normalize_level_map(e.get("custom_level_mapping")))
+        for e in entries
+    )
+    if has_embedded and isinstance(legacy_maps, list) and any(
+        isinstance(x, dict) and bool(normalize_level_map(x)) for x in legacy_maps
+    ):
+        print(
+            "注意: 各ソースの custom_level_mapping を優先します（トップレベル custom_level_mapping は、"
+            "エントリ側が空のインデックスのフォールバックのみ）。",
+            file=sys.stderr,
+        )
 
     if not uses_source_tables_objects:
         disp_warn = cfg.get("source_table_display_names")
@@ -508,7 +520,7 @@ def main() -> None:
             dk = _row_dedupe_key(row)
             new_row = dict(row)
 
-            _apply_custom_level(new_row, idx, cfg)
+            _apply_custom_level(new_row, idx, level_maps, cfg)
 
             if dk is None:
                 new_row["source_table_index"] = idx + 1

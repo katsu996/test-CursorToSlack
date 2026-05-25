@@ -16,7 +16,7 @@ import sys
 from typing import Any
 
 from pages_ui_json import load_pages_ui_config
-from source_tables import normalize_source_tables
+from source_tables import effective_custom_level_maps, load_resolved_filter_config, normalize_source_tables
 from sql_where_guard import resolve_sql_where
 
 DEFAULT_CONFIG = "tools/table-filter/filter_config.json"
@@ -50,7 +50,7 @@ def main() -> None:
         _save_json(default_out, {"meta": {"reason": "設定ファイルなし"}, "rows": []})
         return
 
-    cfg = _load_json(cfg_path)
+    cfg = load_resolved_filter_config(cfg_path)
     out_dir = cfg.get("output_dir", "docs/table")
     data_name = cfg.get("output_data_filename", "filtered_data.json")
     enriched_name = str(cfg.get("output_data_enriched_filename") or "filtered_data_enriched.json").strip() or "filtered_data_enriched.json"
@@ -198,9 +198,7 @@ def main() -> None:
         "custom_level_field": str(cfg.get("custom_level_field") or "custom_level").strip() or "custom_level",
         "custom_level_source_key": str(cfg.get("custom_level_source_key") or "level").strip() or "level",
         "custom_level_unmapped": str(cfg.get("custom_level_unmapped") or "omit").strip() or "omit",
-        "custom_level_mapping_count": (
-            len(cfg["custom_level_mapping"]) if isinstance(cfg.get("custom_level_mapping"), list) else 0
-        ),
+        "custom_level_mapping_count": sum(1 for m in effective_custom_level_maps(cfg) if m),
         "pages_ui": pages_ui,
         "pages_ui_config_path": pages_ui_cfg_rel,
     }
