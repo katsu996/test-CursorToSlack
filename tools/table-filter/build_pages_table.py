@@ -15,6 +15,7 @@ import sqlite3
 import sys
 from typing import Any
 
+from pages_ui_json import load_pages_ui_config
 from source_tables import normalize_source_tables
 from sql_where_guard import resolve_sql_where
 
@@ -76,9 +77,8 @@ def main() -> None:
     pages_ui: dict[str, Any] = {}
     if os.path.isfile(pages_ui_cfg_path):
         try:
-            loaded_ui = _load_json(pages_ui_cfg_path)
-            pages_ui = loaded_ui if isinstance(loaded_ui, dict) else {}
-        except (OSError, json.JSONDecodeError) as e:
+            pages_ui = load_pages_ui_config(pages_ui_cfg_path)
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as e:
             print(f"警告: pages_ui_config の読み込み失敗（無視）: {pages_ui_cfg_path}: {e}", file=sys.stderr)
 
     if not os.path.isfile(filtered_path):

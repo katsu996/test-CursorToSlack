@@ -47,7 +47,7 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 | `tools/table-filter/smoke_check_outputs.py` | デプロイ前の生成物スモークテスト |
 | `tools/table-filter/filter_config.json` | 実行時設定（SQL, URL 等） |
 | `data/songdata.db` | beatoraja の楽曲データベース（SQLite） |
-| `docs/table/pages_ui_config.json` | Pages トップの列幅・列の既定表示（`build_pages_table.py` が `meta.pages_ui` に埋め込み） |
+| `docs/table/pages_ui_config.json` | Pages トップの列幅・列の既定表示（`build_pages_table.py` が `meta.pages_ui` に埋め込み。`//` コメント可、`pages_ui_json.py` で除去） |
 | `docs/pages-ui-config.md` | 上記 JSON のキー説明 |
 | `.github/workflows/pages.yml` | CI/CD ワークフロー定義 |
 

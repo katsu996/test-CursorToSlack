@@ -71,7 +71,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 ### Pages トップの列幅・列の既定表示（任意）
 
-1. **`docs/table/pages_ui_config.json`** の **`column_widths`**（例: `t:title` / `d:genre` / `chart`）と **`column_visible_defaults`**（`table` / `db` ごとの列キー → 表示なら `true`）を編集します。同梱ファイルでは、従来 `index.html` 側の `HIDDEN_KEYS` および DB の `title` / `artist` / `md5` / `sha256` で既定オフだった列を、すべて `false` として列挙しています。  
+1. **`docs/table/pages_ui_config.json`** の **`column_widths`**（例: `t:title` / `d:genre` / `chart`）と **`column_visible_defaults`**（`table` / `db` ごとの列キー → 表示なら `true`）を編集します。同梱ファイルでは `//` コメントで列幅テンプレや将来列用の雛形を置いてあり、ビルド時に除去されます（詳細は [docs/pages-ui-config.md](docs/pages-ui-config.md)）。`song` の全列と難易度表側の想定列は `true` / `false` で明示しています。  
 2. 別パスに置きたい場合は **`tools/table-filter/filter_config.json`** の **`pages_ui_config_path`** にそのパスを書きます（空なら上記の既定パスです）。  
 3. **`build_pages_table.py` が走るビルド**（`main` への push など）のあと、`browser_rows.json` の **`meta.pages_ui`** に反映されます。
 

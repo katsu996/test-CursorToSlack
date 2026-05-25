@@ -110,7 +110,7 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 | `source_table_legend` | `["1. 表示名A", ...]` 形式（互換・デバッグ用）。 |
 | `source_table_legend_short` | `["1. sl", ...]` 形式（互換用）。 |
 | `table_rows_source_file` | `build_pages_table.py` が読んだデータ JSON のファイル名（`filtered_data_enriched.json` または `filtered_data.json`）。 |
-| `pages_ui` | [`table/pages_ui_config.json`](./table/pages_ui_config.json) の内容を埋め込み（仕様は [pages-ui-config.md](./pages-ui-config.md)）。列幅・列の既定表示を制御。 |
+| `pages_ui` | [`table/pages_ui_config.json`](./table/pages_ui_config.json) の内容を埋め込み（仕様は [pages-ui-config.md](./pages-ui-config.md)）。列幅・列の既定表示を制御。`//` / `/* */` コメント可。 |
 | `pages_ui_config_path` | 読み込んだ UI 設定ファイルの相対パス（ログ・デバッグ用）。 |
 
 詳細は **[Pages 用 UI 設定](pages-ui-config.md)** を参照してください。
