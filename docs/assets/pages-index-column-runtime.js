@@ -7,6 +7,7 @@
 
   var DEFAULT_INDEX_TABLE = {
     table_column_order: [
+      "custom_level",
       "id",
       "source_table_index",
       "source_table_short_names",
@@ -19,7 +20,7 @@
       "md5",
       "sha256"
     ],
-    trailing_table_columns: ["custom_level"],
+    trailing_table_columns: [],
     db_column_order: [
       "title",
       "subtitle",

@@ -2,7 +2,7 @@
 
 GitHub Pages のトップ（`docs/index.html` と `docs/assets/pages-index-*.js`）が参照する **列の既定幅**、**列チェックの既定 ON/OFF**、**列順・ラベル・IR/Chart リンク**を、主にこの JSON で調整できます。
 
-同梱の `docs/table/pages_ui_config.json` では、`column_widths` / `column_visible_defaults` の **オブジェクト内のキー順**をトップの表の **左から右**（`index_table.table_column_order`、続けてアルファベット順の追加列、`index_table.db_column_order`、**IR**（`ir_subcolumns` の `colgroup_key` 順）、**`chart_column.colgroup_key`（通常 `chart`）**、最後に **`trailing_table_columns`**（既定は独自レベル `custom_level` のみ））に合わせています。
+同梱の `docs/table/pages_ui_config.json` では、`column_widths` / `column_visible_defaults` の **オブジェクト内のキー順**をトップの表の **左から右**（`index_table.table_column_order` の先頭に **独自レベル `custom_level`**、続けてアルファベット順の追加列、`index_table.db_column_order`、**IR**（`ir_subcolumns` の `colgroup_key` 順）、**`chart_column.colgroup_key`（通常 `chart`）**、空でないときのみ **`trailing_table_columns`**（IR・Chart の**さらに右**））に合わせています。
 
 ## 読み込み
 
@@ -19,20 +19,20 @@ GitHub Pages のトップ（`docs/index.html` と `docs/assets/pages-index-*.js`
 
 ## `column_widths`
 
-`<colgroup>` の既定幅。キーは表の列が **`t:` + 列名**、DB 列が **`d:` + 列名**、IR 列（LR2IR / MinIR / Mocha）が **`ir:lr2ir`** / **`ir:minir`** / **`ir:mocha`**、Chart 列が **`chart`**、末尾ブロック（`trailing_table_columns`、既定は **`t:custom_level`**）です。
+`<colgroup>` の既定幅。キーは表の列が **`t:` + 列名**（先頭は **`t:custom_level`**）、DB 列が **`d:` + 列名**、IR 列（LR2IR / MinIR / Mocha）が **`ir:lr2ir`** / **`ir:minir`** / **`ir:mocha`**、Chart 列が **`chart`**、任意で **`trailing_table_columns`** に列した表列（IR・Chart の右）です。
 
 例:
 
 ```json
 "column_widths": {
+  "t:custom_level": "7ch",
   "t:title": "50ch",
   "t:note": "55ch",
   "d:genre": "12rem",
   "ir:lr2ir": "4.5rem",
   "ir:minir": "4.5rem",
   "ir:mocha": "4.5rem",
-  "chart": "4.5rem",
-  "t:custom_level": "7ch"
+  "chart": "4.5rem"
 }
 ```
 
@@ -48,7 +48,7 @@ GitHub Pages のトップ（`docs/index.html` と `docs/assets/pages-index-*.js`
 
 ## `index_table`（列定義の単一ソース）
 
-トップ表の **難易度表 / DB の優先列順**（`table_column_order` / `db_column_order`）、**表データの末尾に出す列**（**`trailing_table_columns`**。IR・Chart の**さらに右**に描画。既定は `custom_level` のみ）、**見出しラベル**、**長文折り返し対象**（`table_clamp_keys`）、**既定で隠す列**（`column_hidden_fallback`）、**1 段目グループ見出し**（`group_labels` に `trailing` で末尾ブロック名）、**IR 各列**（`ir_subcolumns`: `colgroup_key` / `header` / `hash_kind` / `href_template` の `{value}`）、**Chart 列**（`chart_column`）をまとめます。`build_pages_table.py` が `meta.pages_ui` に埋め込むため、**`browser_rows.json` を取得すればフロントは追加の fetch なし**で解決できます。
+トップ表の **難易度表 / DB の優先列順**（`table_column_order` / `db_column_order`）、**表データの末尾にだけ出したい列**（**`trailing_table_columns`**。IR・Chart の**さらに右**。同梱設定では **空配列**で、独自レベルは `table_column_order` の先頭に置いています）、**見出しラベル**、**長文折り返し対象**（`table_clamp_keys`）、**既定で隠す列**（`column_hidden_fallback`）、**1 段目グループ見出し**（`trailing` は末尾列があるときのみ表示）、**IR 各列**（`ir_subcolumns`）、**Chart 列**（`chart_column`）をまとめます。`build_pages_table.py` が `meta.pages_ui` に埋め込むため、**`browser_rows.json` を取得すればフロントは追加の fetch なし**で解決できます。
 
 古い `browser_rows.json` だけ手元に残っている場合は、`pages-index-column-runtime.js` 内の **`DEFAULT_INDEX_TABLE`** が同等の既定値にフォールバックします（リポジトリの `index_table` と同期しておくこと）。
 

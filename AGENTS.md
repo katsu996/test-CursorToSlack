@@ -51,7 +51,7 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 | `tools/table-filter/check_browser_rows_pages_ui.py` | `browser_rows.json` の `meta.pages_ui` 検証（CI） |
 | `tools/table-filter/filter_config.json` | 実行時設定（SQL, URL 等） |
 | `data/songdata.db` | beatoraja の楽曲データベース（SQLite） |
-| `docs/table/pages_ui_config.json` | Pages トップの列幅・既定表示・`index_table`（列順・末尾 `trailing_table_columns`・ラベル・IR/Chart URL・`column_visible_defaults.ir` / `chart` 等。`build_pages_table.py` が `meta.pages_ui` に埋め込み。`//` コメント可） |
+| `docs/table/pages_ui_config.json` | Pages トップの列幅・既定表示・`index_table`（列順・任意の末尾 `trailing_table_columns`・ラベル・IR/Chart URL・`column_visible_defaults.ir` / `chart` 等。`build_pages_table.py` が `meta.pages_ui` に埋め込み。`//` コメント可） |
 | `docs/assets/pages-index-toolbar-collapse.js` | トップのツールバー折りたたみ |
 | `docs/assets/pages-index-column-runtime.js` | `index_table` のマージと列見出しヘルパ |
 | `docs/assets/pages-index-main.js` | `browser_rows.json` の取得と表描画 |
