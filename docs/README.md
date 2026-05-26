@@ -2,6 +2,7 @@
 
 ここに置いたファイルが `https://<ユーザー>.github.io/<リポジトリ名>/` から配信されます。
 
+- **生成物の案内**（[`table/index.html`](./table/index.html)）: ビルド後の JSON への直リンクと beatoraja 登録時の注意（索引はこの `docs/README.md`）。
 - **トップ**（`index.html`）: `table/browser_rows.json` を読み、難易度表＋DB 列を表示。列設定は `meta.pages_ui`（ビルド時に [`table/pages_ui_config.json`](./table/pages_ui_config.json) を埋め込み）。仕様は [pages-ui-config.md](./pages-ui-config.md)。
 - **統合難易度表別の曲数**（`level-stats.html`）: `table/level_stats.json` を読み込みます。
 - **Jekyll を無効:** `.nojekyll`

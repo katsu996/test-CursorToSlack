@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>table/ 生成物の案内</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 48rem; margin: 1.5rem auto; padding: 0 1rem; line-height: 1.5; }
+    code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; }
+    a { color: #0969da; }
+    .note { border-left: 4px solid #ccc; padding-left: 1rem; margin: 1rem 0; color: #444; }
+  </style>
+</head>
+<body>
+  <h1><code>docs/table/</code> の生成物</h1>
+  <p>
+    このページは <strong>GitHub Pages で配信される静的ファイル</strong>です。
+    難易度表の JSON は CI（<code>tools/table-filter</code>）がビルド時に書き出します。
+    リポジトリを clone した直後は <code>.gitignore</code> により次のファイルが無いことがあります。
+  </p>
+
+  <h2>役割の分担</h2>
+  <p>
+    <strong>この <code>table/index.html</code></strong> は、生成される JSON への<strong>直リンク</strong>と
+    beatoraja 登録時の注意だけを短くまとめた<strong>案内ページ</strong>です。
+    リポジトリ全体のドキュメント索引・運用手順は <a href="../README.md"><code>docs/README.md</code></a>
+    （GitHub 上では Raw かリポジトリビューで開いてください）を正とします。
+  </p>
+
+  <h2>生成される主なファイル（ビルド後）</h2>
+  <ul>
+    <li><a href="./browser_rows.json"><code>browser_rows.json</code></a> — トップ表（<a href="../index.html"><code>docs/index.html</code></a>）用</li>
+    <li><a href="./level_stats.json"><code>level_stats.json</code></a> — <a href="../level-stats.html"><code>level-stats.html</code></a> 用</li>
+    <li><code>filtered_data.json</code> / <code>filtered_data_enriched.json</code> — beatoraja 向けデータ</li>
+    <li><code>filtered_header.json</code> — beatoraja 向けヘッダー（難易度表 URL にこの JSON を指定）</li>
+  </ul>
+  <p class="note">
+    上記リンクは、<strong>デプロイ済みの Pages</strong>ではビルド後に有効です。ローカルで未生成のときは 404 になります。
+  </p>
+
+  <h2>beatoraja に難易度表を登録するとき</h2>
+  <ol>
+    <li>公開先のベース URL（例: <code>https://&lt;user&gt;.github.io/&lt;repo&gt;/</code>）を決める。</li>
+    <li>難易度表のヘッダー URL には、配信された <code>table/filtered_header.json</code> の<strong>絶対 URL</strong>を指定する。</li>
+    <li>ヘッダー内の <code>data_url</code> が相対（ファイル名のみ）のときは、<strong>ヘッダーと同じディレクトリ</strong>から <code>filtered_data.json</code>（または enriched）が取れる必要がある。</li>
+  </ol>
+  <p>
+    形式の詳細は <a href="../beatoraja-jbmstable-table-json.md"><code>docs/beatoraja-jbmstable-table-json.md</code></a> および
+    <a href="../beatoraja-difficulty-table-url-and-filtered-publish.md"><code>docs/beatoraja-difficulty-table-url-and-filtered-publish.md</code></a> を参照してください。
+  </p>
+</body>
+</html>

@@ -3,6 +3,15 @@
 .SYNOPSIS
   Upload songdata.db to a GitHub Release via the REST API.
 
+.NOTES
+  Windows PowerShell 5.1 と PowerShell 7+ の差分（このスクリプトで触れる範囲）:
+  - Invoke-RestMethod の失敗時、5.1 は多くの場合 InnerException として System.Net.WebException を返す。
+    7+ は Microsoft.PowerShell.Commands.HttpResponseException など、型が異なることがある。
+  - そのため HTTP ステータス取得は Get-ErrorHttpStatusCode で InnerException を辿る（StrictMode 下で
+    $_.Exception.Response を直接読まない）。
+  - 文字列の -replace で末尾の $ を使うときは、二重引用符内ではなく単引用符のパターンを使う
+    （5.1 で `$"` が誤展開される問題の回避）。ドキュメント: docs/github-releases-songdata.md
+
 .DESCRIPTION
   Intended to run from any folder: copy this .ps1, the .bat, and a secrets file
   next to your songdata.db. Tag defaults to songdata-YYYY-MM-DD if omitted.
@@ -204,6 +213,28 @@ function Get-UploadHeaders {
     }
 }
 
+function Invoke-GitHubAuthorized {
+    <#
+    Wrap Invoke-RestMethod (or similar) with identical 401 handling for all GitHub JSON endpoints.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [scriptblock] $Action,
+        [Parameter(Mandatory = $true)]
+        [string] $AuditLabel
+    )
+    try {
+        return & $Action
+    }
+    catch {
+        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
+        if ($code -eq 401) {
+            throw ((Format-GitHubAuthHelp) + "`n`nRequest: $AuditLabel`nOriginal: $($_.Exception.Message)")
+        }
+        throw
+    }
+}
+
 function Get-ErrorHttpStatusCode {
     <#
     StrictMode-safe: do not read .Exception.Response directly (RuntimeException etc. lack it).
@@ -245,7 +276,7 @@ GitHub returned 401 Unauthorized. Common causes:
 
   4) Organization with SAML SSO -> open the token on GitHub and click "Configure SSO" / Authorize for that org.
 
-See docs/github-releases-songdata.md (secrets.txt section).
+See docs/github-releases-songdata.md (section: secrets.txt の書き方（詳細・手順）).
 "@
 }
 
@@ -254,15 +285,8 @@ function Invoke-GitHubGet {
         [string] $Uri,
         [hashtable] $Headers
     )
-    try {
-        return Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Get
-    }
-    catch {
-        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
-        if ($code -eq 401) {
-            throw ((Format-GitHubAuthHelp) + "`n`nRequest: GET $Uri`nOriginal: $($_.Exception.Message)")
-        }
-        throw
+    return Invoke-GitHubAuthorized -AuditLabel "GET $Uri" -Action {
+        Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Get
     }
 }
 
@@ -273,15 +297,8 @@ function Invoke-GitHubPostJson {
         [hashtable] $Body
     )
     $json = $Body | ConvertTo-Json -Compress
-    try {
-        return Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Post -Body $json -ContentType "application/json; charset=utf-8"
-    }
-    catch {
-        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
-        if ($code -eq 401) {
-            throw ((Format-GitHubAuthHelp) + "`n`nRequest: POST $Uri`nOriginal: $($_.Exception.Message)")
-        }
-        throw
+    return Invoke-GitHubAuthorized -AuditLabel "POST $Uri" -Action {
+        Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Post -Body $json -ContentType "application/json; charset=utf-8"
     }
 }
 
@@ -290,15 +307,8 @@ function Invoke-GitHubDelete {
         [string] $Uri,
         [hashtable] $Headers
     )
-    try {
+    $null = Invoke-GitHubAuthorized -AuditLabel "DELETE $Uri" -Action {
         Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Delete | Out-Null
-    }
-    catch {
-        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
-        if ($code -eq 401) {
-            throw ((Format-GitHubAuthHelp) + "`n`nRequest: DELETE $Uri`nOriginal: $($_.Exception.Message)")
-        }
-        throw
     }
 }
 
@@ -390,15 +400,8 @@ function Send-ReleaseAsset {
         [string] $Token
     )
     $uh = Get-UploadHeaders -Token $Token
-    try {
+    $null = Invoke-GitHubAuthorized -AuditLabel "POST (upload asset) $UploadUri" -Action {
         Invoke-RestMethod -Uri $UploadUri -Headers $uh -Method Post -InFile $FilePath | Out-Null
-    }
-    catch {
-        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
-        if ($code -eq 401) {
-            throw ((Format-GitHubAuthHelp) + "`n`nRequest: POST (upload asset) $UploadUri`nOriginal: $($_.Exception.Message)")
-        }
-        throw
     }
 }
 

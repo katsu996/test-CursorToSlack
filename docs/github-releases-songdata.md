@@ -39,6 +39,15 @@ gh release upload songdata-2026-05-26 data/songdata.db --repo OWNER/REPO --clobb
 
 **GitHub REST API**（[Create a release](https://docs.github.com/en/rest/releases/releases#create-a-release) / [Upload a release asset](https://docs.github.com/en/rest/releases/assets#upload-a-release-asset)）を **PowerShell 5.1+** から呼び出します。
 
+#### PowerShell 5.1 と 7+（スクリプトの互換性）
+
+`upload-songdata-github-release.ps1` は **Windows PowerShell 5.1** と **PowerShell 7+** の両方を想定しています。
+
+- **失敗時の例外型**がバージョンで異なることがあります。HTTP 401 の検出は `Invoke-RestMethod` の戻りの `Response` を直接読まず、**InnerException を辿ってステータスコードを取得**する共通関数で行います（`Set-StrictMode -Version Latest` 下で `PropertyNotFound` にならないようにするため）。
+- **`-replace` のパターン**に `$` を含めるときは、二重引用符ではなく**単引用符**の正規表現を使います（5.1 で `"...\{\?name,label\}$"` の `$"` が壊れるのを避けるため）。
+
+エラーメッセージ（英語）の「`secrets.txt` の確認」は、下記「`secrets.txt` の書き方（詳細・手順）」と同じ内容です。
+
 ### 想定する置き場所（リポジトリ外でも可）
 
 多くの場合、**beatoraja など `songdata.db` があるフォルダ**に、次のファイルだけコピーして使います（**Git 管理下である必要はありません**）。

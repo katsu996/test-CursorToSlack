@@ -42,7 +42,7 @@
 
 ## バックログ（未着手・任意）
 
-着手したら **優先度を見直し**、完了したら **行を削除または完了済みへ移動**してください。
+着手したら **優先度を見直し**、完了したら **行を削除**してください。
 
 | Todo No | 優先度 | 内容 |
 |---------|--------|------|
@@ -52,17 +52,7 @@
 | **T013** | **P2** | **`ubuntu-latest` で `actions/setup-python` の 3.14.3 が取れない場合**の代替（利用可能なマイナーへの一時ピン等）を [`docs/ci-github-pages-workflow.md`](docs/ci-github-pages-workflow.md) に追記する。 |
 | **T014** | **P2** | **`source_tables.json` の CI 検証**: スキーマ検証に加え、到達性チェックをどこまで行うか方針を決めて実装する。 |
 | **T025** | **P1** | **ワークフローと CI ドキュメントの同期ルール**: `pages.yml` を変えた PR では必ず [`docs/ci-github-pages-workflow.md`](docs/ci-github-pages-workflow.md) の表（処理順・権限・環境変数）を更新する、を CONTRIBUTING か PR テンプレに一行で書く。 |
-| **T026** | **P2** | **`scripts/upload-songdata-github-release*.ps1` の保守**: 重複ロジックの関数化、Windows PowerShell 5.1 と 7+ の差分コメント、エラー文言と [`docs/github-releases-songdata.md`](docs/github-releases-songdata.md) の手順を同じ PRで揃える。 |
-| **T027** | **P2** | **契約テスト（軽量）**: `filter_table` → `build_pages_table` の最小フィクスチャで「列が増えても `check_browser_rows_pages_ui` が拾える」範囲の回帰テストを検討する。 |
 | **T028** | **P2** | **Release アセットの整合性（任意）**: SHA256 などを Release 本文または別ファイルで公開し、`pages.yml` で取得後に検証する設計が必要になったら導入する（現状は `test -s` のみ）。 |
 | **T015** | **P3** | GitHub Pages の「並び替え・絞り込み・列の表示」パネルの開閉状態を `sessionStorage` に保存し、再訪問時に復元する。 |
-| **T016** | **P3** | `docs/table/` に短文の `index.html` を置き、生成物への直リンクと beatoraja 登録時の注意を一覧する（[`docs/README.md`](docs/README.md) との役割分担を冒頭で明示）。 |
 | **T018** | **P3** | **CSV エクスポート**: 表示中の行をダウンロードできる UI を検討する。 |
 | **T024** | **P3** | **i18n**: 文言の外部化や英語切替の可否を検討する（工数とメンテコストのトレードオフ）。 |
-| **T029** | **P3** | **フロントのビルド導入**: [`docs/frontend-migration-costs.md`](docs/frontend-migration-costs.md) を参照し、バンドル・型付けを入れる場合のコストと、現状の「静的配信のみ」維持の判断を更新する。 |
-
----
-
-## 完了したら
-
-新規バックログには **Todo No** と **優先度** を付与し、完了時は **いつ・どの PR で**終わったかを一行残すと、後任が迷いません。
