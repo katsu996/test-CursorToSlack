@@ -15,15 +15,17 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 これをしないと `.github/workflows/pages.yml` のデプロイがサイトに反映されません。
 
-### 2. `songdata.db` を差し替える（更新のたび）
+### 2. `songdata.db` を更新して配布する（更新のたび）
 
-1. PC の beatoraja データフォルダから **`songdata.db`** をコピーする
-2. 本リポジトリの **`data/songdata.db`** に上書きする（パスをずらさない）
-3. 変更をリポジトリに載せる  
-   - **Git**: `git add data/songdata.db` → `git commit` → `git push`  
-   - **GitHub Web**: **Add file → Upload files** で `data/songdata.db` を置き換えてコミット
+本リポジトリでは **`songdata.db` は Git に含めません**（サイズ制限の回避）。手元の **`data/songdata.db`** に置いたうえで、**GitHub Releases のアセット**として公開します。
 
-**Git に載せず GitHub Releases のアセットだけにしたい場合:** [docs/github-releases-songdata.md](docs/github-releases-songdata.md) の手順で Release に `songdata.db` をアップロードし、リポジトリ変数 **`SONGDATA_RELEASE_TAG`** にそのリリースのタグ名を設定すると、`.github/workflows/pages.yml` がチェックアウト後に `data/songdata.db` をダウンロードします（ローカル実行では従来どおり手元の `data/songdata.db` を用意してください）。
+1. PC の beatoraja データフォルダから **`songdata.db`** をコピーし、本リポジトリの **`data/songdata.db`** に置く（パスをずらさない）
+2. **Release へアップロード**（いずれか）
+   - **Windows:** [docs/github-releases-songdata.md](docs/github-releases-songdata.md) のとおり、`scripts/upload-songdata-github-release.bat` を実行（内部で GitHub REST API を使用）
+   - **GitHub CLI:** 同ドキュメントの `gh release create` / `gh release upload` の例
+3. **GitHub Actions** でフィルタに使うタグ名を、リポジトリ変数 **`SONGDATA_RELEASE_TAG`**（例: `songdata-2026-05-26`）に設定する（**Settings → Secrets and variables → Actions → Variables**）。`.github/workflows/pages.yml` がチェックアウト直後にその Release から `data/songdata.db` を取得します。
+
+詳細・トークン権限・`curl` の例は [docs/github-releases-songdata.md](docs/github-releases-songdata.md) を参照してください。
 
 **補足:** `songdata.db` は **Pages のサイト上には出ません**。Actions のランナー上でフィルタにだけ使われます。ファイルが大きい場合は [data/README.md](data/README.md) の注意も読んでください。
 

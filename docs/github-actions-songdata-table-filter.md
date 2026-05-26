@@ -8,7 +8,7 @@
 
 **はい。** 次を満たせば、ランナー上で「元表を取得 → `songdata.db` に SQL → ハッシュ交差でフィルタ → `docs/table/` に JSON 出力 → `docs/` 全体を GitHub Pages にデプロイ」まで完結します。
 
-1. 実行時に **`data/songdata.db`** がランナー上に存在する（**通常は Git にコミット済み**。未コミットの場合はリポジトリ変数 **`SONGDATA_RELEASE_TAG`** を設定し、チェックアウト直後に **GitHub Release から `songdata.db` を取得**する。手順は [github-releases-songdata.md](./github-releases-songdata.md)）。
+1. 実行時に **`data/songdata.db`** がランナー上に存在する（**ローカル配置**、またはリポジトリ変数 **`SONGDATA_RELEASE_TAG`** を設定してチェックアウト直後に **GitHub Release から `songdata.db` を取得**。手順は [github-releases-songdata.md](./github-releases-songdata.md)）。
 2. 統合難易度表のヘッダーが **HTTPS で取得できる**（`filter_config.json` の **`source_tables`**（インラインまたは **`source_tables_path`** で読み込んだ別 JSON）、または後方互換の **`source_header_urls`** / **`source_header_url`**）。データ本体は各ヘッダーの `data_url`（**相対パスはヘッダー JSON の URL を基準に解決**）または単一ソース時の `source_data_url`。
 3. 生成ヘッダーの `data_url` は **既定でファイル名のみ**（例: `filtered_data.json`）とし、beatoraja がヘッダーと同じディレクトリ上のデータ JSON を取得できるようにします（`SITE_BASE_URL` は不要）。**絶対 URL で出したい場合のみ** `use_relative_data_url: false` と `site_base_url` / `SITE_BASE_URL` を併用します。
 
