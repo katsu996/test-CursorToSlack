@@ -56,10 +56,10 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 | `docs/assets/pages-index-column-runtime.js` | `index_table` のマージと列見出しヘルパ |
 | `docs/assets/pages-index-main.js` | `browser_rows.json` の取得と表描画 |
 | `docs/pages-ui-config.md` | 上記 JSON のキー説明 |
-| `.github/workflows/pages.yml` | CI/CD ワークフロー定義 |
+| `.github/workflows/pages.yml` | CI/CD ワークフロー定義（詳細は [docs/ci-github-pages-workflow.md](docs/ci-github-pages-workflow.md)） |
 
 ### Notes
 
 - `data/songdata.db` は **Git 管理外**（`.gitignore`）。ローカルでは beatoraja からコピーするか Release から取得。ユニットテストは DB 不要。CI では **同一リポジトリの Latest GitHub Release** から `gh release download` で取得（失敗・空ファイルはエラー）（[docs/github-releases-songdata.md](docs/github-releases-songdata.md)）。
 - Python スクリプト（`tools/table-filter/*.py` の本処理）は標準ライブラリのみ使用。`pip install` は不要（CI の ruff のみ）。
-- 生成されるファイル（`docs/table/*.json`）は `.gitignore` に入っていないため、テスト後に `git checkout -- docs/table/` でクリーンアップする。
+- 生成される主要 JSON（`docs/table/filtered_*.json`、`browser_rows.json`、`level_stats.json` など）は **`.gitignore` に含まれる**ため、clone 直後は存在しません。CI では毎回 `filter_table.py` が成功して書き直します。ローカルでテストしたあとリポジトリを汚したくない場合は `git checkout -- docs/table/` などで戻せます。

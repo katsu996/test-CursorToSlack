@@ -26,7 +26,7 @@
 - **`use_relative_data_url`**: 既定 `true`。`true` のとき生成ヘッダーの `data_url` は **`filtered_data.json` のようなファイル名のみ**（`SITE_BASE_URL` は不要）。`false` のときだけ **`site_base_url`**（または環境変数 **`SITE_BASE_URL`**）で絶対 URL を組み立てる。
 - **`site_base_url`**: `use_relative_data_url` が `false` のときに必須。`https://<owner>.github.io/<repo>/table` のような **ディレクトリ URL（末尾スラッシュなし）**。相対 `data_url` のときは空でよい。
 - **`custom_level_mapping`**: 後方互換のトップレベル配列。**推奨は各 `source_tables[]` の `custom_level_mapping` オブジェクト**（詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)）。**`custom_level_field`**, **`custom_level_source_key`**, **`custom_level_unmapped`**: 独自レベル列の名前・元列・未マップ時の挙動。
-- **`enabled`**, **`skip_if_no_songdata`**: フィルタのスキップ挙動。詳細は [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md)。
+- **`enabled`**, **`skip_if_no_songdata`**: フィルタのスキップ挙動。ローカルと GitHub Actions での違いは [docs/ci-github-pages-workflow.md](../../docs/ci-github-pages-workflow.md) と [docs/github-actions-songdata-table-filter.md](../../docs/github-actions-songdata-table-filter.md) を参照。
 - **`output_dir`**, **`output_data_filename`**, **`output_data_enriched_filename`**, **`output_header_filename`**, **`output_level_stats_filename`**: 出力先とファイル名（既定は `docs/table/` 配下、`level_stats.json` は統合難易度表別・レベル別集計用）。
 - **`output_header_name`**: 任意。合成ヘッダー JSON の **`name`**（beatoraja の表名）。空なら元ヘッダーまたはスクリプト既定。
 - **`page_title`**: 任意。GitHub Pages の `<title>` / 見出し（未設定時は `output_header_name`）。

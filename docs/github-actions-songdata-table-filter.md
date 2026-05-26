@@ -1,8 +1,10 @@
-# songdata.db と SQL で難易度表を絞り込み、GitHub Actions で公開する（技術メモ）
+# 難易度表フィルタの内部（データフロー・beatoraja 互換・出自メタ）
 
 ## 運用手順について
 
-**日々の手動作業**（`songdata.db` の差し替え、`filter_config.json` の SQL・URL 変更、Pages の初回設定、push、beatoraja の Table URL など）は、**リポジトリ直下の [README.md](../README.md)** にすべて集約しています。本文書は **CI・スクリプトの裏側**と設計上の注意に絞ります。
+**日々の手動作業**（`songdata.db` の配布、`filter_config.json` の SQL・URL 変更、Pages の初回設定、push、beatoraja の Table URL など）は **[README.md](../README.md)**。**Actions のジョブ順・`songdata.db` の取得**は **[ci-github-pages-workflow.md](./ci-github-pages-workflow.md)**。
+
+本文書は **`filter_table.py` / `build_pages_table.py` の処理内容**と、出力 JSON の構造・beatoraja 互換に絞ります。
 
 ## 結論: GitHub Actions だけで実現できるか
 
@@ -12,31 +14,16 @@
 2. 統合難易度表のヘッダーが **HTTPS で取得できる**（`filter_config.json` の **`source_tables`**（インラインまたは **`source_tables_path`** で読み込んだ別 JSON）、または後方互換の **`source_header_urls`** / **`source_header_url`**）。データ本体は各ヘッダーの `data_url`（**相対パスはヘッダー JSON の URL を基準に解決**）または単一ソース時の `source_data_url`。
 3. 生成ヘッダーの `data_url` は **既定でファイル名のみ**（例: `filtered_data.json`）とし、beatoraja がヘッダーと同じディレクトリ上のデータ JSON を取得できるようにします（`SITE_BASE_URL` は不要）。**絶対 URL で出したい場合のみ** `use_relative_data_url: false` と `site_base_url` / `SITE_BASE_URL` を併用します。
 
-**GitHub が提供していないもの:** ブラウザだけで手元の DB を渡す専用 UIはありません。DB は **Git にコミットして更新する**か、**Release アセットとして公開し Actions が Latest から取得する**想定です。
+**GitHub が提供していないもの:** ブラウザだけで手元の DB を渡す専用 UI はありません。本リポジトリでは **`songdata.db` は Git に含めず**、**ローカルの `data/songdata.db` に置く**か、**Release のアセットとして公開し CI が Latest から取得**する想定です。
 
-## CI（`Deploy GitHub Pages`）で起きること
+## CI でのジョブ順・終了コード（要約）
 
-ワークフローは [.github/workflows/pages.yml](../.github/workflows/pages.yml) です。`main` への push または手動 dispatch で実行されます。**`build` ジョブ**でテスト・JSON 生成・`actions/upload-pages-artifact` まで行い、**`deploy` ジョブ**（`needs: build`）で `actions/deploy-pages` のみを実行する構成です（[actions/deploy-pages](https://github.com/actions/deploy-pages) が推奨する専用デプロイジョブと、[starter-workflows の Pages 例](https://github.com/actions/starter-workflows/tree/main/pages)と同型です）。チェックアウトの直後に **GitHub CLI で Latest Release のアセット `songdata.db` を `data/songdata.db` に取得**します（[github-releases-songdata.md](./github-releases-songdata.md)）。**Release が無い・Latest に `songdata.db` が無い・取得結果が空**のときはこのステップで **エラー**になり、その後の `filter_table.py` でも **`songdata.db` 不在なら GitHub Actions 上ではエラー終了**します（生成 JSON が `.gitignore` のため、スキップすると空サイトになるのを防ぐため）。
+ワークフロー全体・`songdata.db` のダウンロード・キューエラー時の切り分けは **[ci-github-pages-workflow.md](./ci-github-pages-workflow.md)** を参照してください。ここではフィルタ周りだけ補足します。
 
-### 「Failed to queue workflow run. Please try again.」が出るとき
-
-多くは **GitHub 側の一時的なキュー投入失敗**です。[GitHub Status](https://www.githubstatus.com/) を確認し、しばらく待ってから **Run workflow を再試行**してください。それでも続く場合は、(1) 同じ concurrency グループ名の **別の実行が長時間キュー／実行中**で詰まっていないか Actions タブで確認、(2) **Settings → Pages** で **Build and deployment の Source が GitHub Actions** になっているか確認、(3) 組織ポリシーで **workflow_dispatch や環境 `github-pages` が制限**されていないか確認、の順が有効です。本リポジトリでは単一ジョブに `github-pages` 環境と長いビルドを同居させないよう、公式と同様に **build / deploy 分割**済みです。
-
-| 順序 | 処理 | 入力 | 主な出力 |
-|------|------|------|----------|
-| 0 | `ruff check` / `unittest` / `check_filter_config_example_sync.py`（`build` ジョブ） | `tools/table-filter/` | 静的解析・テスト・設定例のキー整合 |
-| 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、**`data/songdata.db`（CI では必須。Latest Release から取得または同パスに配置）** | `docs/table/filtered_data.json`（beatoraja 用・拡張列除去）、`filtered_data_enriched.json`（Pages 用・出自列あり）、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
-| 2 | `build_pages_table.py` | 同上設定、`filtered_data_enriched.json`（無ければ `filtered_data.json`）、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の一覧表用） |
-| 3 | `check_browser_rows_pages_ui.py` | `docs/table/browser_rows.json` | `meta.pages_ui` の必須キー（`index_table`・IR・Chart 等）が欠けていれば **終了コード 1** |
-| 4 | `smoke_check_outputs.py` | 生成済み `docs/table/*.json` | 空データやヘッダー不備があれば **終了コード 1** |
-| 5 | `configure-pages` / `upload-pages-artifact` | `docs/` ディレクトリ全体 | Pages 用アーティファクト（後続の `deploy` ジョブで `deploy-pages` が消費） |
-| 6 | `deploy-pages`（`deploy` ジョブ） | 上記アーティファクト | GitHub Pages への公開 |
-
-- **`data_url`（生成ヘッダー）:** 既定（`use_relative_data_url` 未指定または `true`）では **`filtered_data.json` のようなファイル名のみ**を書き、jbmstable-parser が **ヘッダー JSON の URL と同じディレクトリ**からデータを取得します。`use_relative_data_url: false` のときだけ `site_base_url` または環境変数 **`SITE_BASE_URL`** が必要で、`${SITE_BASE_URL}/filtered_data.json` 形式にします。
-- **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空などでは **0 で終了**し、後段の `build_pages_table.py` が続きます。**`songdata.db` が無い場合**は、**ローカル**では `skip_if_no_songdata: true`（既定）なら **0 でスキップ**しますが、**GitHub Actions**（`GITHUB_ACTIONS=true`）では **エラー終了**します（`FILTER_CI_ALLOW_MISSING_SONGDATA=1` をワークフローに付けた場合のみ従来どおりスキップ可能。意図は空サイト防止）。
-- **beatoraja 向けデータが 0 件:** 既定の **`beatoraja_empty_rows_policy: fail`** のとき **`filter_table.py` は終了コード 1** となり、その後の `build_pages_table.py` / スモーク / デプロイは実行されません（空の難易度表を公開しない）。
-- **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について、**元表データ行全体**と **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**の行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です（`version` 2 以降は同一行に「SQL 前」「SQL 後」の列比較用の `level_rows` を含みます）。GitHub Pages では **`level-stats.html`** が `./table/level_stats.json` を直接読み込んで表示します。
-- **`build_pages_table.py`:** `filtered_data_enriched.json` が無ければ `filtered_data.json` を読みます。どちらも無い場合は **空の `browser_rows.json`**（理由を `meta` に記録）を書き、Pages デプロイは失敗させません。
+- **`data_url`（生成ヘッダー）:** 既定（`use_relative_data_url` 未指定または `true`）では **`filtered_data.json` のようなファイル名のみ**を書き、jbmstable-parser が **ヘッダー JSON の URL と同じディレクトリ**からデータを取得します。`use_relative_data_url: false` のときだけ `site_base_url` または環境変数 **`SITE_BASE_URL`** が必要です。
+- **`filter_table.py` と DB:** **`songdata.db` が無い場合**、ローカルでは `skip_if_no_songdata: true`（既定）なら **0 でスキップ**。GitHub Actions では **エラー終了**（詳細は [ci-github-pages-workflow.md](./ci-github-pages-workflow.md)）。
+- **beatoraja 向けデータが 0 件:** 既定の **`beatoraja_empty_rows_policy: fail`** のとき **`filter_table.py` は終了コード 1**（以降の `build_pages_table.py` やデプロイに進まない）。
+- **`level_stats.json`:** フィルタが実際に走ったときのみ出力。各元表について **SQL 条件前後**のレベル別件数を集計（`version` 2 以降は `level_rows` で同一レベル行に前後を並べる）。
 
 ## `filter_table.py` のモジュール分割
 
@@ -121,11 +108,11 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 | `pages_ui` | [`table/pages_ui_config.json`](./table/pages_ui_config.json) の内容を埋め込み（仕様は [pages-ui-config.md](./pages-ui-config.md)）。列幅・列の既定表示を制御。`//` / `/* */` コメント可。 |
 | `pages_ui_config_path` | 読み込んだ UI 設定ファイルの相対パス（ログ・デバッグ用）。 |
 
-詳細は **[Pages 用 UI 設定](pages-ui-config.md)** を参照してください。
+列幅・列の既定表示・`index_table`（列順・IR/Chart URL・折りたたみ UI など）の仕様は **[pages-ui-config.md](./pages-ui-config.md)** を参照してください。フロントの実装は **`docs/index.html`**（マークアップ）と **`docs/assets/pages-index-*.js`**（`defer` で読み込み）に分割しています。
 
-**Pages トップの UI:** `docs/index.html` はマークアップのみとし、処理は **`docs/assets/pages-index-*.js`**（`defer` 読み込み）に分割しています。`browser_rows.json` の **`meta.pages_ui.index_table`** で列順・ラベル・IR/Chart の URL 形式をまとめています（単一ソースは `docs/table/pages_ui_config.json`）。**優先順位 1〜3 までの複合並び替え**（各段で列と昇順／降順を指定。すべて「（なし）」のときは元の行順。**優先 1 の既定は独自レベル昇順**）、**キーワード／難易度表チェック／独自レベル（`custom_level`）チェック・列の表示**を **1 つの折りたたみパネル**（「並び替え・絞り込み・列の表示」）にまとめています（既定は閉じた状態）。フッターから **`table/filtered_header.json` へのリンク**があり、beatoraja 登録用ヘッダーをブラウザで直接開けます。**全列をチェックボックスで表示／非表示**できます（既定は `meta.pages_ui.column_visible_defaults` と組み込み既定の合成）。**列の既定幅**は同じく `meta.pages_ui.column_widths`（`t:custom_level` / `t:title` / `d:列名` / `ir:lr2ir` / `ir:minir` / `ir:mocha` / `chart` など）で調整します。**難易度表ブロックの左端は独自レベル（`custom_level`）**で、その右にその他の表列、続いて DB、**IR**（**LR2IR** / **MinIR** / **Mocha** の 3 列）、**Chart** の順です。IR 各列は行の **`md5`**（32 桁 hex）から [LR2IR](http://www.dream-pro.info/~lavalse/LR2IR/search.cgi) のランキング URL、**`sha256`**（64 桁 hex）から [MinIR](https://www.gaftalk.com/minir/) と [Mocha-Repository](https://mocha-repository.info/) へのリンクを生成します（ハッシュが無効なときは「—」）。**Chart** 列は **`md5`** から [bms-score-viewer](https://bms-score-viewer.pages.dev/)（`view?md5=…`）です。**表タイトル**・**表メモ**列は `column_widths` 未指定時でも約 `50ch` の既定幅があり、**各列ヘッダー右端をドラッグ**して列幅を変更できます（ブラウザの `localStorage` に保存し、ドラッグ値が `column_widths` より優先）。メタ情報の「難易度表」は **`sl(Satellite) · st(Stella)`** のように略称と表示名を 1 行にまとめています。出自フィルタの見出しは **「難易度表（1つ以上チェックした表のみ表示。すべてオフのときは行を表示しません）」** で、チェックは **`sl(Satellite)`** 形式です。**独自レベル**は行の `custom_level` の値ごとにチェックが並び、**すべてオフのときは行を表示しません**。共有用の URL クエリ **`cl`** の形式は [README.md](../README.md)（「一覧の URL クエリ」）を参照してください。
+**共有用 URL クエリ**（並び替え・絞り込み・列表示など）は **[README.md](../README.md)** の「一覧の URL クエリ」を参照してください。
 
-**統合難易度表別の曲数サマリー:** `filter_table.py` が `level_stats.json` に書き出す集計を、**`level-stats.html`**（`./table/level_stats.json` を fetch）で表示します。トップの `index.html` は難易度表の一覧のみです。集計対象の列名は `level_stats.json` の `level_field`（設定の `custom_level_source_key`、既定 `level`）です。各元表カードの表は、同一レベルについて **曲数（SQL 後）**（`songdata.db` の条件でハッシュ交差した行）と **曲数（SQL 前）**（元表 JSON の全データ行）を並べて比較できます。フィルタがスキップされたビルドでは `level_stats.json` が無いことがあり、その場合は当該ページでエラー表示になります。
+**統合難易度表別の曲数:** `filter_table.py` が出力する **`level_stats.json`** を **`level-stats.html`** が読みます（トップの `index.html` は一覧のみ）。集計列は `level_stats.json` の `level_field`（既定は設定の `custom_level_source_key`＝`level`）。**SQL 前後**の件数比較がカード内の表に出ます。フィルタがスキップされたビルドでは `level_stats.json` が無く、当該ページはエラー表示になり得ます。
 
 ## 独自レベル（`custom_level_mapping`）
 
@@ -146,7 +133,7 @@ stellabms の難易度表入口ページ（例: [Satellite の `table.html`](htt
 
 **通常難易度表（☆）の注意:** [darksabun.club](https://darksabun.club/table/archive/normal1/) は **Cloudflare により GitHub Actions のランナーから取得できない**ことがあります。その場合は `filter_table.py` が失敗し、ワークフローが止まります。対処としては、(1) 当該 `source_tables` 要素を一時的に削除する、(2) **ヘッダー JSON の HTTPS 直 URL** やミラーに差し替える、のいずれかが必要です。ディレクトリ URL（末尾 `/`）だけを書くと、ツールは **HTML として 1 回取得して `bmstable` を探す**ため、チャレンジ用 HTMLしか返らない URLは失敗します。
 
-**フィルタ後の行数が 0 に近い場合:** 元表のハッシュと **`songdata.db` の `song` に存在する行**の交差だけが残ります。さらに **`sql_where`** で BPM などを絞るため、**DB に無い譜面**や **条件不一致**は落ちます。表を埋めたい場合は **beatoraja で譜面を読み込んだうえで DB を更新**し、再度コミットしてください。
+**フィルタ後の行数が 0 に近い場合:** 元表のハッシュと **`songdata.db` の `song` に存在する行**の交差だけが残ります。さらに **`sql_where`** で BPM などを絞るため、**DB に無い譜面**や **条件不一致**は落ちます。表を埋めたい場合は **beatoraja で譜面を読み込んだうえで `songdata.db` を更新**し、ローカルでは `data/songdata.db` を差し替え、CI では **Release に再アップロード**してから `main` へ push するかワークフローを再実行してください。
 
 ## 制限・注意
 
@@ -164,6 +151,7 @@ stellabms の難易度表入口ページ（例: [Satellite の `table.html`](htt
 | [tools/table-filter/filter_config.json](../tools/table-filter/filter_config.json) | 実際に読む設定（URL・SQL 等） |
 | [tools/table-filter/README.md](../tools/table-filter/README.md) | CLI・設定キーの短い説明 |
 | [.github/workflows/pages.yml](../.github/workflows/pages.yml) | 上記スクリプト実行後に `docs/` を Pages へデプロイ |
+| [docs/ci-github-pages-workflow.md](./ci-github-pages-workflow.md) | ジョブ分割・`songdata.db` 取得・キューエラー時の切り分け |
 
 ## 参考（beatoraja 側）
 

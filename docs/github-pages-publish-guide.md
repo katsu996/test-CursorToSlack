@@ -30,7 +30,7 @@ GitHub で **Public** リポジトリを作成します。名前は任意（例:
 
 | パス | 役割 |
 |------|------|
-| `.github/workflows/pages.yml` | `docs/` を GitHub Pages にデプロイするワークフロー（`ruff` / `unittest` / 設定例キー検証 → 難易度表フィルタ → スモークテスト → デプロイ） |
+| `.github/workflows/pages.yml` | `docs/` を GitHub Pages にデプロイ（`ruff` / `unittest` / 設定例検証 → **Latest Release から `songdata.db` を取得** → 難易度表フィルタ → スモーク → build/deploy 分割） |
 | `docs/.nojekyll` | Jekyll を無効化し、**そのまま静的ファイル**として配信する |
 | `docs/` 以下の JSON や HTML | 公開したい中身（難易度表 JSON はここに配置、または Actions で `docs/table/` に生成） |
 | `tools/table-filter/`（任意） | `songdata.db` と SQL で元表を絞り込む場合にコピー |
@@ -64,7 +64,7 @@ git push -u origin main
 `tools/table-filter/` を同梱し、`data/songdata.db` と `filter_config.json` を用意すると、push 時に **元表を取得してフィルタした JSON** を `docs/table/` に出力し、続けて **`browser_rows.json`**（表＋DB マージ）を生成してから Pages 公開できます。サイトの **`index.html`** がトップでそのデータを表形式表示し、**`level-stats.html`** が **`table/level_stats.json`** から統合難易度表別のレベル別件数（SQL 前後の比較列つき）を別ページで表示します。
 
 - **あなたが触るファイル・設定:** [README.md](../README.md) の「手動で行う作業」
-- **Actions とスクリプトの裏側:** [github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md)
+- **Actions とスクリプトの裏側:** [ci-github-pages-workflow.md](./ci-github-pages-workflow.md)（ジョブ順・DB 取得）、[github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md)（フィルタ内部）
 
 ## ローカルでのファイル配置のコツ
 

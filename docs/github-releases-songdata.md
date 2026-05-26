@@ -1,6 +1,16 @@
 # `songdata.db` を GitHub Releases のアセットとして配布する
 
-リポジトリに `songdata.db` をコミットせず、**Release にバイナリを載せて** GitHub Actions やローカルから取得する手順です。GitHub の Web からのファイル追加は **100MB 未満**の制限があります（[Adding a file to a repository](https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository)）。Release アセットも同様に **100MB 未満**である必要があります。25MB 超で「コンソールからのコミット」が困難な場合でも、**API や GitHub CLI でのアップロード**なら同じ枠内であれば問題なく運用できます。
+リポジトリに `songdata.db` をコミットせず、**Release にバイナリを載せて** GitHub Actions やローカルから取得する手順です。
+
+## 運用チェックリスト（最短）
+
+1. **アセット名は必ず `songdata.db`**（CI はこの名前だけをダウンロードします）。
+2. **通常の Release** として公開し、GitHub の **Latest** になるようにする（**プレリリースのみ**だと Latest に載らず CI が失敗し得ます）。
+3. **`main` へ push** するか **Deploy GitHub Pages** を手動実行すると、ワークフローが **Latest から毎回** `songdata.db` を取得します（リポジトリ変数は不要。旧 **`SONGDATA_RELEASE_TAG`** は削除して問題ありません）。
+4. Windows でアップロードする場合は **`scripts/upload-songdata-github-release.*`** を `songdata.db` と同じフォルダへコピーし、**`upload-songdata-github-release.secrets.txt`** の書き方は下記「`secrets.txt` の書き方」を参照（**UTF-8**・1 行目に PAT 全文）。
+5. CI の全体像は **[ci-github-pages-workflow.md](./ci-github-pages-workflow.md)**、フィルタの挙動は **[github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md)** を参照。
+
+以下、制限・CLI・REST API・トラブルシュートの詳細です。GitHub の Web からのファイル追加は **100MB 未満**の制限があります（[Adding a file to a repository](https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository)）。Release アセットも同様に **100MB 未満**である必要があります。25MB 超で「コンソールからのコミット」が困難な場合でも、**API や GitHub CLI でのアップロード**なら同じ枠内であれば問題なく運用できます。
 
 ## 前提
 
@@ -171,11 +181,13 @@ https://github.com/OWNER/REPO/releases/download/TAG/songdata.db
 
 ## GitHub Actions（本リポジトリのワークフロー）
 
-`.github/workflows/pages.yml` では、チェックアウト直後に **`gh release download`**（**タグ省略**＝ [Latest release](https://docs.github.com/en/rest/releases/releases#get-the-latest-release) と同じ対象）で、同一リポジトリの **Latest** として公開されている Release から **`songdata.db`** を `data/songdata.db` に取得し、**ファイルが存在し中身が空でないこと**を検証します。取得に失敗したり空ファイルのときは **ワークフローがエラー**で止まります。
+ジョブの順序・`gh release download` の挙動・キューエラー時の切り分けは **[ci-github-pages-workflow.md](./ci-github-pages-workflow.md)** を参照してください。
 
-**重要:** `data/songdata.db` はリポジトリに含まれない（`.gitignore`）ため、**Latest Release に `songdata.db` アセットが無い**と `filter_table.py` も **GitHub Actions 上でエラー終了**します（空の難易度表がデプロイされるのを防ぐため。詳細は `tools/table-filter/filter_table.py` と [github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md)）。難易度表が更新されないときは、**プレリリースではない通常の Release として公開されているか**、**その Release が Latest になっているか**（GitHub の Releases 画面で **Latest** バッジ）、**アセット名が `songdata.db` か**を確認してください。
+ここでは運用上の要点だけ再掲します。
 
-**プレリリースのみ**だと GitHub の「Latest」に載らず、CLI の既定ダウンロード対象から外れることがあります。CI で取得させたいときは **通常の Release** として公開するか、ドラフトを解除してください。
+- チェックアウト直後に **Latest Release** から **`songdata.db`** を `data/songdata.db` に取得し、**非空**を検証（失敗時はワークフロー全体がエラー）。
+- **Latest Release に `songdata.db` が無い**と `filter_table.py` も **Actions 上でエラー**になります（[github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md) の「CI でのジョブ順」も参照）。
+- 難易度表が更新されないときは、**通常 Release か**、**Latest バッジが付いているか**、**アセット名が `songdata.db` か**を確認してください。**プレリリースのみ**だと Latest に載らず取得に失敗し得ます。
 
 リポジトリ変数 **`SONGDATA_RELEASE_TAG`** は **不要**です（以前の版で使っていた場合は削除して問題ありません）。
 

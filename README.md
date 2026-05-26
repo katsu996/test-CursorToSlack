@@ -6,7 +6,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 ## あなたが手動で行う作業（一覧）
 
-以降の作業は、**GitHub の Web 画面**と**ローカル（または Codespace）のエディタ**、必要に応じて **git** で行います。自動で済む処理（Python やワークフロー）は [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) にまとめています。
+以降の作業は、**GitHub の Web 画面**と**ローカル（または Codespace）のエディタ**、必要に応じて **git** で行います。ワークフローが自動で行う処理は **[docs/ci-github-pages-workflow.md](docs/ci-github-pages-workflow.md)** と **[docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md)** にまとめています。
 
 ### 1. 初回のみ: GitHub Pages の公開元を「GitHub Actions」にする
 
@@ -97,7 +97,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 - **`skip_if_no_songdata`: `true`（既定）** — **ローカル**では `data/songdata.db` が無いとフィルタはスキップ（エラーにしない）  
 - **`false`** — DB が無いと **終了コード 1**（厳格）  
-- **GitHub Actions:** 生成物の JSON は `.gitignore` のため、DB 無しでスキップすると **空の表がデプロイ**されます。そのため **`GITHUB_ACTIONS=true` のときは**（意図的に続行したい場合を除き）**`songdata.db` が無いとエラー**になります。通常は **Latest Release に `songdata.db` アセットがある状態**を保ってください（`.github/workflows/pages.yml` がチェックアウト直後に取得します）。どうしても DB 無しでワークフローを通したい場合のみ、`.github/workflows/pages.yml` の `build` ジョブに環境変数 **`FILTER_CI_ALLOW_MISSING_SONGDATA=1`** を追加します（[docs/github-releases-songdata.md](docs/github-releases-songdata.md) も参照）。
+- **GitHub Actions:** 生成物の JSON は `.gitignore` のため、DB 無しでスキップすると **空の表がデプロイ**されます。そのため **`GITHUB_ACTIONS=true` のときは**（意図的に続行したい場合を除き）**`songdata.db` が無いとエラー**になります。通常は **Latest Release に `songdata.db` アセットがある状態**を保ってください（`.github/workflows/pages.yml` がチェックアウト直後に取得します。手順は [docs/github-releases-songdata.md](docs/github-releases-songdata.md)、ジョブ順は [docs/ci-github-pages-workflow.md](docs/ci-github-pages-workflow.md)）。どうしても DB 無しでワークフローを通したい場合のみ、`.github/workflows/pages.yml` の `build` ジョブに環境変数 **`FILTER_CI_ALLOW_MISSING_SONGDATA=1`** を追加します。
 
 ### 7. 変更を GitHub に反映する（デプロイのトリガー）
 
@@ -173,7 +173,9 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 | beatoraja と LR2oraja / Endless Dream の違い | [docs/beatoraja-vs-lr2oraja-derivatives.md](docs/beatoraja-vs-lr2oraja-derivatives.md) |
 | 難易度表の URL 公開・自作表の考え方 | [docs/beatoraja-difficulty-table-url-and-filtered-publish.md](docs/beatoraja-difficulty-table-url-and-filtered-publish.md) |
 | GitHub Pages の仕組み・別リポジトリへのコピー手順 | [docs/github-pages-publish-guide.md](docs/github-pages-publish-guide.md) |
-| **Actions・Python スクリプトの処理内容**（フィルタ、マージ、制限） | [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) |
+| **CI（Pages ワークフロー）のジョブ順・`songdata.db` 取得** | [docs/ci-github-pages-workflow.md](docs/ci-github-pages-workflow.md) |
+| **Actions・フィルタの内部**（データフロー、出自メタ、beatoraja 互換） | [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) |
+| **`songdata.db` を Release に載せる**（CLI・Windows スクリプト・PAT） | [docs/github-releases-songdata.md](docs/github-releases-songdata.md) |
 | `docs/` ディレクトリの役割（公開ルート） | [docs/README.md](docs/README.md) |
 | フィルタの CLI・設定キーの開発者向けメモ | [tools/table-filter/README.md](tools/table-filter/README.md) |
 | beatoraja 向け難易度表 JSON の前提（回帰防止） | [docs/beatoraja-jbmstable-table-json.md](docs/beatoraja-jbmstable-table-json.md) |

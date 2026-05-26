@@ -1,5 +1,7 @@
 # beatoraja: 難易度表を自作して URL 公開・追加する方法（＋既存表を `minbpm != maxbpm` で絞って再公開する）
 
+> **本リポジトリの運用**（SQL で絞り込み、GitHub Pages で公開、Table URL の例）は **[README.md](../README.md)** と **[github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md)** を参照してください。本文書は **beatoraja 公式 UI と URL 形式の一般論**に補足的に寄せています。
+
 質問の「forder」は **難易度表（Difficulty Table）** の誤記と解釈し、beatoraja の **Table URL（難易度表 URL）** について整理する。BPM 条件は前後の文脈どおり **`minbpm != maxbpm`** とする（`minbpm != minbpm` は常に偽になるため誤記とみなす）。
 
 ---
