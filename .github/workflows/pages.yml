@@ -1,5 +1,5 @@
 # 別リポジトリへコピーして使える GitHub Pages 用ワークフロー。
-# push 時に songdata.db（リポジトリ内ファイルまたは Release 取得）と設定が揃っていれば難易度表 JSON を生成し、docs/ 全体を公開する。
+# push 時に songdata.db（Release 取得）と設定が揃っていれば難易度表 JSON を生成し、docs/ 全体を公開する。
 name: Deploy GitHub Pages
 
 on:
