@@ -1,5 +1,6 @@
 # 別リポジトリへコピーして使える GitHub Pages 用ワークフロー。
 # push 時に songdata.db（Release 取得）と設定が揃っていれば難易度表 JSON を生成し、docs/ 全体を公開する。
+# build / deploy のジョブ分割は actions/deploy-pages の推奨構成（starter-workflows の Pages テンプレートと同様）。
 name: Deploy GitHub Pages
 
 on:
@@ -9,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       note:
-        description: 手動実行メモ（ログ用・任意）
+        description: "Optional note for manual runs (logged only)"
         required: false
         type: string
         default: ""
@@ -24,10 +25,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -96,6 +94,13 @@ jobs:
         with:
           path: docs
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

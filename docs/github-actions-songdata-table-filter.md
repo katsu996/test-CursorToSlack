@@ -16,16 +16,21 @@
 
 ## CI（`Deploy GitHub Pages`）で起きること
 
-ワークフローは [.github/workflows/pages.yml](../.github/workflows/pages.yml) です。`main` への push または手動 dispatch で実行されます。リポジトリ変数 **`SONGDATA_RELEASE_TAG`** が空でないとき、チェックアウトの直後に **GitHub CLI で Release アセット `songdata.db` を `data/songdata.db` に取得**します（[github-releases-songdata.md](./github-releases-songdata.md)）。
+ワークフローは [.github/workflows/pages.yml](../.github/workflows/pages.yml) です。`main` への push または手動 dispatch で実行されます。**`build` ジョブ**でテスト・JSON 生成・`actions/upload-pages-artifact` まで行い、**`deploy` ジョブ**（`needs: build`）で `actions/deploy-pages` のみを実行する構成です（[actions/deploy-pages](https://github.com/actions/deploy-pages) が推奨する専用デプロイジョブと、[starter-workflows の Pages 例](https://github.com/actions/starter-workflows/tree/main/pages)と同型です）。リポジトリ変数 **`SONGDATA_RELEASE_TAG`** が空でないとき、チェックアウトの直後に **GitHub CLI で Release アセット `songdata.db` を `data/songdata.db` に取得**します（[github-releases-songdata.md](./github-releases-songdata.md)）。
+
+### 「Failed to queue workflow run. Please try again.」が出るとき
+
+多くは **GitHub 側の一時的なキュー投入失敗**です。[GitHub Status](https://www.githubstatus.com/) を確認し、しばらく待ってから **Run workflow を再試行**してください。それでも続く場合は、(1) 同じ concurrency グループ名の **別の実行が長時間キュー／実行中**で詰まっていないか Actions タブで確認、(2) **Settings → Pages** で **Build and deployment の Source が GitHub Actions** になっているか確認、(3) 組織ポリシーで **workflow_dispatch や環境 `github-pages` が制限**されていないか確認、の順が有効です。本リポジトリでは単一ジョブに `github-pages` 環境と長いビルドを同居させないよう、公式と同様に **build / deploy 分割**済みです。
 
 | 順序 | 処理 | 入力 | 主な出力 |
 |------|------|------|----------|
-| 0 | `ruff check` / `unittest` / `check_filter_config_example_sync.py` | `tools/table-filter/` | 静的解析・テスト・設定例のキー整合 |
+| 0 | `ruff check` / `unittest` / `check_filter_config_example_sync.py`（`build` ジョブ） | `tools/table-filter/` | 静的解析・テスト・設定例のキー整合 |
 | 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`（beatoraja 用・拡張列除去）、`filtered_data_enriched.json`（Pages 用・出自列あり）、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
 | 2 | `build_pages_table.py` | 同上設定、`filtered_data_enriched.json`（無ければ `filtered_data.json`）、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の一覧表用） |
 | 3 | `check_browser_rows_pages_ui.py` | `docs/table/browser_rows.json` | `meta.pages_ui` の必須キー（`index_table`・IR・Chart 等）が欠けていれば **終了コード 1** |
 | 4 | `smoke_check_outputs.py` | 生成済み `docs/table/*.json` | 空データやヘッダー不備があれば **終了コード 1** |
-| 5 | Pages アーティファクト | `docs/` ディレクトリ全体 | GitHub Pages にアップロード |
+| 5 | `configure-pages` / `upload-pages-artifact` | `docs/` ディレクトリ全体 | Pages 用アーティファクト（後続の `deploy` ジョブで `deploy-pages` が消費） |
+| 6 | `deploy-pages`（`deploy` ジョブ） | 上記アーティファクト | GitHub Pages への公開 |
 
 - **`data_url`（生成ヘッダー）:** 既定（`use_relative_data_url` 未指定または `true`）では **`filtered_data.json` のようなファイル名のみ**を書き、jbmstable-parser が **ヘッダー JSON の URL と同じディレクトリ**からデータを取得します。`use_relative_data_url: false` のときだけ `site_base_url` または環境変数 **`SITE_BASE_URL`** が必要で、`${SITE_BASE_URL}/filtered_data.json` 形式にします。
 - **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空・`songdata.db` 不在（`skip_if_no_songdata: true`）などでも **0 で終了**し、後段の `build_pages_table.py` が続きます。
