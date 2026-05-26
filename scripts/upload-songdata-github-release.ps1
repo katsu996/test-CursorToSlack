@@ -204,6 +204,31 @@ function Get-UploadHeaders {
     }
 }
 
+function Get-ErrorHttpStatusCode {
+    <#
+    StrictMode-safe: do not read .Exception.Response directly (RuntimeException etc. lack it).
+    Walks InnerException for WebException (Windows PowerShell) or HttpResponseException (PowerShell 7+).
+    #>
+    param([System.Management.Automation.ErrorRecord] $ErrorRecord)
+    $e = $ErrorRecord.Exception
+    while ($null -ne $e) {
+        if ($e -is [System.Net.WebException]) {
+            $wr = $e.Response
+            if ($null -ne $wr) {
+                return [int]$wr.StatusCode
+            }
+        }
+        elseif ($e.PSObject.Properties.Name -contains 'Response') {
+            $wr2 = $e.Response
+            if ($null -ne $wr2 -and $wr2.PSObject.Properties.Name -contains 'StatusCode') {
+                return [int]$wr2.StatusCode
+            }
+        }
+        $e = $e.InnerException
+    }
+    return $null
+}
+
 function Format-GitHubAuthHelp {
     return @"
 GitHub returned 401 Unauthorized. Common causes:
@@ -233,8 +258,8 @@ function Invoke-GitHubGet {
         return Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Get
     }
     catch {
-        $resp = $_.Exception.Response
-        if ($null -ne $resp -and [int]$resp.StatusCode -eq 401) {
+        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
+        if ($code -eq 401) {
             throw ((Format-GitHubAuthHelp) + "`n`nRequest: GET $Uri`nOriginal: $($_.Exception.Message)")
         }
         throw
@@ -252,8 +277,8 @@ function Invoke-GitHubPostJson {
         return Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Post -Body $json -ContentType "application/json; charset=utf-8"
     }
     catch {
-        $resp = $_.Exception.Response
-        if ($null -ne $resp -and [int]$resp.StatusCode -eq 401) {
+        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
+        if ($code -eq 401) {
             throw ((Format-GitHubAuthHelp) + "`n`nRequest: POST $Uri`nOriginal: $($_.Exception.Message)")
         }
         throw
@@ -269,8 +294,8 @@ function Invoke-GitHubDelete {
         Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Delete | Out-Null
     }
     catch {
-        $resp = $_.Exception.Response
-        if ($null -ne $resp -and [int]$resp.StatusCode -eq 401) {
+        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
+        if ($code -eq 401) {
             throw ((Format-GitHubAuthHelp) + "`n`nRequest: DELETE $Uri`nOriginal: $($_.Exception.Message)")
         }
         throw
@@ -290,8 +315,8 @@ function Get-ReleaseByTag {
         return Invoke-GitHubGet -Uri $uri -Headers $Headers
     }
     catch {
-        $resp = $_.Exception.Response
-        if ($null -ne $resp -and [int]$resp.StatusCode -eq 404) {
+        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
+        if ($code -eq 404) {
             return $null
         }
         throw
@@ -369,8 +394,8 @@ function Send-ReleaseAsset {
         Invoke-RestMethod -Uri $UploadUri -Headers $uh -Method Post -InFile $FilePath | Out-Null
     }
     catch {
-        $resp = $_.Exception.Response
-        if ($null -ne $resp -and [int]$resp.StatusCode -eq 401) {
+        $code = Get-ErrorHttpStatusCode -ErrorRecord $_
+        if ($code -eq 401) {
             throw ((Format-GitHubAuthHelp) + "`n`nRequest: POST (upload asset) $UploadUri`nOriginal: $($_.Exception.Message)")
         }
         throw
