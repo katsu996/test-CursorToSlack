@@ -1,0 +1,5 @@
+# Copy to upload-songdata-github-release.local.ps1 (gitignored) and edit.
+# Use single quotes for the token so special characters are safe.
+
+$env:GITHUB_TOKEN = 'ghp_REPLACE_ME'
+$env:GITHUB_REPOSITORY = 'owner/repo'

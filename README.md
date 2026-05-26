@@ -21,7 +21,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 1. PC の beatoraja データフォルダから **`songdata.db`** をコピーし、本リポジトリの **`data/songdata.db`** に置く（パスをずらさない）
 2. **Release へアップロード**（いずれか）
-   - **Windows:** [docs/github-releases-songdata.md](docs/github-releases-songdata.md) のとおり、`scripts/upload-songdata-github-release.bat` を実行（内部で GitHub REST API を使用）
+   - **Windows:** [docs/github-releases-songdata.md](docs/github-releases-songdata.md) のとおり、`scripts/upload-songdata-github-release.local.ps1` にトークン等を書いてから `scripts/upload-songdata-github-release.bat` を実行（内部で GitHub REST API を使用）
    - **GitHub CLI:** 同ドキュメントの `gh release create` / `gh release upload` の例
 3. **GitHub Actions** でフィルタに使うタグ名を、リポジトリ変数 **`SONGDATA_RELEASE_TAG`**（例: `songdata-2026-05-26`）に設定する（**Settings → Secrets and variables → Actions → Variables**）。`.github/workflows/pages.yml` がチェックアウト直後にその Release から `data/songdata.db` を取得します。
 

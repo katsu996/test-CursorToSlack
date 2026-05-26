@@ -1,36 +1,43 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  GitHub Releases REST API で songdata.db をアップロードする。
+  Upload songdata.db to a GitHub Release via the REST API.
 
 .DESCRIPTION
-  1) タグに紐づく Release を取得、無ければ作成
-  2) 同名アセットがあれば削除（再アップロード用）
-  3) upload_url へ生バイナリ POST
+  1) Get release by tag, or create it
+  2) Delete same-named asset if present
+  3) POST raw bytes to upload_url
 
-  認証: 環境変数 GITHUB_TOKEN または GH_TOKEN（classic: repo 権限、細粒度: Contents/Releases 相当）
+  Auth: optional -Token, else env GITHUB_TOKEN / GH_TOKEN, else values from
+  upload-songdata-github-release.local.ps1 (see .example file; gitignored).
 
 .PARAMETER Tag
-  Release のタグ名（例: songdata-2026-05-26）。Actions 変数 SONGDATA_RELEASE_TAG と揃える。
+  Release tag (e.g. songdata-2026-05-26). Match SONGDATA_RELEASE_TAG in Actions.
 
 .PARAMETER Repo
-  owner/repo。未指定時は環境変数 GITHUB_REPOSITORY。
+  owner/repo. Default: env GITHUB_REPOSITORY after optional local.ps1.
+
+.PARAMETER Token
+  PAT override. Prefer leaving empty and using local.ps1 or env vars.
 
 .PARAMETER SongdataPath
-  アップロードするファイル。既定: リポジトリ直下の data/songdata.db
+  File to upload. Default: repo data/songdata.db
 
 .PARAMETER AssetName
-  GitHub 上のアセット名。既定: songdata.db
+  Asset name on GitHub. Default: songdata.db
 
 .PARAMETER TargetCommitish
-  Release 新規作成時のみ使用。タグがリモートに無い場合の指し先（省略時は API 既定＝既定ブランチ）。
+  Only when creating a release: target branch/sha if tag missing remotely.
 #>
 param(
     [Parameter(Mandatory = $true, Position = 0)]
     [string] $Tag,
 
     [Parameter(Mandatory = $false)]
-    [string] $Repo = $env:GITHUB_REPOSITORY,
+    [string] $Repo = "",
+
+    [Parameter(Mandatory = $false)]
+    [string] $Token = "",
 
     [Parameter(Mandatory = $false)]
     [string] $SongdataPath = "",
@@ -45,14 +52,23 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$localCfg = Join-Path $PSScriptRoot "upload-songdata-github-release.local.ps1"
+if (Test-Path -LiteralPath $localCfg) {
+    . $localCfg
+}
+
 $apiRoot = "https://api.github.com"
 $apiVersion = "2022-11-28"
 
 function Get-RepoToken {
+    param([string] $CmdLineToken)
+    if ($CmdLineToken) {
+        return $CmdLineToken
+    }
     $t = $env:GITHUB_TOKEN
     if (-not $t) { $t = $env:GH_TOKEN }
     if (-not $t) {
-        throw "GITHUB_TOKEN または GH_TOKEN を設定してください（Release の作成・資産操作に必要）。"
+        throw "Missing token. Set GITHUB_TOKEN or GH_TOKEN, pass -Token, or create scripts/upload-songdata-github-release.local.ps1 (see .example)."
     }
     return $t
 }
@@ -60,8 +76,8 @@ function Get-RepoToken {
 function Get-ApiHeaders {
     param([string] $Token)
     return @{
-        Authorization        = "Bearer $Token"
-        Accept               = "application/vnd.github+json"
+        Authorization          = "Bearer $Token"
+        Accept                 = "application/vnd.github+json"
         "X-GitHub-Api-Version" = $apiVersion
     }
 }
@@ -69,8 +85,8 @@ function Get-ApiHeaders {
 function Get-UploadHeaders {
     param([string] $Token)
     return @{
-        Authorization        = "Bearer $Token"
-        Accept               = "application/vnd.github+json"
+        Authorization          = "Bearer $Token"
+        Accept                 = "application/vnd.github+json"
         "X-GitHub-Api-Version" = $apiVersion
         "Content-Type"         = "application/octet-stream"
     }
@@ -178,7 +194,8 @@ function Remove-ReleaseAsset {
 
 function Expand-UploadUri {
     param([string] $UploadUrlTemplate, [string] $Name)
-    $base = $UploadUrlTemplate -replace "\{\?name,label\}$", ""
+    # Use single-quoted pattern: in double quotes, `$` would break the -replace argument list on Windows PowerShell 5.1
+    $base = $UploadUrlTemplate -replace '\{\?name,label\}$', ''
     return ($base + "?name=" + [uri]::EscapeDataString($Name))
 }
 
@@ -193,15 +210,18 @@ function Send-ReleaseAsset {
 }
 
 # --- main ---
-$token = Get-RepoToken
+$token = Get-RepoToken -CmdLineToken $Token
 $headers = Get-ApiHeaders -Token $token
 
 if (-not $Repo -or $Repo.Trim() -eq "") {
-    throw "リポジトリを -Repo owner/name で指定するか、GITHUB_REPOSITORY を設定してください。"
+    $Repo = $env:GITHUB_REPOSITORY
+}
+if (-not $Repo -or $Repo.Trim() -eq "") {
+    throw "Set repo with -Repo owner/name or GITHUB_REPOSITORY (e.g. in local.ps1)."
 }
 $parts = $Repo.Trim().Split("/")
 if ($parts.Length -ne 2 -or -not $parts[0] -or -not $parts[1]) {
-    throw "Repo は owner/name 形式である必要があります: $Repo"
+    throw "Repo must be owner/name: $Repo"
 }
 $owner = $parts[0]
 $name = $parts[1]
@@ -212,12 +232,12 @@ if (-not $SongdataPath) {
 }
 
 if (-not (Test-Path -LiteralPath $SongdataPath -PathType Leaf)) {
-    throw "ファイルが見つかりません: $SongdataPath"
+    throw "File not found: $SongdataPath"
 }
 
 $release = Get-ReleaseByTag -Owner $owner -Name $name -TagName $Tag -Headers $headers
 if ($null -eq $release) {
-    Write-Host "Release が無いため作成します: tag=$Tag"
+    Write-Host "No release for tag; creating: tag=$Tag"
     $title = "$AssetName ($Tag)"
     $notes = "Uploaded via scripts/upload-songdata-github-release.ps1"
     $release = New-GitHubRelease -Owner $owner -Name $name -TagName $Tag -Title $title -BodyText $notes -Commitish $TargetCommitish -Headers $headers
@@ -226,20 +246,20 @@ if ($null -eq $release) {
 $rid = [int]$release.id
 $uploadTpl = [string]$release.upload_url
 if (-not $uploadTpl) {
-    throw "API 応答に upload_url がありません。"
+    throw "API response missing upload_url."
 }
 
 $assets = Get-ReleaseAssets -Owner $owner -Name $name -ReleaseId $rid -Headers $headers
 foreach ($a in $assets) {
     if ($a.name -eq $AssetName) {
-        Write-Host "既存アセットを削除します: $AssetName (id=$($a.id))"
+        Write-Host "Deleting existing asset: $AssetName (id=$($a.id))"
         Remove-ReleaseAsset -Owner $owner -Name $name -AssetId ([int]$a.id) -Headers $headers
     }
 }
 
 $uploadUri = Expand-UploadUri -UploadUrlTemplate $uploadTpl -Name $AssetName
-Write-Host "アップロード中: $SongdataPath -> $AssetName (release_id=$rid)"
+Write-Host "Uploading: $SongdataPath -> $AssetName (release_id=$rid)"
 Send-ReleaseAsset -UploadUri $uploadUri -FilePath $SongdataPath -Token $token
 
 $dl = "https://github.com/$owner/$name/releases/download/$Tag/$AssetName"
-Write-Host "完了。ダウンロード URL（公開リポジトリの例）: $dl"
+Write-Host "Done. Public download URL example: $dl"

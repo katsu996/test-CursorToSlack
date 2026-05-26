@@ -1,15 +1,9 @@
 @echo off
-setlocal EnableExtensions
+setlocal
 cd /d "%~dp0.."
 
-if not defined GITHUB_TOKEN (
-  if not defined GH_TOKEN (
-    echo [ERROR] GITHUB_TOKEN または GH_TOKEN を設定してください。
-    exit /b 2
-  )
-)
+rem Do not use non-ASCII in this file: CMD may mis-parse lines and break %GITHUB_TOKEN% etc.
+rem Put secrets in upload-songdata-github-release.local.ps1 (gitignored); see docs/github-releases-songdata.md
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0upload-songdata-github-release.ps1" %*
-set "ERR=%ERRORLEVEL%"
-if not "%ERR%"=="0" exit /b %ERR%
-exit /b 0
+exit /b %ERRORLEVEL%

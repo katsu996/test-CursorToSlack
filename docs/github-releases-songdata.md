@@ -29,24 +29,30 @@ gh release upload songdata-2026-05-26 data/songdata.db --repo OWNER/REPO --clobb
 
 **GitHub REST API**（[Create a release](https://docs.github.com/en/rest/releases/releases#create-a-release) / [Upload a release asset](https://docs.github.com/en/rest/releases/assets#upload-a-release-asset)）を **PowerShell 5.1+** から呼び出します。`.bat` はリポジトリルートに `cd` してから同梱の `.ps1` を実行するラッパーです。
 
-### 前提
+### 認証とリポジトリ（推奨: `local.ps1`）
 
-- 環境変数 **`GITHUB_TOKEN`** または **`GH_TOKEN`**（Release の作成・資産の削除・アップロードが可能なトークン）
-- 未指定時、リポジトリは環境変数 **`GITHUB_REPOSITORY`**（`owner/name`）を使用。ローカルでは手動で `set GITHUB_REPOSITORY=owner/repo` するか、`-Repo` を渡す
+**コマンドプロンプト用の `.bat` には日本語や UTF-8 のみの文字を入れないでください。** 環境によっては **`%` の誤解釈**で `GITHUB_TOKEN` が壊れ、 `'H_TOKEN'` のように別コマンド扱いになることがあります。
+
+トークンは次のいずれかで渡します（優先順）。
+
+1. **`scripts/upload-songdata-github-release.local.ps1`**（リポジトリでは **`.gitignore`** 済み）  
+   `scripts/upload-songdata-github-release.local.ps1.example` をコピーして同フォルダに `upload-songdata-github-release.local.ps1` として保存し、**例どおり `$env:GITHUB_TOKEN` と `$env:GITHUB_REPOSITORY` を編集**してください。単行は **ASCII** のみにすると安全です。トークンは **単引用符** `'ghp_...'` で囲むとよいです。
+2. 環境変数 **`GITHUB_TOKEN`** / **`GH_TOKEN`** と **`GITHUB_REPOSITORY`**
+3. PowerShell 引数 **`-Token`** / **`-Repo`**（非対話バッチでは秘密が履歴に残りやすいので非推奨）
 
 ### 例（コマンドプロンプト）
 
 ```bat
 cd C:\path\to\this-repo
-set GITHUB_TOKEN=ghp_xxxxxxxx
-set GITHUB_REPOSITORY=myname/test-CursorToSlack
+copy scripts\upload-songdata-github-release.local.ps1.example scripts\upload-songdata-github-release.local.ps1
+rem Edit local.ps1: set GITHUB_TOKEN and GITHUB_REPOSITORY, then:
 scripts\upload-songdata-github-release.bat songdata-2026-05-26
 ```
 
 既定のローカルファイルは **`data/songdata.db`** です。別パスにする場合は `-SongdataPath` を指定します。
 
 ```bat
-scripts\upload-songdata-github-release.bat songdata-2026-05-26 -Repo myname/test-CursorToSlack -SongdataPath D:\beatoraja\songdata.db
+scripts\upload-songdata-github-release.bat songdata-2026-05-26 -SongdataPath D:\beatoraja\songdata.db
 ```
 
 - 指定タグの **Release が無い場合は新規作成**します（タグがリモートに無い場合は GitHub が既定ブランチ先に lightweight タグを作る挙動になります。通常は先に `git tag` / `git push origin <tag>` 済みにしてください）
