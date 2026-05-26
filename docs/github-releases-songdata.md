@@ -25,6 +25,33 @@ gh release upload songdata-2026-05-26 data/songdata.db --repo OWNER/REPO --clobb
 
 `--clobber` は `gh` のバージョンによっては未対応の場合があります。そのときは Release 上で古いアセットを削除してから再アップロードしてください。
 
+## Windows: REST API バッチ（`scripts/upload-songdata-github-release.bat`）
+
+**GitHub REST API**（[Create a release](https://docs.github.com/en/rest/releases/releases#create-a-release) / [Upload a release asset](https://docs.github.com/en/rest/releases/assets#upload-a-release-asset)）を **PowerShell 5.1+** から呼び出します。`.bat` はリポジトリルートに `cd` してから同梱の `.ps1` を実行するラッパーです。
+
+### 前提
+
+- 環境変数 **`GITHUB_TOKEN`** または **`GH_TOKEN`**（Release の作成・資産の削除・アップロードが可能なトークン）
+- 未指定時、リポジトリは環境変数 **`GITHUB_REPOSITORY`**（`owner/name`）を使用。ローカルでは手動で `set GITHUB_REPOSITORY=owner/repo` するか、`-Repo` を渡す
+
+### 例（コマンドプロンプト）
+
+```bat
+cd C:\path\to\this-repo
+set GITHUB_TOKEN=ghp_xxxxxxxx
+set GITHUB_REPOSITORY=myname/test-CursorToSlack
+scripts\upload-songdata-github-release.bat songdata-2026-05-26
+```
+
+既定のローカルファイルは **`data/songdata.db`** です。別パスにする場合は `-SongdataPath` を指定します。
+
+```bat
+scripts\upload-songdata-github-release.bat songdata-2026-05-26 -Repo myname/test-CursorToSlack -SongdataPath D:\beatoraja\songdata.db
+```
+
+- 指定タグの **Release が無い場合は新規作成**します（タグがリモートに無い場合は GitHub が既定ブランチ先に lightweight タグを作る挙動になります。通常は先に `git tag` / `git push origin <tag>` 済みにしてください）
+- **同名アセット `songdata.db` が既にある場合は削除してから再アップロード**します
+
 ## REST API でアップロード（バッチや `curl` 向け）
 
 公式手順: [Upload a release asset](https://docs.github.com/en/rest/releases/assets?apiVersion=2022-11-28#upload-a-release-asset)
@@ -61,7 +88,7 @@ https://github.com/OWNER/REPO/releases/download/TAG/songdata.db
 
 ## GitHub Actions（本リポジトリのワークフロー）
 
-`.github/workflows/pages.yml` では、リポジトリ変数 **`SONGDATA_RELEASE_TAG`** に上記の **タグ名**（例: `songdata-2026-05-26`）を設定すると、チェックアウト直後に **`gh release download`** で `data/songdata.db` を取得します。変数が空のときは従来どおり（コミット済みのファイルのみ）です。
+`.github/workflows/pages.yml` では、リポジトリ変数 **`SONGDATA_RELEASE_TAG`** に上記の **タグ名**（例: `songdata-2026-05-26`）を設定すると、チェックアウト直後に **`gh release download`** で `data/songdata.db` を取得し、存在・非空を検証します。変数が空のときは **Release からの取得を行いません**（手元で `data/songdata.db` を置いた場合や、フィルタをスキップする用途向け）。
 
 設定場所: **Settings → Secrets and variables → Actions → Variables** で `SONGDATA_RELEASE_TAG` を追加。
 

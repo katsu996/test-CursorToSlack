@@ -1,5 +1,5 @@
 # 別リポジトリへコピーして使える GitHub Pages 用ワークフロー。
-# push 時に songdata.db と設定が揃っていれば難易度表 JSON を生成し、docs/ 全体を公開する。
+# push 時に songdata.db（Release 取得）と設定が揃っていれば難易度表 JSON を生成し、docs/ 全体を公開する。
 name: Deploy GitHub Pages
 
 on:
@@ -47,6 +47,11 @@ jobs:
             -R "${{ github.repository }}" \
             -p songdata.db \
             -O data/songdata.db
+
+      - name: Require songdata.db for filter (when Release tag is set)
+        if: ${{ vars.SONGDATA_RELEASE_TAG != '' }}
+        run: |
+          test -s data/songdata.db
 
       - name: Workflow dispatch note
         if: github.event_name == 'workflow_dispatch'

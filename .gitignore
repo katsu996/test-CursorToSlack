@@ -2,6 +2,9 @@ __pycache__/
 *.py[cod]
 .Python
 
+# beatoraja の DB（GitHub Releases のアセットで配布。ローカル・CI で配置）
+data/songdata.db
+
 # Actions / ローカルで tools/table-filter が生成する難易度表（毎回再生成）
 docs/table/filtered_data.json
 docs/table/filtered_data_enriched.json

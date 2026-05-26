@@ -50,7 +50,7 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 | `tools/table-filter/smoke_check_outputs.py` | デプロイ前の生成物スモークテスト |
 | `tools/table-filter/check_browser_rows_pages_ui.py` | `browser_rows.json` の `meta.pages_ui` 検証（CI） |
 | `tools/table-filter/filter_config.json` | 実行時設定（SQL, URL 等） |
-| `data/songdata.db` | beatoraja の楽曲データベース（SQLite） |
+| `data/songdata.db` | beatoraja の楽曲 DB（ローカル配置・Git 管理外。CI は Release から取得可） |
 | `docs/table/pages_ui_config.json` | Pages トップの列幅・既定表示・`index_table`（列順・任意の末尾 `trailing_table_columns`・ラベル・IR/Chart URL・`column_visible_defaults.ir` / `chart` 等。`build_pages_table.py` が `meta.pages_ui` に埋め込み。`//` コメント可） |
 | `docs/assets/pages-index-toolbar-collapse.js` | トップのツールバー折りたたみ |
 | `docs/assets/pages-index-column-runtime.js` | `index_table` のマージと列見出しヘルパ |
@@ -60,6 +60,6 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 
 ### Notes
 
-- `data/songdata.db` はリポジトリにコミットされている（約 11MB）。テスト時に差し替え不要。
+- `data/songdata.db` は **Git 管理外**（`.gitignore`）。ローカルでは beatoraja からコピーするか Release から取得。ユニットテストは DB 不要。CI ではリポジトリ変数 **`SONGDATA_RELEASE_TAG`** により Release から取得（[docs/github-releases-songdata.md](docs/github-releases-songdata.md)）。
 - Python スクリプト（`tools/table-filter/*.py` の本処理）は標準ライブラリのみ使用。`pip install` は不要（CI の ruff のみ）。
 - 生成されるファイル（`docs/table/*.json`）は `.gitignore` に入っていないため、テスト後に `git checkout -- docs/table/` でクリーンアップする。
