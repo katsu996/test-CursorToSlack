@@ -216,6 +216,33 @@
     return sa.localeCompare(sb, "ja", { numeric: true, sensitivity: "base" });
   }
 
+  /** 独自レベル未設定行の内部キー（URL クエリ `cl` と対応） */
+  var CUSTOM_LEVEL_UNSET_KEY = "__unset__";
+
+  function rowCustomLevelKey(r) {
+    var v = r && r.table ? r.table.custom_level : undefined;
+    if (v === null || v === undefined || v === "") return CUSTOM_LEVEL_UNSET_KEY;
+    return String(v);
+  }
+
+  function sortCustomLevelKeys(keys) {
+    return keys.slice().sort(function (a, b) {
+      if (a === CUSTOM_LEVEL_UNSET_KEY && b === CUSTOM_LEVEL_UNSET_KEY) return 0;
+      if (a === CUSTOM_LEVEL_UNSET_KEY) return 1;
+      if (b === CUSTOM_LEVEL_UNSET_KEY) return -1;
+      var na = Number(a);
+      var nb = Number(b);
+      var aNum = String(na) === a && Number.isFinite(na);
+      var bNum = String(nb) === b && Number.isFinite(nb);
+      if (aNum && bNum) {
+        if (na < nb) return -1;
+        if (na > nb) return 1;
+        return 0;
+      }
+      return String(a).localeCompare(String(b), "ja", { numeric: true, sensitivity: "base" });
+    });
+  }
+
   function externalSearchStrings(table, runtime) {
     var parts = [];
     var md5 = table && table.md5 != null ? String(table.md5).trim().toLowerCase() : "";
@@ -241,6 +268,7 @@
   var metaEl = document.getElementById("meta");
   var metaDl = document.getElementById("meta-dl");
   var filterSrcBar = document.getElementById("filter-src-bar");
+  var filterCustomLevelBar = document.getElementById("filter-custom-level-bar");
   var errEl = document.getElementById("err");
   var scrollEl = document.getElementById("scroll");
   var colbarEl = document.getElementById("colbar");
@@ -484,6 +512,67 @@
       var metaShorts = Array.isArray(meta.source_table_short_names) ? meta.source_table_short_names : [];
       var metaDisplays = Array.isArray(meta.source_table_display_names) ? meta.source_table_display_names : [];
       var sourceFilterState = {};
+      var customLevelFilterState = {};
+      var customLevelOrderedKeys = [];
+
+      function buildCustomLevelFilterBar() {
+        customLevelFilterState = {};
+        customLevelOrderedKeys = [];
+        if (!filterCustomLevelBar) return;
+        if (allTKeys.indexOf("custom_level") < 0) {
+          filterCustomLevelBar.hidden = true;
+          filterCustomLevelBar.innerHTML = "";
+          return;
+        }
+        var seen = {};
+        for (var rli = 0; rli < rows.length; rli++) {
+          seen[rowCustomLevelKey(rows[rli])] = true;
+        }
+        var keys = sortCustomLevelKeys(Object.keys(seen));
+        if (!keys.length) {
+          filterCustomLevelBar.hidden = true;
+          filterCustomLevelBar.innerHTML = "";
+          return;
+        }
+        customLevelOrderedKeys = keys;
+        filterCustomLevelBar.innerHTML = "";
+        var leadCl = document.createElement("div");
+        leadCl.className = "filter-src-lead";
+        leadCl.textContent =
+          "独自レベル（チェックした値の行だけ表示。すべてオフのときは行を表示しません）";
+        filterCustomLevelBar.appendChild(leadCl);
+        keys.forEach(function (ck) {
+          customLevelFilterState[ck] = true;
+          var labCl = document.createElement("label");
+          var inpCl = document.createElement("input");
+          inpCl.type = "checkbox";
+          inpCl.checked = true;
+          inpCl.setAttribute("data-cl-key", ck);
+          inpCl.addEventListener("change", function () {
+            customLevelFilterState[ck] = inpCl.checked;
+            currentPage = 1;
+            refresh();
+          });
+          labCl.appendChild(inpCl);
+          var disp = ck === CUSTOM_LEVEL_UNSET_KEY ? "（未設定）" : ck;
+          labCl.appendChild(document.createTextNode(disp));
+          filterCustomLevelBar.appendChild(labCl);
+        });
+        filterCustomLevelBar.hidden = false;
+      }
+
+      function applyCustomLevelFilter(base) {
+        if (!customLevelOrderedKeys.length) return base.slice();
+        var enabledCl = [];
+        for (var eci = 0; eci < customLevelOrderedKeys.length; eci++) {
+          var ek = customLevelOrderedKeys[eci];
+          if (customLevelFilterState[ek]) enabledCl.push(ek);
+        }
+        if (!enabledCl.length) return [];
+        return base.filter(function (r) {
+          return enabledCl.indexOf(rowCustomLevelKey(r)) >= 0;
+        });
+      }
 
       function buildSourceFilterBar() {
         sourceFilterState = {};
@@ -563,6 +652,7 @@
       }
 
       buildSourceFilterBar();
+      buildCustomLevelFilterBar();
 
       var visT = {};
       var visD = {};
@@ -872,6 +962,34 @@
             if (sh) inp.checked = !!sourceFilterState[sh];
           });
         }
+        if (p.has("cl") && filterCustomLevelBar && customLevelOrderedKeys.length) {
+          var clRaw = p.get("cl");
+          if (clRaw === "") {
+            Object.keys(customLevelFilterState).forEach(function (k) {
+              customLevelFilterState[k] = false;
+            });
+          } else if (clRaw != null && String(clRaw).length) {
+            var wantCl = {};
+            String(clRaw)
+              .split(",")
+              .forEach(function (seg) {
+                var t = String(seg || "").trim();
+                if (!t) return;
+                try {
+                  wantCl[decodeURIComponent(t)] = true;
+                } catch (e3) {
+                  wantCl[t] = true;
+                }
+              });
+            Object.keys(customLevelFilterState).forEach(function (k) {
+              customLevelFilterState[k] = !!wantCl[k];
+            });
+          }
+          filterCustomLevelBar.querySelectorAll("input[type=checkbox][data-cl-key]").forEach(function (inp) {
+            var ck = inp.getAttribute("data-cl-key");
+            if (ck) inp.checked = !!customLevelFilterState[ck];
+          });
+        }
         var tcols = p.get("tcols");
         if (tcols && tcols.trim()) {
           var setT = {};
@@ -977,7 +1095,7 @@
       }
 
       function filteredList() {
-        return applySort(applySourceFilter(applySearch()));
+        return applySort(applyCustomLevelFilter(applySourceFilter(applySearch())));
       }
 
       function visEqualDefaults() {
@@ -1003,6 +1121,14 @@
         return true;
       }
 
+      function allCustomLevelFiltersOn() {
+        if (!customLevelOrderedKeys.length) return true;
+        for (var ci = 0; ci < customLevelOrderedKeys.length; ci++) {
+          if (!customLevelFilterState[customLevelOrderedKeys[ci]]) return false;
+        }
+        return true;
+      }
+
       function syncUrlToLocation() {
         urlTimer = null;
         var u;
@@ -1012,7 +1138,7 @@
           return;
         }
         var p = u.searchParams;
-        ["q", "s1", "d1", "s2", "d2", "s3", "d3", "src", "tcols", "dcols", "ir", "ch", "pg", "tb"].forEach(function (k) {
+        ["q", "s1", "d1", "s2", "d2", "s3", "d3", "src", "cl", "tcols", "dcols", "ir", "ch", "pg", "tb"].forEach(function (k) {
           p.delete(k);
         });
         var qv = (q.value || "").trim();
@@ -1035,6 +1161,21 @@
             return sourceFilterState[k];
           });
           p.set("src", en.join(","));
+        }
+        if (customLevelOrderedKeys.length && !allCustomLevelFiltersOn()) {
+          var enCl = customLevelOrderedKeys.filter(function (k) {
+            return customLevelFilterState[k];
+          });
+          if (enCl.length === 0) p.set("cl", "");
+          else
+            p.set(
+              "cl",
+              enCl
+                .map(function (k) {
+                  return encodeURIComponent(k);
+                })
+                .join(",")
+            );
         }
         if (!visEqualDefaults()) {
           p.set(

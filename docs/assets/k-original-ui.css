@@ -331,6 +331,11 @@
     }
     .filter-src label:hover { background-color: hsl(var(--accent)); }
     .filter-src input { margin: 0; accent-color: hsl(var(--primary)); }
+    #filter-custom-level-bar {
+      max-height: 11rem;
+      overflow-y: auto;
+      align-content: flex-start;
+    }
     .colbar {
       padding: 0.65rem 0.85rem;
       margin-bottom: 0.75rem;
