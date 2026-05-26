@@ -1,10 +1,10 @@
 // pages_ui_config.json（JSONC 風）
 // `tools/table-filter/build_pages_table.py` が読み込むとき、`//` 行コメントと `/* */` を除去してから JSON として解釈します。
-// キーの並びは GitHub Pages トップの表の左から右の列順に合わせています（`index_table.table_column_order` → DB → IR → Chart。末尾専用列は `trailing_table_columns` が空なら無し）。
+// キーの並びは GitHub Pages トップの表の左から右の列順に合わせています（`leading_table_columns` → その他の表列 → DB → IR → Chart → 任意の `trailing_table_columns`）。
 {
   "version": 1,
   "column_widths": {
-    // --- 難易度表列（t: + 列名）: 表ブロック左→右（先頭は独自レベル）---
+    // --- 表列（t: + 列名）: 先頭は leading（独自レベル）、続けて元表ブロック ---
     "t:custom_level": "7ch",
     // "t:id": "8ch",
     // "t:source_table_index": "8ch",
@@ -182,6 +182,7 @@
       "sha256"
     ],
     "trailing_table_columns": [],
+    "leading_table_columns": ["custom_level"],
     "db_column_order": [
       "title",
       "subtitle",
@@ -266,11 +267,12 @@
       "comment": true
     },
     "group_labels": {
-      "table": "難易度表 JSON の列",
-      "db": "songdata.db（song）の列",
+      "leading": "独自レベル",
+      "table": "元難易度表の列",
+      "db": "楽曲情報の列",
       "ir": "IR",
       "chart": "Chart",
-      "trailing": "独自レベル"
+      "trailing": "末尾の表列"
     },
     "ir_subcolumns": [
       {

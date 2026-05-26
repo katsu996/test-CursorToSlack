@@ -21,6 +21,7 @@
       "sha256"
     ],
     trailing_table_columns: [],
+    leading_table_columns: ["custom_level"],
     db_column_order: [
       "title",
       "subtitle",
@@ -104,11 +105,12 @@
       folder: true
     },
     group_labels: {
-      table: "難易度表 JSON の列",
-      db: "songdata.db（song）の列",
+      leading: "独自レベル",
+      table: "元難易度表の列",
+      db: "楽曲情報の列",
       ir: "IR",
       chart: "Chart",
-      trailing: "独自レベル"
+      trailing: "末尾の表列"
     },
     ir_subcolumns: [
       {
@@ -164,6 +166,10 @@
         : def.trailing_table_columns
           ? def.trailing_table_columns.slice()
           : [];
+    var leadOrder =
+      Array.isArray(it.leading_table_columns) && it.leading_table_columns.length
+        ? it.leading_table_columns.slice()
+        : def.leading_table_columns.slice();
     var dbOrder = Array.isArray(it.db_column_order) && it.db_column_order.length
       ? it.db_column_order.slice()
       : def.db_column_order.slice();
@@ -185,6 +191,7 @@
     return {
       table_column_order: tableOrder,
       trailing_table_columns: trailOrder,
+      leading_table_columns: leadOrder,
       db_column_order: dbOrder,
       column_labels: labels,
       table_clamp_keys: clampKeys,
@@ -200,11 +207,11 @@
   }
 
   function tableColTitle(k, runtime) {
-    return runtime.column_labels[k] || "表: " + k;
+    return runtime.column_labels[k] || String(k);
   }
 
   function dbColTitle(k, runtime) {
-    return runtime.column_labels[k] || "DB: " + k;
+    return runtime.column_labels[k] || String(k);
   }
 
   global.KOriginalPagesIndex = {

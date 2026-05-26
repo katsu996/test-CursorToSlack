@@ -75,17 +75,27 @@
     return pri;
   }
 
-  function splitVisibleTableKeys(vTKeys, runtime) {
-    var ts = new Set(Array.isArray(runtime.trailing_table_columns) ? runtime.trailing_table_columns : []);
+  function splitLeadingMainTrailTableKeys(vTKeys, runtime) {
+    var leadOrder = Array.isArray(runtime.leading_table_columns) ? runtime.leading_table_columns : [];
+    var leadSet = new Set(leadOrder);
+    var lead = [];
+    for (var li = 0; li < leadOrder.length; li++) {
+      var lk = leadOrder[li];
+      if (vTKeys.indexOf(lk) >= 0) lead.push(lk);
+    }
+    var trailOrder = Array.isArray(runtime.trailing_table_columns) ? runtime.trailing_table_columns : [];
+    var trailSet = new Set(trailOrder);
+    var trail = trailOrder.filter(function (k) {
+      return vTKeys.indexOf(k) >= 0 && !leadSet.has(k);
+    });
     var main = [];
     for (var si = 0; si < vTKeys.length; si++) {
-      if (!ts.has(vTKeys[si])) main.push(vTKeys[si]);
+      var k2 = vTKeys[si];
+      if (leadSet.has(k2)) continue;
+      if (trailSet.has(k2)) continue;
+      main.push(k2);
     }
-    var order = Array.isArray(runtime.trailing_table_columns) ? runtime.trailing_table_columns : [];
-    var trail = order.filter(function (k) {
-      return vTKeys.indexOf(k) >= 0;
-    });
-    return { main: main, trail: trail };
+    return { lead: lead, main: main, trail: trail };
   }
 
   function collectAllKeys(rows, key, runtime) {
@@ -357,14 +367,16 @@
       } catch (_e0) {}
 
       function colKeysList(vTKeys, vDKeys) {
-        var sp = splitVisibleTableKeys(vTKeys, runtime);
+        var sp = splitLeadingMainTrailTableKeys(vTKeys, runtime);
+        var vTLead = sp.lead;
         var vTMain = sp.main;
         var vTTrail = sp.trail;
         var keys = [];
         var ti;
+        for (ti = 0; ti < vTLead.length; ti++) keys.push("t:" + vTLead[ti]);
         if (vTMain.length) {
           for (ti = 0; ti < vTMain.length; ti++) keys.push("t:" + vTMain[ti]);
-        } else keys.push("t:_empty");
+        } else if (!vTLead.length) keys.push("t:_empty");
         if (vDKeys.length) {
           for (ti = 0; ti < vDKeys.length; ti++) keys.push("d:" + vDKeys[ti]);
         } else keys.push("d:_empty");
@@ -682,22 +694,30 @@
       }
 
       function rebuildThead(vTKeys, vDKeys) {
-        var sp = splitVisibleTableKeys(vTKeys, runtime);
+        var sp = splitLeadingMainTrailTableKeys(vTKeys, runtime);
+        var vTLead = sp.lead;
         var vTMain = sp.main;
         var vTTrail = sp.trail;
         var irCols = runtime.ir_subcolumns || [];
         var gl = runtime.group_labels || {};
         thead.innerHTML = "";
         var trh1 = document.createElement("tr");
+        if (vTLead.length) {
+          var thL = document.createElement("th");
+          thL.colSpan = Math.max(1, vTLead.length);
+          thL.className = "group-lead";
+          thL.textContent = gl.leading || "独自レベル";
+          trh1.appendChild(thL);
+        }
         var thT = document.createElement("th");
         thT.colSpan = Math.max(1, vTMain.length);
         thT.className = "group-t";
-        thT.textContent = gl.table || "難易度表 JSON の列";
+        thT.textContent = gl.table || "元難易度表の列";
         trh1.appendChild(thT);
         var thD = document.createElement("th");
         thD.colSpan = Math.max(1, vDKeys.length);
         thD.className = "group-d";
-        thD.textContent = gl.db || "songdata.db（song）の列";
+        thD.textContent = gl.db || "楽曲情報の列";
         trh1.appendChild(thD);
         if (visIr && irCols.length) {
           var thIr = document.createElement("th");
@@ -717,12 +737,18 @@
           var thTr = document.createElement("th");
           thTr.colSpan = Math.max(1, vTTrail.length);
           thTr.className = "group-trail";
-          thTr.textContent = gl.trailing || "独自レベル";
+          thTr.textContent = gl.trailing || "末尾の表列";
           trh1.appendChild(thTr);
         }
         thead.appendChild(trh1);
 
         var trh2 = document.createElement("tr");
+        vTLead.forEach(function (k) {
+          var thL2 = document.createElement("th");
+          thL2.className = "group-lead" + (PI.isTableClampKey(k, runtime) ? " cell-max" : "");
+          thL2.textContent = PI.tableColTitle(k, runtime);
+          trh2.appendChild(thL2);
+        });
         vTMain.forEach(function (k) {
           var th = document.createElement("th");
           th.className = "group-t" + (PI.isTableClampKey(k, runtime) ? " cell-max" : "");
@@ -774,7 +800,7 @@
 
       function buildColPicker() {
         colbarInner.innerHTML = "";
-        function addGroup(title, cls, allKeys, vis, prefix) {
+        function addGroup(title, cls, allKeys, vis, section) {
           var wrap = document.createElement("div");
           wrap.className = "colbar-group";
           var h = document.createElement("div");
@@ -800,15 +826,25 @@
             lab.appendChild(inp);
             var span = document.createElement("span");
             span.textContent =
-              prefix === "表: " ? "表: " + PI.tableColTitle(k, runtime) : "DB: " + PI.dbColTitle(k, runtime);
+              section === "db" ? PI.dbColTitle(k, runtime) : PI.tableColTitle(k, runtime);
             lab.appendChild(span);
             picks.appendChild(lab);
           });
           wrap.appendChild(picks);
           colbarInner.appendChild(wrap);
         }
-        addGroup("難易度表 JSON の列", "t", allTKeys, visT, "表: ");
-        addGroup("songdata.db（song）の列", "d", allDKeys, visD, "DB: ");
+        var tsp = splitLeadingMainTrailTableKeys(allTKeys, runtime);
+        var glPick = runtime.group_labels || {};
+        if (tsp.lead.length) {
+          addGroup(glPick.leading || "独自レベル", "lead", tsp.lead, visT, "table");
+        }
+        if (tsp.main.length) {
+          addGroup(glPick.table || "元難易度表の列", "t", tsp.main, visT, "table");
+        }
+        if (tsp.trail.length) {
+          addGroup(glPick.trailing || "末尾の表列", "trail", tsp.trail, visT, "table");
+        }
+        addGroup(glPick.db || "楽曲情報の列", "d", allDKeys, visD, "db");
         var wrapX = document.createElement("div");
         wrapX.className = "colbar-group";
         var hx = document.createElement("div");
@@ -879,13 +915,13 @@
         allTKeys.forEach(function (k) {
           var opt = document.createElement("option");
           opt.value = "table:" + k;
-          opt.textContent = "表: " + PI.tableColTitle(k, runtime);
+          opt.textContent = PI.tableColTitle(k, runtime);
           sortSelect.appendChild(opt);
         });
         allDKeys.forEach(function (k) {
           var opt = document.createElement("option");
           opt.value = "db:" + k;
-          opt.textContent = "DB: " + PI.dbColTitle(k, runtime);
+          opt.textContent = PI.dbColTitle(k, runtime);
           sortSelect.appendChild(opt);
         });
       }
@@ -1037,7 +1073,8 @@
       function render(list) {
         var vTKeys = visibleKeys(allTKeys, visT);
         var vDKeys = visibleKeys(allDKeys, visD);
-        var sp = splitVisibleTableKeys(vTKeys, runtime);
+        var sp = splitLeadingMainTrailTableKeys(vTKeys, runtime);
+        var vTLead = sp.lead;
         var vTMain = sp.main;
         var vTTrail = sp.trail;
         tbody.innerHTML = "";
@@ -1045,6 +1082,9 @@
           var tr = document.createElement("tr");
           var t = r.table || {};
           var d = r.db || {};
+          vTLead.forEach(function (k) {
+            tr.insertAdjacentHTML("beforeend", cellHtml(t[k], "table", k, runtime));
+          });
           vTMain.forEach(function (k) {
             tr.insertAdjacentHTML("beforeend", cellHtml(t[k], "table", k, runtime));
           });

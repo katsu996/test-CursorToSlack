@@ -24,6 +24,7 @@
       --input: 240 5.9% 90%;
       --ring: 240 5.9% 10%;
       --radius: 0.5rem;
+      --group-lead: 280 40% 96%;
       --group-t: 221 83% 96%;
       --group-d: 142 76% 94%;
       --group-chart: 262 83% 96%;
@@ -53,6 +54,7 @@
         --border: 240 3.7% 15.9%;
         --input: 240 3.7% 15.9%;
         --ring: 240 4.9% 83.9%;
+        --group-lead: 280 35% 18%;
         --group-t: 224 76% 16%;
         --group-d: 143 64% 14%;
         --group-chart: 262 35% 18%;
@@ -82,6 +84,7 @@
       --border: 240 3.7% 15.9%;
       --input: 240 3.7% 15.9%;
       --ring: 240 4.9% 83.9%;
+      --group-lead: 280 35% 18%;
       --group-t: 224 76% 16%;
       --group-d: 143 64% 14%;
       --group-chart: 262 35% 18%;
@@ -110,6 +113,7 @@
       --border: 240 5.9% 90%;
       --input: 240 5.9% 90%;
       --ring: 240 5.9% 10%;
+      --group-lead: 280 40% 96%;
       --group-t: 221 83% 96%;
       --group-d: 142 76% 94%;
       --group-chart: 262 83% 96%;
@@ -358,11 +362,17 @@
       letter-spacing: 0.02em;
     }
     .colbar-group-title.t { color: hsl(221 83% 40%); }
+    .colbar-group-title.lead { color: hsl(280 45% 38%); }
+    .colbar-group-title.trail { color: hsl(214 70% 36%); }
     .colbar-group-title.d { color: hsl(142 76% 30%); }
     html.theme-dark .colbar-group-title.t { color: hsl(217 91% 70%); }
+    html.theme-dark .colbar-group-title.lead { color: hsl(280 55% 78%); }
+    html.theme-dark .colbar-group-title.trail { color: hsl(214 75% 72%); }
     html.theme-dark .colbar-group-title.d { color: hsl(142 71% 55%); }
     @media (prefers-color-scheme: dark) {
       html:not(.theme-light):not(.theme-dark) .colbar-group-title.t { color: hsl(217 91% 70%); }
+      html:not(.theme-light):not(.theme-dark) .colbar-group-title.lead { color: hsl(280 55% 78%); }
+      html:not(.theme-light):not(.theme-dark) .colbar-group-title.trail { color: hsl(214 75% 72%); }
       html:not(.theme-light):not(.theme-dark) .colbar-group-title.d { color: hsl(142 71% 55%); }
     }
     .colpick-wrap {
@@ -417,6 +427,7 @@
       font-weight: 600;
       overflow: visible;
     }
+    th.group-lead { background-color: hsl(var(--group-lead)); color: hsl(var(--foreground)); }
     th.group-t { background-color: hsl(var(--group-t)); color: hsl(var(--foreground)); }
     th.group-d { background-color: hsl(var(--group-d)); color: hsl(var(--foreground)); }
     th.group-ir { background-color: hsl(var(--group-ir)); color: hsl(var(--foreground)); }
