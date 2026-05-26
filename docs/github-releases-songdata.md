@@ -7,7 +7,7 @@
 1. **アセット名は必ず `songdata.db`**（CI はこの名前だけをダウンロードします）。
 2. **通常の Release** として公開し、GitHub の **Latest** になるようにする（**プレリリースのみ**だと Latest に載らず CI が失敗し得ます）。
 3. **`main` へ push** するか **Deploy GitHub Pages** を手動実行すると、ワークフローが **Latest から毎回** `songdata.db` を取得します。
-4. Windows でアップロードする場合は **`scripts/upload-songdata-github-release.*`** と **`upload-songdata-github-release.secrets.template.txt`** を `songdata.db` と同じフォルダへコピーし、テンプレートを **`upload-songdata-github-release.secrets.txt`** にリネームして編集します。書き方は下記「`secrets.txt` の書き方」（**UTF-8**・1 行目 PAT・2 行目 `owner/repo`）を参照してください。
+4. Windows でアップロードする場合は **`scripts/upload-songdata-github-release.bat` / `.ps1` / `upload-songdata-github-release.secrets.txt`** を `songdata.db` と同じフォルダへコピーし、**`secrets.txt` の 1 行目に PAT、2 行目に `owner/repo`** を書きます（**リネーム不要**。リポジトリの `scripts/` に同梱の `secrets.txt` はプレースホルダ入りなので、そのまま編集しても構いません）。**本物の PAT を入れた状態の `secrets.txt` を `git commit` しないでください。** 書き方は下記「`secrets.txt` の書き方」（**UTF-8**）を参照してください。
 5. CI の全体像は **[ci-github-pages-workflow.md](./ci-github-pages-workflow.md)**、フィルタの挙動は **[github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md)** を参照。
 
 以下、制限・CLI・REST API・トラブルシュートの詳細です。GitHub の Web からのファイル追加は **100MB 未満**の制限があります（[Adding a file to a repository](https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository)）。Release アセットも同様に **100MB 未満**である必要があります。25MB 超で「コンソールからのコミット」が困難な場合でも、**API や GitHub CLI でのアップロード**なら同じ枠内であれば問題なく運用できます。
@@ -24,13 +24,13 @@
 
 ```bash
 # 例: タグ songdata-2026-05-26 でドラフト Release を作り、ファイルを載せる
-gh release create songdata-2026-05-26 data/songdata.db \
+gh release create songdata-2026-05-26 songdata.db \
   --repo OWNER/REPO \
   --title "songdata.db (2026-05-26)" \
   --notes "beatoraja songdata.db のスナップショット"
 
 # 既存のタグにファイルだけ追加（同名アセットがあると失敗するので先に削除が必要な場合あり）
-gh release upload songdata-2026-05-26 data/songdata.db --repo OWNER/REPO --clobber
+gh release upload songdata-2026-05-26 songdata.db --repo OWNER/REPO --clobber
 ```
 
 `--clobber` は `gh` のバージョンによっては未対応の場合があります。そのときは Release 上で古いアセットを削除してから再アップロードしてください。
@@ -56,36 +56,35 @@ gh release upload songdata-2026-05-26 data/songdata.db --repo OWNER/REPO --clobb
 |----------|------|
 | `upload-songdata-github-release.bat` | ラッパー（**ASCII のみ**。日本語や UTF-8 だけの行を入れないでください） |
 | `upload-songdata-github-release.ps1` | 本体 |
-| `upload-songdata-github-release.secrets.template.txt` | **初回のみ**リポジトリからコピー。同じフォルダで `upload-songdata-github-release.secrets.txt` にリネームして編集する |
+| `upload-songdata-github-release.secrets.txt` | **必須。** リポジトリにプレースホルダ付きで同梱。同じフォルダに置き **1 行目 = PAT、2 行目 = `owner/repo`** に編集（**本物の PAT を入れたら `git commit` しないこと**） |
 | `songdata.db` | アップロードする DB（**`.ps1` と同じフォルダ**に置くと自動検出） |
-| **`upload-songdata-github-release.secrets.txt`** | **必須。** PAT と `owner/repo` を書く（上のテンプレートから作成） |
 
 `.bat` は **自分と同じフォルダに `cd` してから** `.ps1` を実行します。`songdata.db` は **同じフォルダに `songdata.db` という名前で置く**のが最も簡単です（別パスなら PowerShell から `-SongdataPath` を付けて `.ps1` を直接実行）。
 
-リポジトリ内の **`scripts/`** に置いたまま使う場合も同様で、そのときは **`scripts` の隣の `data/songdata.db`** を既定で探します（従来どおり）。
+リポジトリ内の **`scripts/`** から実行する場合、**`songdata.db` が `scripts` と同じフォルダに無い**ときのフォールバックとして、**リポジトリ直下の `songdata.db`** を探します。
 
 ### 認証（`upload-songdata-github-release.secrets.txt` のみ）
 
 **`.bat` にトークンを書かないでください。** 環境によっては **`%` の誤解釈**で行が壊れます。
 
-**`.ps1` と同じディレクトリ**に **`upload-songdata-github-release.secrets.txt`** を置きます（ファイル名の typo に注意）。初回はリポジトリの **`scripts/upload-songdata-github-release.secrets.template.txt`** をコピーし、**同じフォルダで** `upload-songdata-github-release.secrets.txt` にリネームしてから編集します（テンプレートのファイル名のままでも動きません。実行時に読むのは **`upload-songdata-github-release.secrets.txt`** だけです）。
+**`.ps1` と同じディレクトリ**に **`upload-songdata-github-release.secrets.txt`** を置きます（リポジトリでは **`scripts/upload-songdata-github-release.secrets.txt`** がプレースホルダ入りで同梱されています。**そのまま編集して使ってください（リネーム不要）。** 別フォルダへ `.bat` / `.ps1` / `secrets.txt` だけコピーする場合も、**3 ファイルを同じフォルダに揃えます。**
 
 - **1 行目:** Personal Access Token（必須）  
-- **2 行目:** `owner/repo`（**必須**）  
+- **2 行目:** `owner/repo`（**必須**）。サンプルの **`your-github-username/your-repository-name` はプレースホルダ**なので、必ず自分のリポジトリに書き換えます。
 - **`#` で始まる行**はコメントとして無視  
 - 内容は **ASCII のみ**推奨（トークン・リポジトリ名は ASCII です）
 
-リポジトリでは **`upload-songdata-github-release.secrets.txt`** は **`.gitignore`** 済みです（誤コミット防止）。**`upload-songdata-github-release.secrets.template.txt`** は Git 管理のひな型です。
+**注意:** リポジトリに同梱されている `scripts/upload-songdata-github-release.secrets.txt` は **プレースホルダ入り**です。**本物の PAT を書き込んだあと、その内容を誤って `git commit` しないでください。**
 
 ### `secrets.txt` の書き方（詳細・手順）
 
-テンプレート **`scripts/upload-songdata-github-release.secrets.template.txt`** には、ダミーの **`ghp_REPLACE_ME`** と **`owner/repo`** が書いてあります。ここでいう「1 行目にトークンを書く」とは、**そのダミー文字列を消して、代わりにあなたが GitHub で発行した本物のトークンだけを 1 行目に置く**という意味です。
+**`scripts/upload-songdata-github-release.secrets.txt`** には、ダミーの **`ghp_REPLACE_ME`** と **`your-github-username/your-repository-name`** が書いてあります。ここでいう「1 行目にトークンを書く」とは、**`ghp_REPLACE_ME` を残さず、代わりにあなたが GitHub で発行した本物のトークンだけを 1 行目に置く**という意味です。
 
 | やること | 説明 |
 |----------|------|
 | **置き場所** | **`upload-songdata-github-release.ps1` と同じフォルダ**に、`upload-songdata-github-release.secrets.txt` という名前で保存する（名前の typo に注意）。 |
 | **1 行目** | **プレースホルダを残さない。** `ghp_REPLACE_ME` という文字列ごと削除し、その行に **GitHub が一度だけ表示する PAT** を貼り付ける。前後にスペースや全角スペースを付けない。 |
-| **2 行目** | アップロード先の **`ユーザー名または組織名/リポジトリ名`**（例: `katsu996/test-CursorToSlack`）。`owner/repo` は例なので、**必ず自分のリポジトリに書き換える**（省略不可）。 |
+| **2 行目** | アップロード先の **`ユーザー名または組織名/リポジトリ名`**（例: `octocat/Hello-World`）。**`your-github-username/your-repository-name` はプレースホルダ**なので、必ず自分のリポジトリに書き換える（省略不可）。 |
 | **コメント行** | `#` で始まる行は無視される。トークン行の先頭に `#` を付けない。 |
 | **引用符** | 通常は不要。付けるなら **`'ghp_...'`** のように **一重だけ**（スクリプトが外側の引用符を 1 組は剥がす）。 |
 | **`KEY=value` 形式** | 次の形式も 1・2 行目で使える: `GITHUB_TOKEN=...` / `GH_TOKEN=...`、リポジトリは `GITHUB_REPOSITORY=owner/repo` または `REPO=owner/repo`。 |
@@ -126,7 +125,7 @@ upload-songdata-github-release.bat songdata-latest
 cd /d F:\path\to\folder-with-songdata
 copy \\path\to\repo\scripts\upload-songdata-github-release.bat .
 copy \\path\to\repo\scripts\upload-songdata-github-release.ps1 .
-copy \\path\to\repo\scripts\upload-songdata-github-release.secrets.template.txt upload-songdata-github-release.secrets.txt
+copy \\path\to\repo\scripts\upload-songdata-github-release.secrets.txt .
 rem Edit secrets txt: line 1 = token, line 2 = owner/repo
 upload-songdata-github-release.bat
 ```
@@ -135,8 +134,7 @@ upload-songdata-github-release.bat
 
 ```bat
 cd C:\path\to\this-repo
-copy scripts\upload-songdata-github-release.secrets.template.txt scripts\upload-songdata-github-release.secrets.txt
-rem Edit secrets txt, then:
+rem Edit scripts\upload-songdata-github-release.secrets.txt (line 1 = PAT, line 2 = owner/repo), then:
 scripts\upload-songdata-github-release.bat
 ```
 
@@ -172,7 +170,7 @@ curl -sS -X POST \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
   -H "Content-Type: application/octet-stream" \
-  --data-binary "@data/songdata.db" \
+  --data-binary "@songdata.db" \
   "${UPLOAD_URL}?name=songdata.db"
 ```
 
@@ -190,7 +188,7 @@ https://github.com/OWNER/REPO/releases/download/TAG/songdata.db
 
 ここでは運用上の要点だけ再掲します。
 
-- チェックアウト直後に **Latest Release** から **`songdata.db`** を `data/songdata.db` に取得し、**非空**を検証（失敗時はワークフロー全体がエラー）。
+- チェックアウト直後に **Latest Release** から **`songdata.db`** を **リポジトリ直下の `songdata.db`** に取得し、**非空**を検証（失敗時はワークフロー全体がエラー）。
 - **Latest Release に `songdata.db` が無い**と `filter_table.py` も **Actions 上でエラー**になります（[github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md) の「CI でのジョブ順」も参照）。
 - 難易度表が更新されないときは、**通常 Release か**、**Latest バッジが付いているか**、**アセット名が `songdata.db` か**を確認してください。**プレリリースのみ**だと Latest に載らず取得に失敗し得ます。
 
@@ -202,10 +200,10 @@ https://github.com/OWNER/REPO/releases/download/TAG/songdata.db
 
 ```bash
 # Latest（タグ省略）から取得
-gh release download -p songdata.db -O data/songdata.db --repo OWNER/REPO
+gh release download -p songdata.db -O songdata.db --repo OWNER/REPO
 
 # 特定タグから取得
-gh release download songdata-2026-05-26 -p songdata.db -O data/songdata.db --repo OWNER/REPO
+gh release download songdata-2026-05-26 -p songdata.db -O songdata.db --repo OWNER/REPO
 ```
 
 `curl` のみの場合は、[List release assets](https://docs.github.com/en/rest/releases/assets?apiVersion=2022-11-28#list-release-assets) で `browser_download_url` を取得してから `curl -L` するか、公開リポジトリなら上記の固定 URL を使います。

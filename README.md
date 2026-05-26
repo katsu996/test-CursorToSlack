@@ -20,19 +20,19 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 本リポジトリでは **`songdata.db` は Git に含めません**（サイズ制限の回避）。**GitHub Releases のアセット**として公開し、**GitHub Actions** は **同一リポジトリの「Latest」Release** から **`songdata.db`** を毎回ダウンロードします（リポジトリ変数は不要）。
 
 1. **Release へアップロード**（いずれか）
-   - **Windows（推奨）:** `songdata.db` があるフォルダに、`scripts/upload-songdata-github-release.bat` / `.ps1` / **`upload-songdata-github-release.secrets.template.txt`** をコピーし、テンプレートを **`upload-songdata-github-release.secrets.txt`** にリネームして 1 行目に PAT、2 行目に `owner/repo` を書いたうえで `.bat` を実行します。タグを省略すると **`songdata-当日日付`** が自動で使われます。**`ghp_REPLACE_ME` はダミーなので削除し、1 行目を本物の PAT のみにする**必要があります（メモ帳は UTF-8 で保存）。具体手順は [docs/github-releases-songdata.md](docs/github-releases-songdata.md) の **`secrets.txt` の書き方（詳細・手順）** を参照してください。
+   - **Windows（推奨）:** `songdata.db` があるフォルダに、`scripts/upload-songdata-github-release.bat` / `.ps1` / **`upload-songdata-github-release.secrets.txt`** をコピーし、**`secrets.txt` の 1 行目に PAT、2 行目に `owner/repo`** を書いたうえで `.bat` を実行します（**リネーム不要**。リポジトリの `scripts/` に同梱のファイルをプレースホルダのまま編集しても構いません）。タグを省略すると **`songdata-当日日付`** が自動で使われます。**`ghp_REPLACE_ME` はダミーなので削除し、1 行目を本物の PAT のみにする**必要があります（メモ帳は UTF-8 で保存）。**本物の PAT を入れた `secrets.txt` を `git commit` しないでください。** 具体手順は [docs/github-releases-songdata.md](docs/github-releases-songdata.md) の **`secrets.txt` の書き方（詳細・手順）** を参照してください。
    - **GitHub CLI:** 同ドキュメントの `gh release create` / `gh release upload` の例
 2. **Actions が取りに行く Release:** 新しい `songdata.db` を載せた Release は、**ドラフトでなくプレリリースでもない**通常の Release として公開し、必要なら GitHub 上で **「Latest」** になるようにしてください（通常は最新の非プレリリースが Latest になります）。**アセット名は `songdata.db`** にしてください。取得に失敗したりファイルが空だと **ワークフローはエラー**で止まります。
 
-ローカルでリポジトリの `tools/table-filter` を動かすだけなら、従来どおり **`data/songdata.db`** にファイルを置けば足ります（Release アップロードは不要な場合もあります）。
+ローカルでリポジトリの `tools/table-filter` を動かすだけなら、リポジトリ直下の **`songdata.db`** にファイルを置けば足ります（`filter_config.json` の `songdata_db` で変更可。Release アップロードは不要な場合もあります）。
 
 詳細・トークン権限・`curl` の例は [docs/github-releases-songdata.md](docs/github-releases-songdata.md) を参照してください。
 
-**補足:** `songdata.db` は **Pages のサイト上には出ません**。Actions のランナー上でフィルタにだけ使われます。ファイルが大きい場合は [data/README.md](data/README.md) の注意も読んでください。
+**補足:** `songdata.db` は **Pages のサイト上には出ません**。Actions のランナー上でフィルタにだけ使われます。
 
 ### 3. フィルタ用 SQL（`sql_where`）を変える
 
-1. **`tools/table-filter/filter_config.json`** を開く
+1. **`tools/table-filter/config/filter_config.json`** を開く（[tools/table-filter/config/README.md](tools/table-filter/config/README.md) にファイル一覧あり）
 2. **`sql_where`** を編集する（`song` テーブルにそのまま `WHERE (...)` の括弧内として連結されます）
 
 例:
@@ -54,15 +54,15 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 ### 4. 取り込む難易度表の URL を変える・足す（`source_tables` / `source_tables_path`）
 
-1. **推奨:** **`tools/table-filter/source_tables.json`**（または任意の名前の JSON）に、**難易度表ソースの配列**を書きます。`filter_config.json` の **`source_tables_path`** に、そのファイルへの相対パス（`filter_config.json` と同じディレクトリ基準）を指定します。**`source_tables_path` が非空のときはファイルが優先**され、インラインの **`source_tables`** は上書きされます。  
-2. **インラインで書く場合:** **`tools/table-filter/filter_config.json`** の **`source_tables`**（オブジェクトの配列）を直接編集しても構いません（`source_tables_path` は空にするか省略）。**1 要素 = 1 本の難易度表**で、URL・表示名・略称の対応が一目で分かります。  
+1. **推奨:** **`tools/table-filter/config/source_tables.json`**（または同フォルダ内の任意名 JSON）に、**難易度表ソースの配列**を書きます。`filter_config.json` の **`source_tables_path`** に、そのファイルへの相対パス（`filter_config.json` と同じディレクトリ基準）を指定します。**`source_tables_path` が非空のときはファイルが優先**され、インラインの **`source_tables`** は上書きされます。  
+2. **インラインで書く場合:** **`tools/table-filter/config/filter_config.json`** の **`source_tables`**（オブジェクトの配列）を直接編集しても構いません（`source_tables_path` は空にするか省略）。**1 要素 = 1 本の難易度表**で、URL・表示名・略称の対応が一目で分かります。  
 3. 各オブジェクトのフィールド:  
    - **`header_url`**（必須）: **ヘッダー JSON の HTTPS URL**、または **難易度表 HTML**（`<meta name="bmstable" content="...">` からヘッダーを解決）。**`url`** でも同じ意味で指定できます。  
    - **`display_name`**（任意）: 行の「出自（フル）」や Pages メタの凡例に使います。空のときはヘッダー JSON の `name` / `title` にフォールバックします。  
    - **`short_name`**（任意）: 「シンボル」列や絞り込み用（例: `sl` / `st`）。空なら略称なし扱いです。  
    - **`custom_level_mapping`**（任意）: そのソースだけの「元レベル文字列 → 独自レベル」のオブジェクト（詳細は §10）。
 
-**注意（Cloudflare 等）:** 入口 URL が **ボット検証用の HTML だけ**を返し、**ヘッダー JSON が取れない**と `filter_table.py` は失敗します（GitHub Actions のランナーで起きやすい）。**既定の `source_tables.json` には** [通常難易度表（☆）](https://darksabun.club/table/archive/normal1/) を **含めています**。Actions で失敗する場合は、一時的に当該要素を外すか、**ヘッダー JSON の HTTPS 直 URL**（HTML の `<meta name="bmstable">` を経由しない）や手元で取得可能なミラーに差し替えてください。
+**注意（Cloudflare 等）:** 入口 URL が **ボット検証用の HTML だけ**を返し、**ヘッダー JSON が取れない**と `filter_table.py` は失敗します（GitHub Actions のランナーで起きやすい）。**既定の `tools/table-filter/config/source_tables.json` には** [通常難易度表（☆）](https://darksabun.club/table/archive/normal1/) を **含めています**。Actions で失敗する場合は、一時的に当該要素を外すか、**ヘッダー JSON の HTTPS 直 URL**（HTML の `<meta name="bmstable">` を経由しない）や手元で取得可能なミラーに差し替えてください。
 
 **後方互換:** `source_tables` が空かつ **`source_tables_path` も空**のときは、従来どおり **`source_header_urls`**（URL のみの配列）と、任意の **`source_table_display_names`** / **`source_table_short_names`**（**同じインデックスで対応**）でも動きます。
 
@@ -79,7 +79,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 ### Pages トップの列幅・列の既定表示（任意）
 
 1. **`docs/table/pages_ui_config.json`** の **`column_widths`**（例: `t:title` / `d:genre` / `chart`）と **`column_visible_defaults`**（`table` / `db` ごとの列キー → 表示なら `true`）、必要に応じて **`index_table`**（列順・見出しラベル・IR/Chart の URL 形式など）を編集します。同梱ファイルでは `//` コメントで列幅テンプレや将来列用の雛形を置いてあり、ビルド時に除去されます（詳細は [docs/pages-ui-config.md](docs/pages-ui-config.md)）。`song` の全列と難易度表側の想定列は `true` / `false` で明示しています。  
-2. 別パスに置きたい場合は **`tools/table-filter/filter_config.json`** の **`pages_ui_config_path`** にそのパスを書きます（空なら上記の既定パスです）。  
+2. 別パスに置きたい場合は **`tools/table-filter/config/filter_config.json`** の **`pages_ui_config_path`** にそのパスを書きます（空なら上記の既定パスです）。  
 3. **`build_pages_table.py` が走るビルド**（`main` への push など）のあと、`browser_rows.json` の **`meta.pages_ui`** に反映されます。
 
 詳細は **[docs/pages-ui-config.md](docs/pages-ui-config.md)** を参照してください。
@@ -95,7 +95,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 ### 6. `songdata.db` が無いときの挙動を変えたい
 
-- **`skip_if_no_songdata`: `true`（既定）** — **ローカル**では `data/songdata.db` が無いとフィルタはスキップ（エラーにしない）  
+- **`skip_if_no_songdata`: `true`（既定）** — **ローカル**では `songdata.db`（設定の `songdata_db`）が無いとフィルタはスキップ（エラーにしない）  
 - **`false`** — DB が無いと **終了コード 1**（厳格）  
 - **GitHub Actions:** 生成物の JSON は `.gitignore` のため、DB 無しでスキップすると **空の表がデプロイ**されます。そのため **`GITHUB_ACTIONS=true` のときは**（意図的に続行したい場合を除き）**`songdata.db` が無いとエラー**になります。通常は **Latest Release に `songdata.db` アセットがある状態**を保ってください（`.github/workflows/pages.yml` がチェックアウト直後に取得します。手順は [docs/github-releases-songdata.md](docs/github-releases-songdata.md)、ジョブ順は [docs/ci-github-pages-workflow.md](docs/ci-github-pages-workflow.md)）。どうしても DB 無しでワークフローを通したい場合のみ、`.github/workflows/pages.yml` の `build` ジョブに環境変数 **`FILTER_CI_ALLOW_MISSING_SONGDATA=1`** を追加します。
 
@@ -123,7 +123,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **サイトのトップだけ**（例: `https://<ユーザー>.github.io/<リポジトリ名>/`）を Table URL に入れると、beatoraja は **HTML モード**でページを取得します。トップの **`docs/index.html` に `<meta name="bmstable" content="table/filtered_header.json">` を入れてある**ため、この URL でもヘッダー JSON に辿り着けます。ただし **末尾スラッシュ無し**（`…/repo`）の URL では jbmstable-parser の相対解決がずれることがあるため、**末尾 `/` 付き**か、確実には上記の **`filtered_header.json` 直リンク**を推奨します。
 
-生成される `filtered_header.json` の **`data_url` は既定で `filtered_data.json` のみ**（ヘッダーと同じパス上の相対指定）です。`SITE_BASE_URL` の誤りでデータが取れない問題を避けるための挙動です。**絶対 URL で出したい場合**は `tools/table-filter/filter_config.json` で **`use_relative_data_url` を `false`** にし、**`site_base_url`**（またはローカルでは環境変数 **`SITE_BASE_URL`**）をセットしてください。
+生成される `filtered_header.json` の **`data_url` は既定で `filtered_data.json` のみ**（ヘッダーと同じパス上の相対指定）です。`SITE_BASE_URL` の誤りでデータが取れない問題を避けるための挙動です。**絶対 URL で出したい場合**は `tools/table-filter/config/filter_config.json` で **`use_relative_data_url` を `false`** にし、**`site_base_url`**（またはローカルでは環境変数 **`SITE_BASE_URL`**）をセットしてください。
 
 **HTML 経由が必要なクライアント**では、同じ `docs/table/` にある **`bmstable.html`** の URL（例: `…/table/bmstable.html`）を Table URL に試すこともできます（`<meta name="bmstable" content="filtered_header.json">` でヘッダーを解決します）。
 
@@ -144,8 +144,8 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 複数の入力難易度表を **`source_tables`**（または **`source_tables_path`** で読む別 JSON、従来の **`source_header_urls`**）に並べているとき、**各ソースごと**に「元のレベル値 → 独自レベル」の対応表を持てます（例: 1 番目の表のレベル 12 は独自 12、2 番目の表のレベル 1 は独自 13）。
 
-1. **`tools/table-filter/source_tables.json`**（またはインラインの **`source_tables`**）の **該当要素に `custom_level_mapping` オブジェクト**を書く（推奨）。**キーが元表のレベル（文字列）**、**値が独自レベル**（数値でも文字列でも可）。  
-2. **後方互換:** **`tools/table-filter/filter_config.json`** のトップレベル **`custom_level_mapping`** に、**ソースと同じ順の配列**を置く方法もあります（短い場合は足りない分だけマップ無し、長い場合は余りは無視。警告が Actions ログに出ます）。**エントリ側にマップがあるソースではそちらが優先**され、トップレベルは **エントリにマップが無いインデックスのフォールバック**です。  
+1. **`tools/table-filter/config/source_tables.json`**（またはインラインの **`source_tables`**）の **該当要素に `custom_level_mapping` オブジェクト**を書く（推奨）。**キーが元表のレベル（文字列）**、**値が独自レベル**（数値でも文字列でも可）。  
+2. **後方互換:** **`tools/table-filter/config/filter_config.json`** のトップレベル **`custom_level_mapping`** に、**ソースと同じ順の配列**を置く方法もあります（短い場合は足りない分だけマップ無し、長い場合は余りは無視。警告が Actions ログに出ます）。**エントリ側にマップがあるソースではそちらが優先**され、トップレベルは **エントリにマップが無いインデックスのフォールバック**です。  
 3. 出力される列名は既定で **`custom_level`**。変えたい場合は **`custom_level_field`**（英数字とアンダースコアのみ）  
 4. 元表から読む列名が `level` 以外のときは **`custom_level_source_key`** を合わせる  
 5. マップに無いレベルが来たときは **`custom_level_unmapped`** で制御する  
@@ -169,7 +169,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 |------|------|
 | beatoraja 楽曲 DB（`songdata.db` / `songinfo.db`）の整理 | [docs/bms-beatoraja-song-db.md](docs/bms-beatoraja-song-db.md) |
 | 条件付き仮想フォルダ（`folder/default.json`）の要件・調査 | [docs/requirements-filtered-bms-folder-tool.md](docs/requirements-filtered-bms-folder-tool.md) |
-| `default.json` 断片の例（`minbpm != maxbpm`） | [examples/beatoraja-default-json-snippet-changing-bpm.json](examples/beatoraja-default-json-snippet-changing-bpm.json) |
+| `default.json` 断片の例（`minbpm != maxbpm`） | [docs/snippets/beatoraja-default-json-snippet-changing-bpm.json](docs/snippets/beatoraja-default-json-snippet-changing-bpm.json) |
 | beatoraja と LR2oraja / Endless Dream の違い | [docs/beatoraja-vs-lr2oraja-derivatives.md](docs/beatoraja-vs-lr2oraja-derivatives.md) |
 | 難易度表の URL 公開・自作表の考え方 | [docs/beatoraja-difficulty-table-url-and-filtered-publish.md](docs/beatoraja-difficulty-table-url-and-filtered-publish.md) |
 | GitHub Pages の仕組み・別リポジトリへのコピー手順 | [docs/github-pages-publish-guide.md](docs/github-pages-publish-guide.md) |

@@ -39,7 +39,7 @@ from source_tables import (
 from sql_where_guard import die as _die
 from sql_where_guard import resolve_sql_where, validate_sql_where
 
-DEFAULT_CONFIG = "tools/table-filter/filter_config.json"
+DEFAULT_CONFIG = "tools/table-filter/config/filter_config.json"
 
 
 def _load_json(path: str) -> Any:
@@ -408,7 +408,7 @@ def main() -> None:
             "環境変数 SITE_BASE_URL が必要です（data_url を絶対 URL で書くため）。"
         )
 
-    songdata = cfg.get("songdata_db", "data/songdata.db")
+    songdata = cfg.get("songdata_db", "songdata.db")
     if not os.path.isfile(songdata):
         skip_no_db = cfg.get("skip_if_no_songdata", True)
         if not isinstance(skip_no_db, bool):

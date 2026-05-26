@@ -13,7 +13,7 @@
 
 ## 設定ファイル
 
-`filter_config.json` を編集します（雛形は `filter_config.example.json`）。
+**ユーザーが編集する JSON は [`config/`](./config/README.md) にまとめています。** 運用では主に **`config/filter_config.json`** を編集します（雛形は **`config/filter_config.example.json`**）。
 
 - **`source_tables_path`**: 任意。`filter_config.json` と同じディレクトリ基準の相対パスで、**難易度表ソース配列だけ**を書いた JSON を指す。非空なら **ファイルが優先**されインラインの `source_tables` は上書きされる。
 - **`source_tables`**: **推奨。** オブジェクトの配列。各要素に **`header_url`**（または **`url`**）、任意で **`display_name`**・**`short_name`**・**`custom_level_mapping`** をまとめて書く（[`docs/filter-config-schema.md`](../../docs/filter-config-schema.md)）。
@@ -39,14 +39,14 @@
 
 ```bash
 # 既定（相対 data_url）なら SITE_BASE_URL は不要
-python3 tools/table-filter/filter_table.py --config tools/table-filter/filter_config.json
-python3 tools/table-filter/build_pages_table.py --config tools/table-filter/filter_config.json
+python3 tools/table-filter/filter_table.py --config tools/table-filter/config/filter_config.json
+python3 tools/table-filter/build_pages_table.py --config tools/table-filter/config/filter_config.json
 # 絶対 URL で data_url を書きたい場合のみ:
 export SITE_BASE_URL="https://あなた.github.io/リポジトリ名/table"
-# かつ filter_config.json で "use_relative_data_url": false
+# かつ config/filter_config.json で "use_relative_data_url": false
 ```
 
-事前に `data/songdata.db` を配置し、`source_tables`（または `source_header_urls` / `source_header_url`）を埋めてください。
+事前に **リポジトリ直下の `songdata.db`**（または `filter_config.json` の `songdata_db` で指定したパス）を配置し、`source_tables`（または `source_header_urls` / `source_header_url`）を埋めてください。
 
 ## SQL インジェクション対策
 

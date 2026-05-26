@@ -10,11 +10,11 @@
 
 **はい。** 次を満たせば、ランナー上で「元表を取得 → `songdata.db` に SQL → ハッシュ交差でフィルタ → `docs/table/` に JSON 出力 → `docs/` 全体を GitHub Pages にデプロイ」まで完結します。
 
-1. 実行時に **`data/songdata.db`** がランナー上に存在する（**ローカル配置**、またはチェックアウト直後に **同一リポジトリの Latest GitHub Release から `songdata.db` を取得**（`.github/workflows/pages.yml`）。手順は [github-releases-songdata.md](./github-releases-songdata.md)）。
+1. 実行時に **リポジトリ直下の `songdata.db`** がランナー上に存在する（**ローカル配置**、またはチェックアウト直後に **同一リポジトリの Latest GitHub Release から `songdata.db` を取得**（`.github/workflows/pages.yml`）。手順は [github-releases-songdata.md](./github-releases-songdata.md)）。
 2. 統合難易度表のヘッダーが **HTTPS で取得できる**（`filter_config.json` の **`source_tables`**（インラインまたは **`source_tables_path`** で読み込んだ別 JSON）、または後方互換の **`source_header_urls`** / **`source_header_url`**）。データ本体は各ヘッダーの `data_url`（**相対パスはヘッダー JSON の URL を基準に解決**）または単一ソース時の `source_data_url`。
 3. 生成ヘッダーの `data_url` は **既定でファイル名のみ**（例: `filtered_data.json`）とし、beatoraja がヘッダーと同じディレクトリ上のデータ JSON を取得できるようにします（`SITE_BASE_URL` は不要）。**絶対 URL で出したい場合のみ** `use_relative_data_url: false` と `site_base_url` / `SITE_BASE_URL` を併用します。
 
-**GitHub が提供していないもの:** ブラウザだけで手元の DB を渡す専用 UI はありません。本リポジトリでは **`songdata.db` は Git に含めず**、**ローカルの `data/songdata.db` に置く**か、**Release のアセットとして公開し CI が Latest から取得**する想定です。
+**GitHub が提供していないもの:** ブラウザだけで手元の DB を渡す専用 UI はありません。本リポジトリでは **`songdata.db` は Git に含めず**、**ローカルではリポジトリ直下に `songdata.db` を置く**か、**Release のアセットとして公開し CI が Latest から取得**する想定です。
 
 ## CI でのジョブ順・終了コード（要約）
 
@@ -125,15 +125,15 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 - **`custom_level_unmapped`:** マップにキーが無かったとき。`omit`（既定） / `source` または `original` / `null`。
 - **重複行:** 複数ソースで同一ハッシュが出た場合は **先勝ち**のソースインデックスだけがマップに使われます（2 枚目以降は `source_table_names` / `source_table_short_names` にだけ表名・略称が足され、`custom_level` は上書きしません）。
 - **`course` 内のチャート行**には現状マップを適用していません（データ配列のメイン行のみ）。
-- **既定の K Original 対応表:** [`tools/table-filter/source_tables.json`](../tools/table-filter/source_tables.json) の各ソースに **`custom_level_mapping`** を入れており、☆（通常）・▽（第2通常）・sr（Starlight）・sl（Satellite）の **元表 `level` 文字列**を、運用上の **統合スケール 1〜31** に寄せています。表記ゆれ対策で ☆ 表には **`"☆12"` のように記号付きキー**も重ねてあります。Satellite の **`0`〜`12`** は表の後半ブロック（`sl0`〜`sl12` に相当する帯）を優先したマッピングです。行ごとの解釈を変えたい場合は同ファイルを編集してコミットしてください。
+- **既定の K Original 対応表:** [`tools/table-filter/config/source_tables.json`](../tools/table-filter/config/source_tables.json) の各ソースに **`custom_level_mapping`** を入れており、☆（通常）・▽（第2通常）・sr（Starlight）・sl（Satellite）の **元表 `level` 文字列**を、運用上の **統合スケール 1〜31** に寄せています。表記ゆれ対策で ☆ 表には **`"☆12"` のように記号付きキー**も重ねてあります。Satellite の **`0`〜`12`** は表の後半ブロック（`sl0`〜`sl12` に相当する帯）を優先したマッピングです。行ごとの解釈を変えたい場合は同ファイルを編集してコミットしてください。
 
 ## 例: stellabms（HTML からヘッダー JSON を解決）
 
-stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の **`tools/table-filter/source_tables.json`**（`filter_config.json` の **`source_tables_path`** から読み込み）では、Starlight（`sr/table.html`）・Satellite（`sl/table.html`）・[通常難易度表（☆）](https://darksabun.club/table/archive/normal1/)（ディレクトリ URL から HTML を取得して `bmstable` を解決）・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) の **4 本**を列挙しています（Stella 等を足す場合は同ファイルにオブジェクトを追加し、`filter_config.json` の `source_tables_path` を維持してください）。
+stellabms の難易度表入口ページ（例: [Satellite の `table.html`](https://stellabms.xyz/sl/table.html)）は `<meta name="bmstable" content="header.json" />` のように **`bmstable` の `content` が指す JSON** をヘッダーとして読みます（`table_rec.html` など別入口のときは `content` が `header_rec.json` になる場合もあります）。既定の **`tools/table-filter/config/source_tables.json`**（`filter_config.json` の **`source_tables_path`** から読み込み）では、Starlight（`sr/table.html`）・Satellite（`sl/table.html`）・[通常難易度表（☆）](https://darksabun.club/table/archive/normal1/)（ディレクトリ URL から HTML を取得して `bmstable` を解決）・[第2通常難易度表（▽）](https://bmsnormal2.syuriken.jp/table.html) の **4 本**を列挙しています（Stella 等を足す場合は同ファイルにオブジェクトを追加し、`filter_config.json` の `source_tables_path` を維持してください）。
 
 **通常難易度表（☆）の注意:** [darksabun.club](https://darksabun.club/table/archive/normal1/) は **Cloudflare により GitHub Actions のランナーから取得できない**ことがあります。その場合は `filter_table.py` が失敗し、ワークフローが止まります。対処としては、(1) 当該 `source_tables` 要素を一時的に削除する、(2) **ヘッダー JSON の HTTPS 直 URL** やミラーに差し替える、のいずれかが必要です。ディレクトリ URL（末尾 `/`）だけを書くと、ツールは **HTML として 1 回取得して `bmstable` を探す**ため、チャレンジ用 HTMLしか返らない URLは失敗します。
 
-**フィルタ後の行数が 0 に近い場合:** 元表のハッシュと **`songdata.db` の `song` に存在する行**の交差だけが残ります。さらに **`sql_where`** で BPM などを絞るため、**DB に無い譜面**や **条件不一致**は落ちます。表を埋めたい場合は **beatoraja で譜面を読み込んだうえで `songdata.db` を更新**し、ローカルでは `data/songdata.db` を差し替え、CI では **Release に再アップロード**してから `main` へ push するかワークフローを再実行してください。
+**フィルタ後の行数が 0 に近い場合:** 元表のハッシュと **`songdata.db` の `song` に存在する行**の交差だけが残ります。さらに **`sql_where`** で BPM などを絞るため、**DB に無い譜面**や **条件不一致**は落ちます。表を埋めたい場合は **beatoraja で譜面を読み込んだうえで `songdata.db` を更新**し、ローカルでは **リポジトリ直下の `songdata.db`** を差し替え、CI では **Release に再アップロード**してから `main` へ push するかワークフローを再実行してください。
 
 ## 制限・注意
 
@@ -148,7 +148,7 @@ stellabms の難易度表入口ページ（例: [Satellite の `table.html`](htt
 |----------|------|
 | [tools/table-filter/filter_table.py](../tools/table-filter/filter_table.py) | フィルタ本体（Python 標準ライブラリのみ） |
 | [tools/table-filter/build_pages_table.py](../tools/table-filter/build_pages_table.py) | フィルタ結果と `song` をマージし `browser_rows.json` を生成 |
-| [tools/table-filter/filter_config.json](../tools/table-filter/filter_config.json) | 実際に読む設定（URL・SQL 等） |
+| [tools/table-filter/config/filter_config.json](../tools/table-filter/config/filter_config.json) | 実際に読む設定（URL・SQL 等） |
 | [tools/table-filter/README.md](../tools/table-filter/README.md) | CLI・設定キーの短い説明 |
 | [.github/workflows/pages.yml](../.github/workflows/pages.yml) | 上記スクリプト実行後に `docs/` を Pages へデプロイ |
 | [docs/ci-github-pages-workflow.md](./ci-github-pages-workflow.md) | ジョブ分割・`songdata.db` 取得・キューエラー時の切り分け |

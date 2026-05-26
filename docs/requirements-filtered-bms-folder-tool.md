@@ -30,7 +30,7 @@
 - SQLite では `NULL != 値` は真にならないため、`minbpm` または `maxbpm` が NULL の行は **結果に含まれない**。
 - 本体が **譜面情報 DB（`songinfo.db`）を有効**にしている場合、`getSongDatas` は `song` と `information` の **INNER JOIN** になる。`information` に行が無い譜面は **`minbpm != maxbpm` を満たしていても一覧から落ちる**（本体既存の DENSITY フォルダ等と同じ前提）。
 
-コピー用の断片ファイル: [examples/beatoraja-default-json-snippet-changing-bpm.json](../examples/beatoraja-default-json-snippet-changing-bpm.json)
+コピー用の断片ファイル: [docs/snippets/beatoraja-default-json-snippet-changing-bpm.json](./snippets/beatoraja-default-json-snippet-changing-bpm.json)
 
 ---
 

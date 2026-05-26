@@ -49,7 +49,7 @@ EXPECTED_KEYS: frozenset[str] = frozenset(
 
 def main() -> int:
     root = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(root, "filter_config.example.json")
+    path = os.path.join(root, "config", "filter_config.example.json")
     with open(path, encoding="utf-8") as f:
         obj = json.load(f)
     if not isinstance(obj, dict):

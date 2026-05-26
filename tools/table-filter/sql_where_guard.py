@@ -6,7 +6,7 @@ import re
 import sys
 from typing import Any, Mapping
 
-# data/songdata.db の song テーブル（beatoraja 既定）に基づく列名
+# beatoraja の songdata.db（song テーブル）に基づく列名
 SONG_TABLE_COLUMNS: frozenset[str] = frozenset(
     (
         "md5",

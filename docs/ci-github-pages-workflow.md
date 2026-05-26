@@ -17,10 +17,10 @@
 
 ## `songdata.db` の取得（毎回）
 
-`build` ジョブの先頭で、**同一リポジトリの Latest GitHub Release** から GitHub CLI でアセット名 **`songdata.db`** だけを取得し、`data/songdata.db` に保存します（`gh release download` の **タグ省略**＝ Latest と同じ解決）。
+`build` ジョブの先頭で、**同一リポジトリの Latest GitHub Release** から GitHub CLI でアセット名 **`songdata.db`** だけを取得し、**リポジトリ直下の `songdata.db`** に保存します（`gh release download` の **タグ省略**＝ Latest と同じ解決）。
 
 - **`gh release view`** でログ用にタグ名を表示
-- **`test -s data/songdata.db`** で **非空**を必須化（取得失敗・空ファイルは **ワークフロー失敗**）
+- **`test -s songdata.db`** で **非空**を必須化（取得失敗・空ファイルは **ワークフロー失敗**）
 
 **Latest** は GitHub の定義どおり **プレリリースでない通常 Release** のうち最新です。プレリリースのみだと取得に失敗し得ます。詳細は [github-releases-songdata.md](./github-releases-songdata.md) の「GitHub Actions」節。
 
@@ -28,8 +28,8 @@
 
 | 順序 | 処理 | 入力 | 主な出力 |
 |------|------|------|----------|
-| 0 | `ruff check` / `unittest` / `check_filter_config_example_sync.py` | `tools/table-filter/` | 静的解析・テスト・`filter_config.example.json` のキー整合 |
-| 1 | `filter_table.py` | `filter_config.json`、**`data/songdata.db`（CI では必須）** | `docs/table/filtered_data.json`、`filtered_data_enriched.json`、`filtered_header.json`、`level_stats.json`（フィルタが走った場合） |
+| 0 | `ruff check` / `unittest` / `check_filter_config_example_sync.py` | `tools/table-filter/` | 静的解析・テスト・`config/filter_config.example.json` のキー整合 |
+| 1 | `filter_table.py` | `tools/table-filter/config/filter_config.json`、**`songdata.db`（CI では必須）** | `docs/table/filtered_data.json`、`filtered_data_enriched.json`、`filtered_header.json`、`level_stats.json`（フィルタが走った場合） |
 | 2 | `build_pages_table.py` | 同上、`filtered_data_enriched.json`（無ければ `filtered_data.json`）、`songdata.db` | `docs/table/browser_rows.json` |
 | 3 | `check_browser_rows_pages_ui.py` | `browser_rows.json` | `meta.pages_ui` 不備なら **終了コード 1** |
 | 4 | `smoke_check_outputs.py` | 生成済み `docs/table/*.json` | 空データ・ヘッダー不備なら **終了コード 1** |
