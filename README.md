@@ -23,6 +23,8 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
    - **Git**: `git add data/songdata.db` → `git commit` → `git push`  
    - **GitHub Web**: **Add file → Upload files** で `data/songdata.db` を置き換えてコミット
 
+**Git に載せず GitHub Releases のアセットだけにしたい場合:** [docs/github-releases-songdata.md](docs/github-releases-songdata.md) の手順で Release に `songdata.db` をアップロードし、リポジトリ変数 **`SONGDATA_RELEASE_TAG`** にそのリリースのタグ名を設定すると、`.github/workflows/pages.yml` がチェックアウト後に `data/songdata.db` をダウンロードします（ローカル実行では従来どおり手元の `data/songdata.db` を用意してください）。
+
 **補足:** `songdata.db` は **Pages のサイト上には出ません**。Actions のランナー上でフィルタにだけ使われます。ファイルが大きい場合は [data/README.md](data/README.md) の注意も読んでください。
 
 ### 3. フィルタ用 SQL（`sql_where`）を変える

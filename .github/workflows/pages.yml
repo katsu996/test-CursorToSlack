@@ -33,6 +33,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # リポジトリ変数 SONGDATA_RELEASE_TAG（例: songdata-2026-05-26）を設定すると、
+      # 同一リポジトリの GitHub Release から data/songdata.db を取得する。
+      # 手順は docs/github-releases-songdata.md を参照。
+      - name: Download songdata.db from GitHub Release (optional)
+        if: ${{ vars.SONGDATA_RELEASE_TAG != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          gh release download "${{ vars.SONGDATA_RELEASE_TAG }}" \
+            -R "${{ github.repository }}" \
+            -p songdata.db \
+            -O data/songdata.db
+
       - name: Workflow dispatch note
         if: github.event_name == 'workflow_dispatch'
         run: |
