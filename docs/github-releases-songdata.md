@@ -166,8 +166,9 @@ scripts\upload-songdata-github-release.bat -SongdataPath D:\beatoraja\songdata.d
 `UPLOAD_URL` は API の `upload_url` から **`{?name,label}` を除いた URL** にします（多くのクライアントは `?name=songdata.db` を付与）。
 
 ```bash
+# TOKEN は GitHub の PAT（Release 作成・アップロード権限が必要）。シェルに置く場合のみ export 等で渡す。
 curl -sS -X POST \
-  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+  -H "Authorization: Bearer ${TOKEN}" \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
   -H "Content-Type: application/octet-stream" \
