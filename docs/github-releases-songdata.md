@@ -171,7 +171,9 @@ https://github.com/OWNER/REPO/releases/download/TAG/songdata.db
 
 ## GitHub Actions（本リポジトリのワークフロー）
 
-`.github/workflows/pages.yml` では、リポジトリ変数 **`SONGDATA_RELEASE_TAG`** に上記の **タグ名**（例: `songdata-2026-05-26`）を設定すると、チェックアウト直後に **`gh release download`** で `data/songdata.db` を取得し、存在・非空を検証します。変数が空のときは **Release からの取得を行いません**（手元で `data/songdata.db` を置いた場合や、フィルタをスキップする用途向け）。
+`.github/workflows/pages.yml` では、リポジトリ変数 **`SONGDATA_RELEASE_TAG`** に上記の **タグ名**（例: `songdata-2026-05-26`）を設定すると、チェックアウト直後に **`gh release download`** で `data/songdata.db` を取得し、存在・非空を検証します。
+
+**重要:** 変数が **空**のままだと Release からは取得されず、`data/songdata.db` もリポジトリに含まれない（`.gitignore`）ため、**`filter_table.py` が GitHub Actions 上でエラー終了**します（空の難易度表がデプロイされるのを防ぐため。詳細は `tools/table-filter/filter_table.py` と [github-actions-songdata-table-filter.md](./github-actions-songdata-table-filter.md)）。アップロードに成功したあと難易度表が更新されないときは、まず **`SONGDATA_RELEASE_TAG` がその Release のタグと一致しているか**を確認してください。
 
 設定場所: **Settings → Secrets and variables → Actions → Variables** で `SONGDATA_RELEASE_TAG` を追加。
 

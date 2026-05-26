@@ -95,8 +95,9 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 ### 6. `songdata.db` が無いときの挙動を変えたい
 
-- **`skip_if_no_songdata`: `true`（既定）** — `data/songdata.db` が無いとフィルタはスキップ（エラーにしない）  
-- **`false`** — DB が無いと **Actions が失敗**します（厳格にしたいとき）
+- **`skip_if_no_songdata`: `true`（既定）** — **ローカル**では `data/songdata.db` が無いとフィルタはスキップ（エラーにしない）  
+- **`false`** — DB が無いと **終了コード 1**（厳格）  
+- **GitHub Actions:** 生成物の JSON は `.gitignore` のため、DB 無しでスキップすると **空の表がデプロイ**されます。そのため **`GITHUB_ACTIONS=true` のときは**（意図的に続行したい場合を除き）**`songdata.db` が無いとエラー**になります。通常はリポジトリ変数 **`SONGDATA_RELEASE_TAG`** を、アップロードした Release のタグに合わせてください。どうしても DB 無しでワークフローを通したい場合のみ、`.github/workflows/pages.yml` の該当ジョブに環境変数 **`FILTER_CI_ALLOW_MISSING_SONGDATA=1`** を追加します（[docs/github-releases-songdata.md](docs/github-releases-songdata.md) も参照）。
 
 ### 7. 変更を GitHub に反映する（デプロイのトリガー）
 

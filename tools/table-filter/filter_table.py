@@ -410,7 +410,27 @@ def main() -> None:
 
     songdata = cfg.get("songdata_db", "data/songdata.db")
     if not os.path.isfile(songdata):
-        if cfg.get("skip_if_no_songdata", True):
+        skip_no_db = cfg.get("skip_if_no_songdata", True)
+        if not isinstance(skip_no_db, bool):
+            skip_no_db = str(skip_no_db).strip().lower() in ("1", "true", "yes", "on")
+        in_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
+        allow_missing_in_ci = os.environ.get("FILTER_CI_ALLOW_MISSING_SONGDATA", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        # docs/table の生成物は .gitignore されており、CI で DB 無しのスキップは空の難易度表デプロイに直結する。
+        if in_github_actions and not allow_missing_in_ci:
+            _die(
+                f"songdata.db が見つかりません（GitHub Actions）: {songdata}\n"
+                "このリポジトリでは生成 JSON が Git 管理外のため、フィルタをスキップすると表が空のまま公開されます。\n"
+                "対処: Settings → Secrets and variables → Actions → Variables で "
+                "SONGDATA_RELEASE_TAG を、songdata.db を載せた Release のタグ名に設定してください（アップロード時のタグと一致）。\n"
+                "手順: docs/github-releases-songdata.md\n"
+                "意図的に DB 無しで続行する場合のみ、ワークフローに FILTER_CI_ALLOW_MISSING_SONGDATA=1 を設定してください。"
+            )
+        if skip_no_db:
             print(f"songdata.db が無いためスキップします: {songdata}", file=sys.stderr)
             raise SystemExit(0)
         _die(f"songdata.db が見つかりません: {songdata}")

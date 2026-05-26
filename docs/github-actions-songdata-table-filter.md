@@ -16,7 +16,7 @@
 
 ## CI（`Deploy GitHub Pages`）で起きること
 
-ワークフローは [.github/workflows/pages.yml](../.github/workflows/pages.yml) です。`main` への push または手動 dispatch で実行されます。**`build` ジョブ**でテスト・JSON 生成・`actions/upload-pages-artifact` まで行い、**`deploy` ジョブ**（`needs: build`）で `actions/deploy-pages` のみを実行する構成です（[actions/deploy-pages](https://github.com/actions/deploy-pages) が推奨する専用デプロイジョブと、[starter-workflows の Pages 例](https://github.com/actions/starter-workflows/tree/main/pages)と同型です）。リポジトリ変数 **`SONGDATA_RELEASE_TAG`** が空でないとき、チェックアウトの直後に **GitHub CLI で Release アセット `songdata.db` を `data/songdata.db` に取得**します（[github-releases-songdata.md](./github-releases-songdata.md)）。
+ワークフローは [.github/workflows/pages.yml](../.github/workflows/pages.yml) です。`main` への push または手動 dispatch で実行されます。**`build` ジョブ**でテスト・JSON 生成・`actions/upload-pages-artifact` まで行い、**`deploy` ジョブ**（`needs: build`）で `actions/deploy-pages` のみを実行する構成です（[actions/deploy-pages](https://github.com/actions/deploy-pages) が推奨する専用デプロイジョブと、[starter-workflows の Pages 例](https://github.com/actions/starter-workflows/tree/main/pages)と同型です）。リポジトリ変数 **`SONGDATA_RELEASE_TAG`** が空でないとき、チェックアウトの直後に **GitHub CLI で Release アセット `songdata.db` を `data/songdata.db` に取得**します（[github-releases-songdata.md](./github-releases-songdata.md)）。**変数が空のまま**だと DB が配置されず、`filter_table.py` は **GitHub Actions 上ではエラー終了**します（生成 JSON が `.gitignore` のため、スキップすると空サイトになるのを防ぐため）。
 
 ### 「Failed to queue workflow run. Please try again.」が出るとき
 
@@ -25,7 +25,7 @@
 | 順序 | 処理 | 入力 | 主な出力 |
 |------|------|------|----------|
 | 0 | `ruff check` / `unittest` / `check_filter_config_example_sync.py`（`build` ジョブ） | `tools/table-filter/` | 静的解析・テスト・設定例のキー整合 |
-| 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、`data/songdata.db`（存在時） | `docs/table/filtered_data.json`（beatoraja 用・拡張列除去）、`filtered_data_enriched.json`（Pages 用・出自列あり）、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
+| 1 | `filter_table.py` | `tools/table-filter/filter_config.json`、**`data/songdata.db`（CI では必須。Release 変数または同パスに配置）** | `docs/table/filtered_data.json`（beatoraja 用・拡張列除去）、`filtered_data_enriched.json`（Pages 用・出自列あり）、`filtered_header.json`、`level_stats.json`（条件によりスキップ可） |
 | 2 | `build_pages_table.py` | 同上設定、`filtered_data_enriched.json`（無ければ `filtered_data.json`）、`songdata.db` | `docs/table/browser_rows.json`（トップ `index.html` の一覧表用） |
 | 3 | `check_browser_rows_pages_ui.py` | `docs/table/browser_rows.json` | `meta.pages_ui` の必須キー（`index_table`・IR・Chart 等）が欠けていれば **終了コード 1** |
 | 4 | `smoke_check_outputs.py` | 生成済み `docs/table/*.json` | 空データやヘッダー不備があれば **終了コード 1** |
@@ -33,7 +33,7 @@
 | 6 | `deploy-pages`（`deploy` ジョブ） | 上記アーティファクト | GitHub Pages への公開 |
 
 - **`data_url`（生成ヘッダー）:** 既定（`use_relative_data_url` 未指定または `true`）では **`filtered_data.json` のようなファイル名のみ**を書き、jbmstable-parser が **ヘッダー JSON の URL と同じディレクトリ**からデータを取得します。`use_relative_data_url: false` のときだけ `site_base_url` または環境変数 **`SITE_BASE_URL`** が必要で、`${SITE_BASE_URL}/filtered_data.json` 形式にします。
-- **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空・`songdata.db` 不在（`skip_if_no_songdata: true`）などでも **0 で終了**し、後段の `build_pages_table.py` が続きます。
+- **`filter_table.py` の終了コード 0:** 設定なし・`enabled: false`・ヘッダー URL 空などでは **0 で終了**し、後段の `build_pages_table.py` が続きます。**`songdata.db` が無い場合**は、**ローカル**では `skip_if_no_songdata: true`（既定）なら **0 でスキップ**しますが、**GitHub Actions**（`GITHUB_ACTIONS=true`）では **エラー終了**します（`FILTER_CI_ALLOW_MISSING_SONGDATA=1` をワークフローに付けた場合のみ従来どおりスキップ可能。意図は空サイト防止）。
 - **beatoraja 向けデータが 0 件:** 既定の **`beatoraja_empty_rows_policy: fail`** のとき **`filter_table.py` は終了コード 1** となり、その後の `build_pages_table.py` / スモーク / デプロイは実行されません（空の難易度表を公開しない）。
 - **`level_stats.json`:** フィルタが実際に走ったときのみ `docs/table/` に出力されます。各元表について、**元表データ行全体**と **`sql_where` 通過後・`md5`/`sha256` 重複マージ前**の行を、表 JSON のレベル列（既定は `custom_level_source_key` と同じく `level`）の値ごとに数えた集計です（`version` 2 以降は同一行に「SQL 前」「SQL 後」の列比較用の `level_rows` を含みます）。GitHub Pages では **`level-stats.html`** が `./table/level_stats.json` を直接読み込んで表示します。
 - **`build_pages_table.py`:** `filtered_data_enriched.json` が無ければ `filtered_data.json` を読みます。どちらも無い場合は **空の `browser_rows.json`**（理由を `meta` に記録）を書き、Pages デプロイは失敗させません。
