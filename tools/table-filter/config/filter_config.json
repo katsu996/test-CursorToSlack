@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "skip_if_no_songdata": true,
-  "songdata_db": "data/songdata.db",
+  "songdata_db": "songdata.db",
   "beatoraja_empty_rows_policy": "fail",
   "sql_where": "minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm",
   "source_tables_path": "source_tables.json",

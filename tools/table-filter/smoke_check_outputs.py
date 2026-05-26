@@ -23,7 +23,7 @@ def _load_json(path: str) -> Any:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--config", default="tools/table-filter/filter_config.json")
+    ap.add_argument("--config", default="tools/table-filter/config/filter_config.json")
     args = ap.parse_args()
     cfg_path = args.config
     if not os.path.isfile(cfg_path):

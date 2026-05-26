@@ -1,12 +1,12 @@
 # `filter_config.json` スキーマ（キー一覧）
 
-`tools/table-filter/filter_config.json` のキー意味です。**例ファイル**は [`filter_config.example.json`](../tools/table-filter/filter_config.example.json) です。キー集合の CI 検証は [`check_filter_config_example_sync.py`](../tools/table-filter/check_filter_config_example_sync.py) の `EXPECTED_KEYS` と同期してください。
+`tools/table-filter/config/filter_config.json` のキー意味です。**例ファイル**は [`filter_config.example.json`](../tools/table-filter/config/filter_config.example.json) です。キー集合の CI 検証は [`check_filter_config_example_sync.py`](../tools/table-filter/check_filter_config_example_sync.py) の `EXPECTED_KEYS` と同期してください。
 
 | キー | 必須 | 説明 |
 |------|------|------|
 | `enabled` | 任意 | `false` でフィルタ全体をスキップ |
 | `skip_if_no_songdata` | 任意 | `songdata.db` 不在時にスキップするか（**ローカル**向け既定 `true`。**GitHub Actions** では生成物が Git 管理外のため DB 無しはエラー。`FILTER_CI_ALLOW_MISSING_SONGDATA=1` でのみ従来どおりスキップ可） |
-| `songdata_db` | 任意 | DB パス（既定 `data/songdata.db`） |
+| `songdata_db` | 任意 | DB パス（既定 `songdata.db`。リポジトリ直下からの相対、または絶対パス） |
 | `beatoraja_empty_rows_policy` | 任意 | `fail`（既定）で beatoraja 向け 0 件時に `filter_table.py` が終了コード 1。`warn` / `allow` 等で緩和 |
 | `sql_where_preset` | 任意 | 非空なら固定プリセットのみ使用（`const_bpm` / `var_bpm`）。**設定時は `sql_where` は無視** |
 | `sql_where` | 条件付き | `sql_where_preset` 未使用時の `song` WHERE 断片 |

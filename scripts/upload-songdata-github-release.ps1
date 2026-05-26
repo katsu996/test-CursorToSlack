@@ -18,13 +18,13 @@
 
   Authentication and target repository are read only from
   upload-songdata-github-release.secrets.txt in the same folder as this script
-  (see upload-songdata-github-release.secrets.template.txt in the repo).
+  (edit the file shipped under scripts/ in the repo; placeholders must be replaced).
 
 .PARAMETER Tag
   Release tag. If empty: songdata-<today yyyy-MM-dd>. CI downloads songdata.db from the repo's latest GitHub Release.
 
 .PARAMETER SongdataPath
-  File to upload. Default: songdata.db next to this script, else repo data/songdata.db.
+  File to upload. Default: songdata.db next to this script, else repository root songdata.db (when this .ps1 lives under scripts/).
 
 .PARAMETER AssetName
   Asset name on GitHub. Default: songdata.db
@@ -56,7 +56,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $secretsTxt = Join-Path $PSScriptRoot "upload-songdata-github-release.secrets.txt"
-$secretsTemplate = Join-Path $PSScriptRoot "upload-songdata-github-release.secrets.template.txt"
 
 function Unwrap-QuotedToken {
     param([string] $Text)
@@ -96,13 +95,9 @@ function Read-UploadSecretsTxt {
 Missing secrets file:
   $Path
 
-Copy scripts/upload-songdata-github-release.secrets.template.txt from the repository
-to the same folder as this .ps1, rename it to:
-  upload-songdata-github-release.secrets.txt
-Then set line 1 = PAT and line 2 = owner/repo (UTF-8).
-
-Reference template on disk (if you copied scripts together):
-  $secretsTemplate
+Use the repository file scripts/upload-songdata-github-release.secrets.txt
+(copy it next to this .ps1 if you run outside the repo), then edit line 1 = PAT
+and line 2 = owner/repo (UTF-8). No rename is required.
 "@).Trim()
     }
     $enc = New-Object System.Text.UTF8Encoding $false
@@ -154,6 +149,21 @@ See docs/github-releases-songdata.md section "secrets.txt の書き方（詳細�
     }
     if ($Token -notmatch '^(gh[ps]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)') {
         Write-Warning "Token does not start with ghp_/ghs_/github_pat_. If GitHub returns 401, verify the full PAT was pasted on line 1."
+    }
+}
+
+function Assert-NoPlaceholderRepo {
+    param([string] $Repo)
+    $r = ($Repo -as [string]).Trim()
+    if (-not $r) {
+        return
+    }
+    if ($r -match '(?i)your-github-username|your-repository-name|replace_me|\bowner/repository\b') {
+        throw @"
+Line 2 of upload-songdata-github-release.secrets.txt still looks like a placeholder.
+
+Replace it with your real GitHub repository as owner/name (example: octocat/hello-world).
+"@
     }
 }
 
@@ -380,6 +390,7 @@ function Send-ReleaseAsset {
 # --- main ---
 $secrets = Read-UploadSecretsTxt -Path $secretsTxt
 Assert-NoPlaceholderToken -Token $secrets.Pat
+Assert-NoPlaceholderRepo -Repo $secrets.Repo
 $token = $secrets.Pat
 $headers = Get-ApiHeaders -Token $token
 
@@ -402,12 +413,12 @@ if (-not $SongdataPath) {
     }
     else {
         $repoRoot = Split-Path $PSScriptRoot -Parent
-        $SongdataPath = Join-Path (Join-Path $repoRoot "data") $AssetName
+        $SongdataPath = Join-Path $repoRoot $AssetName
     }
 }
 
 if (-not (Test-Path -LiteralPath $SongdataPath -PathType Leaf)) {
-    throw "File not found: $SongdataPath (copy songdata.db next to the script, use -SongdataPath, or keep repo layout data/$AssetName)"
+    throw "File not found: $SongdataPath (copy songdata.db next to the script, use -SongdataPath, or place $AssetName at the repository root)"
 }
 
 $release = Get-ReleaseByTag -Owner $owner -Name $name -TagName $Tag -Headers $headers

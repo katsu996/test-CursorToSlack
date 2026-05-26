@@ -1,8 +1,8 @@
 {
-  "_comment": "filter_config.json にコピーして編集してください（このファイルは説明用サンプルです）。",
+  "_comment": "説明用の全キー例。運用では tools/table-filter/config/filter_config.json を編集してください。",
   "enabled": true,
   "skip_if_no_songdata": true,
-  "songdata_db": "data/songdata.db",
+  "songdata_db": "songdata.db",
   "beatoraja_empty_rows_policy": "fail",
   "sql_where_preset": "",
   "sql_where": "minbpm IS NOT NULL AND maxbpm IS NOT NULL AND minbpm = maxbpm",

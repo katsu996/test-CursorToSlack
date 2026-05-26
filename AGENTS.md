@@ -9,8 +9,8 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 ### Running the scripts locally
 
 ```bash
-python3 tools/table-filter/filter_table.py --config tools/table-filter/filter_config.json
-python3 tools/table-filter/build_pages_table.py --config tools/table-filter/filter_config.json
+python3 tools/table-filter/filter_table.py --config tools/table-filter/config/filter_config.json
+python3 tools/table-filter/build_pages_table.py --config tools/table-filter/config/filter_config.json
 ```
 
 - `filter_table.py` はネットワークアクセスが必要（元表の URL から難易度表 JSON を取得）。
@@ -40,7 +40,7 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 | File | Purpose |
 |------|---------|
 | `tools/table-filter/source_tables.py` | `source_tables` / `source_tables_path` の解決、後方互換の分割配列、`custom_level_mapping` の統合 |
-| `tools/table-filter/source_tables.json` | 既定の難易度表ソース一覧（`filter_config.json` の `source_tables_path` から参照） |
+| `tools/table-filter/config/source_tables.json` | 既定の難易度表ソース一覧（`filter_config.json` の `source_tables_path` から参照） |
 | `tools/table-filter/filter_table.py` | メインフィルタ CLI（マージ・書き出し） |
 | `tools/table-filter/http_fetch.py` | HTTP 取得（リトライ） |
 | `tools/table-filter/sql_where_guard.py` | `sql_where` / プリセットの検証 |
@@ -49,8 +49,8 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 | `tools/table-filter/build_pages_table.py` | Pages 用 browser_rows.json 生成 |
 | `tools/table-filter/smoke_check_outputs.py` | デプロイ前の生成物スモークテスト |
 | `tools/table-filter/check_browser_rows_pages_ui.py` | `browser_rows.json` の `meta.pages_ui` 検証（CI） |
-| `tools/table-filter/filter_config.json` | 実行時設定（SQL, URL 等） |
-| `data/songdata.db` | beatoraja の楽曲 DB（ローカル配置・Git 管理外。CI は Release から取得可） |
+| `tools/table-filter/config/filter_config.json` | 実行時設定（SQL, URL 等） |
+| `songdata.db`（リポジトリ直下） | beatoraja の楽曲 DB（Git 管理外。CI は Latest Release から取得） |
 | `docs/table/pages_ui_config.json` | Pages トップの列幅・既定表示・`index_table`（列順・任意の末尾 `trailing_table_columns`・ラベル・IR/Chart URL・`column_visible_defaults.ir` / `chart` 等。`build_pages_table.py` が `meta.pages_ui` に埋め込み。`//` コメント可） |
 | `docs/assets/pages-index-toolbar-collapse.js` | トップのツールバー折りたたみ |
 | `docs/assets/pages-index-column-runtime.js` | `index_table` のマージと列見出しヘルパ |
@@ -60,6 +60,6 @@ cd tools/table-filter && python3 -m unittest discover -s tests -v
 
 ### Notes
 
-- `data/songdata.db` は **Git 管理外**（`.gitignore`）。ローカルでは beatoraja からコピーするか Release から取得。ユニットテストは DB 不要。CI では **同一リポジトリの Latest GitHub Release** から `gh release download` で取得（失敗・空ファイルはエラー）（[docs/github-releases-songdata.md](docs/github-releases-songdata.md)）。
+- `songdata.db` は **Git 管理外**（`.gitignore` の `/songdata.db`）。ローカルでは beatoraja からリポジトリ直下へコピーするか Release から取得。ユニットテストは DB 不要。CI では **同一リポジトリの Latest GitHub Release** から `gh release download` で取得（失敗・空ファイルはエラー）（[docs/github-releases-songdata.md](docs/github-releases-songdata.md)）。
 - Python スクリプト（`tools/table-filter/*.py` の本処理）は標準ライブラリのみ使用。`pip install` は不要（CI の ruff のみ）。
 - 生成される主要 JSON（`docs/table/filtered_*.json`、`browser_rows.json`、`level_stats.json` など）は **`.gitignore` に含まれる**ため、clone 直後は存在しません。CI では毎回 `filter_table.py` が成功して書き直します。ローカルでテストしたあとリポジトリを汚したくない場合は `git checkout -- docs/table/` などで戻せます。

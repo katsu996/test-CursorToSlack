@@ -19,7 +19,7 @@ from pages_ui_json import load_pages_ui_config
 from source_tables import effective_custom_level_maps, load_resolved_filter_config, normalize_source_tables
 from sql_where_guard import resolve_sql_where
 
-DEFAULT_CONFIG = "tools/table-filter/filter_config.json"
+DEFAULT_CONFIG = "tools/table-filter/config/filter_config.json"
 
 
 def _load_json(path: str) -> Any:
@@ -66,7 +66,7 @@ def main() -> None:
         filtered_path = default_data_path
         data_source_note = data_name
 
-    songdata_path = cfg.get("songdata_db", "data/songdata.db")
+    songdata_path = cfg.get("songdata_db", "songdata.db")
     browser_name = cfg.get("browser_rows_filename", "browser_rows.json")
     browser_path = os.path.join(out_dir, browser_name)
 

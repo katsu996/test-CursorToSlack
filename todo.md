@@ -34,7 +34,7 @@
 | Todo No | 内容 |
 |---------|------|
 | **T001** | **beatoraja / LR2oraja の新バージョン**が出たら: 難易度表まわりの挙動を確認し、必要なら [`docs/beatoraja-jbmstable-table-json.md`](docs/beatoraja-jbmstable-table-json.md) とユニットテストを更新する。 |
-| **T002** | **`source_tables.json`（または `source_tables_path`）を差し替えたとき**: 元表の JSON キー変更で `custom_level_source_key` や level 集計がずれていないか確認する。 |
+| **T002** | **`tools/table-filter/config/source_tables.json`（または `source_tables_path`）を差し替えたとき**: 元表の JSON キー変更で `custom_level_source_key` や level 集計がずれていないか確認する。 |
 | **T003** | **GitHub（Actions / Pages / CLI）の仕様・推奨構成の変更**: `pages.yml` の `actions/*` や `gh release` の挙動をリリースノートで確認してから更新する。[`docs/ci-github-pages-workflow.md`](docs/ci-github-pages-workflow.md) と差が出たら同じ PR で直す。 |
 | **T032** | **Release 運用の健全性**: 「Latest」に **`songdata.db` が載っているか**（プレリリースのみの最新だと `gh release download` が失敗し得る）、アセットが **空でないか**、組織リポジトリなら **権限・SSO** を確認する（手順は [`docs/github-releases-songdata.md`](docs/github-releases-songdata.md)）。 |
 
@@ -50,7 +50,7 @@
 | **T005** | **P1** | **`songdata.db` の肥大化と配布経路**: GitHub Release の [アセット制限](https://docs.github.com/repositories/releasing-projects-on-github/about-releases) 内での運用、将来しきい値を超える場合の候補（分割・別ストレージ・取得キャッシュ）を方針として `docs/` に短く残す。 |
 | **T010** | **P1** | **Dependabot / Actions の更新方針**: アクションのピン留めと更新頻度、マージ前の確認項目（`build`/`deploy` の smoke、`gh` ステップ）を `docs/ci-github-pages-workflow.md` か専用短節にまとめる。 |
 | **T013** | **P2** | **`ubuntu-latest` で `actions/setup-python` の 3.14.3 が取れない場合**の代替（利用可能なマイナーへの一時ピン等）を [`docs/ci-github-pages-workflow.md`](docs/ci-github-pages-workflow.md) に追記する。 |
-| **T014** | **P2** | **`source_tables.json` の CI 検証**: スキーマ検証に加え、到達性チェックをどこまで行うか方針を決めて実装する。 |
+| **T014** | **P2** | **`tools/table-filter/config/source_tables.json` の CI 検証**: スキーマ検証に加え、到達性チェックをどこまで行うか方針を決めて実装する。 |
 | **T025** | **P1** | **ワークフローと CI ドキュメントの同期ルール**: `pages.yml` を変えた PR では必ず [`docs/ci-github-pages-workflow.md`](docs/ci-github-pages-workflow.md) の表（処理順・権限・環境変数）を更新する、を CONTRIBUTING か PR テンプレに一行で書く。 |
 | **T028** | **P2** | **Release アセットの整合性（任意）**: SHA256 などを Release 本文または別ファイルで公開し、`pages.yml` で取得後に検証する設計が必要になったら導入する（現状は `test -s` のみ）。 |
 | **T015** | **P3** | GitHub Pages の「並び替え・絞り込み・列の表示」パネルの開閉状態を `sessionStorage` に保存し、再訪問時に復元する。 |
