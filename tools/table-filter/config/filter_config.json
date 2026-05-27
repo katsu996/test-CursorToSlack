@@ -11,6 +11,8 @@
   "output_data_filename": "filtered_data.json",
   "output_header_filename": "filtered_header.json",
   "output_header_name": "K Original難易度表",
+  "beatoraja_folder_tag": "K",
+  "beatoraja_level_from_custom_level": true,
   "page_title": "K Original難易度表",
   "site_base_url": "",
   "use_relative_data_url": true,

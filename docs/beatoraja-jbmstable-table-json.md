@@ -9,11 +9,13 @@
 3. **`title` が空**だとソートや検証で問題になり得るため、ツールは **`（無題）`** に置き換える。
 4. **`artist` / `url` / `url_diff`** は文字列化し、欠損は空文字に寄せる。
 5. **Pages 専用の拡張キー**（`source_table_*` 等）は beatoraja 向け `filtered_data.json` から**除去**し、`filtered_data_enriched.json` にのみ残す。
+6. **`custom_level`（`custom_level_field` で指定した列名）**は beatoraja 向けには載せず、既定では **`level` に写す**（本体が `level` の文字列一覧でフォルダを作るため）。`beatoraja_level_from_custom_level` が `false` のときは元の `level` を維持しつつ、`custom_level` 列だけ除去する。
 
 ## ヘッダー（`filtered_header.json`）
 
 1. **`name` が空**だと `TableData.validate()` が失敗する。`output_header_name` で補完する。
 2. **`course` が空配列 `[]`** のとき、パーサが例外になるため **キーごと削除**する。
+3. **`tag`**（難易度フォルダ名の接頭辞）を変えたいときは **`beatoraja_folder_tag`** で上書きできる（未設定なら元ヘッダーの `tag` のまま）。
 
 ## 運用メモ
 

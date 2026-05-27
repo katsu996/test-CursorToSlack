@@ -51,7 +51,7 @@
 
 本体が使う [jbmstable-parser](https://github.com/exch-bms2/jbmstable-parser) の `DifficultyTableParser.decodeJSONTableData(..., accept=false)` は次を満たさない**データ行を黙って捨てます**（`level` が JSON `null` の行、`md5` / `sha256` の文字列長が 24 以下の行など）。
 
-- **`filtered_data.json`:** 上記に合わない行は書き出し前に除外し、GitHub Pages 用に付けた **`source_*` 系キー**も除いたオブジェクトだけを載せます。さらに **`id`（整数の LR2 用 ID など）**は既定で除外し、`level` / `title` / `artist` などは **文字列として正規化**して SongData 検証やソートでの例外を避けます。`custom_level` を beatoraja 向けから落としたい場合は **`beatoraja_strip_chart_keys`** に追加してください。
+- **`filtered_data.json`:** 上記に合わない行は書き出し前に除外し、GitHub Pages 用に付けた **`source_*` 系キー**も除いたオブジェクトだけを載せます。さらに **`id`（整数の LR2 用 ID など）**は既定で除外し、`level` / `title` / `artist` などは **文字列として正規化**して SongData 検証やソートでの例外を避けます。**beatoraja は各行の `level` 文字列で難易度フォルダを分割する**ため、独自レベル（`custom_level_mapping`）を使うときは既定で **`level` をその値で上書き**し、`custom_level` 列は beatoraja 向けには載せません（`beatoraja_level_from_custom_level`）。選曲画面のフォルダ接頭辞（元表の ☆ など）は **`beatoraja_folder_tag`** で `filtered_header.json` の **`tag`** を上書きできます。
 - **`filtered_data_enriched.json`:** マージ直後の行オブジェクト（出自列などを含む）のまま保存し、**`build_pages_table.py`** がこちらを優先して読み込みます。
 - **ヘッダ `course`:** 空配列 `[]` のとき jbmstable-parser は `get(0)` で落ちるため、**空なら `course` キーごと削除**します。
 - **`beatoraja_strip_chart_keys`:** `filter_config.json` で、beatoraja 向けデータから除外するキーを配列で上書きできます。**未指定なら** `source_table_index` / `source_table_names` / `source_table_short_names` / `source_header_json_url` / `source_table_register_url` / `id` を除きます。**空配列 `[]`** なら除外しません。

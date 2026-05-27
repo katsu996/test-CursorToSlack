@@ -23,6 +23,8 @@
 | `output_data_enriched_filename` | 任意 | Pages 向け拡張列付き JSON 名 |
 | `output_header_filename` | 任意 | 合成ヘッダー JSON 名 |
 | `output_header_name` | 任意 | beatoraja の表名（`filtered_header.json` の `name`） |
+| `beatoraja_folder_tag` | 任意 | 非空なら `filtered_header.json` の **`tag`**（選曲画面の難易度フォルダ名の接頭辞。例: 元表が ☆ のとき `K` にすると **K1** … のように表示） |
+| `beatoraja_level_from_custom_level` | 任意 | 既定 **`true`**。`true` のとき **`custom_level_field` の値で `level` を上書き**し、beatoraja が **元表の level（例: ☆1〜12）だけでフォルダ分割**するのを防ぐ。`false` では元の `level` を維持（`custom_level` 列は beatoraja 向け JSON からは除く） |
 | `page_title` | 任意 | GitHub Pages の `<title>` / `h1`（未設定時は `output_header_name`） |
 | `output_level_stats_filename` | 任意 | レベル集計 JSON 名 |
 | `browser_rows_filename` | 任意 | `build_pages_table.py` の出力名 |

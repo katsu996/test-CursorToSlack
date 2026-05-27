@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from beatoraja_rows import (
+    apply_beatoraja_custom_level_to_level,
     normalize_beatoraja_chart_row,
     row_passes_beatoraja_strict_decoder,
     sanitize_chart_row_for_beatoraja,
@@ -41,6 +42,23 @@ class TestBeatorajaRows(unittest.TestCase):
         h: dict = {"name": "old", "course": []}
         sanitize_header_for_beatoraja(h, {"output_header_name": "K"})
         self.assertEqual(h["name"], "K")
+
+    def test_beatoraja_folder_tag(self) -> None:
+        h: dict = {"name": "x", "tag": "☆", "course": []}
+        sanitize_header_for_beatoraja(h, {"beatoraja_folder_tag": "K"})
+        self.assertEqual(h["tag"], "K")
+
+    def test_apply_custom_level_overwrites_level_and_strips_field(self) -> None:
+        row: dict = {"level": "12", "custom_level": 24, "md5": "a" * 32, "title": "t"}
+        apply_beatoraja_custom_level_to_level(row, {})
+        self.assertEqual(row["level"], "24")
+        self.assertNotIn("custom_level", row)
+
+    def test_apply_custom_level_disabled_keeps_level(self) -> None:
+        row: dict = {"level": "12", "custom_level": 24, "md5": "a" * 32}
+        apply_beatoraja_custom_level_to_level(row, {"beatoraja_level_from_custom_level": False})
+        self.assertEqual(row["level"], "12")
+        self.assertNotIn("custom_level", row)
 
 
 if __name__ == "__main__":

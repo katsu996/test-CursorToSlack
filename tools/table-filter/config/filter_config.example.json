@@ -36,5 +36,9 @@
   "custom_level_field": "custom_level",
   "custom_level_source_key": "level",
   "custom_level_unmapped": "omit",
+  "beatoraja_folder_tag": "K",
+  "_beatoraja_folder_tag_comment": "非空なら filtered_header.json の tag（選曲の難易度フォルダ接頭辞。☆1 等の ☆ 部分）を上書き",
+  "beatoraja_level_from_custom_level": true,
+  "_beatoraja_level_from_custom_level_comment": "true のとき beatoraja 向け JSON の level を独自難易度で上書き（フォルダ分割が元表の ☆1〜12 に固定されないようにする）",
   "beatoraja_strip_chart_keys": null
 }

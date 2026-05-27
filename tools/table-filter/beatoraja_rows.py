@@ -91,3 +91,49 @@ def sanitize_header_for_beatoraja(header: MutableMapping[str, Any], cfg: Mapping
         name = str(header.get("name") or "").strip()
         if not name:
             header["name"] = "Filtered difficulty table (songdata)"
+
+    tag = str(cfg.get("beatoraja_folder_tag") or "").strip()
+    if tag:
+        header["tag"] = tag
+
+
+def _cfg_bool_default_true(val: Any) -> bool:
+    if val is None:
+        return True
+    if isinstance(val, bool):
+        return val
+    s = str(val).strip().lower()
+    if s in ("0", "false", "no", "off"):
+        return False
+    if s in ("1", "true", "yes", "on"):
+        return True
+    return True
+
+
+def _custom_level_to_level_string(raw: Any) -> str | None:
+    if raw is None:
+        return None
+    if isinstance(raw, bool):
+        return str(raw).lower()
+    if isinstance(raw, int):
+        return str(raw)
+    if isinstance(raw, float):
+        if raw.is_integer():
+            return str(int(raw))
+        return str(raw).strip()
+    s = str(raw).strip()
+    return s or None
+
+
+def apply_beatoraja_custom_level_to_level(row: MutableMapping[str, Any], cfg: Mapping[str, Any]) -> None:
+    """
+    beatoraja はデータ行の level 文字列でフォルダを分割する（本体 TableDataAccessor）。
+    custom_level を level に反映し、拡張列 custom_level_field は beatoraja 向け JSON から除く。
+    """
+    cl_field = str(cfg.get("custom_level_field") or "custom_level").strip() or "custom_level"
+    raw = row.pop(cl_field, None) if cl_field in row else None
+    if not _cfg_bool_default_true(cfg.get("beatoraja_level_from_custom_level")):
+        return
+    s = _custom_level_to_level_string(raw)
+    if s is not None:
+        row["level"] = s

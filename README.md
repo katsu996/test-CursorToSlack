@@ -155,7 +155,7 @@ beatoraja の `songdata.db` と難易度表 JSON を組み合わせ、GitHub Act
 
 **重複譜面:** 複数表で同じ `md5` / `sha256` が出た場合は **先に列挙したヘッダー側の行だけが残り**、独自レベルもそのソースのマップだけが使われます。
 
-**beatoraja の Table JSON:** `filtered_data.json` は beatoraja（jbmstable-parser）向けに、出自メタ列・`id` を除き、かつパーサが弾く行を落としたものです（`level` / `title` / `artist` などは文字列に正規化）。GitHub Pages の表は **`filtered_data_enriched.json`**（同じ行に出自列などが残る）を元に `browser_rows.json` が生成されます。`custom_level` は既定では beatoraja 向けにも残ります。不要なら `beatoraja_strip_chart_keys` に `custom_level` を追加してください。`beatoraja_strip_chart_keys` で beatoraja 側から除外するキーを上書きできます（詳細は [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md)）。
+**beatoraja の Table JSON:** `filtered_data.json` は beatoraja（jbmstable-parser）向けに、出自メタ列・`id` を除き、かつパーサが弾く行を落としたものです（`level` / `title` / `artist` などは文字列に正規化）。GitHub Pages の表は **`filtered_data_enriched.json`**（同じ行に出自列などが残る）を元に `browser_rows.json` が生成されます。**beatoraja は `level` で難易度フォルダを分ける**ため、マップで付いた **`custom_level` は既定で `level` に写し、beatoraja 向け JSON からは除きます**（`beatoraja_level_from_custom_level`）。フォルダ名の接頭辞は **`beatoraja_folder_tag`** で `filtered_header.json` の **`tag`** を上書きできます（例: `K`）。元表の `level` のままにしたい場合は `beatoraja_level_from_custom_level` を `false` にしてください。`beatoraja_strip_chart_keys` で beatoraja 側から除外するキーを上書きできます（詳細は [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md)）。
 
 詳細なデータフローは [docs/github-actions-songdata-table-filter.md](docs/github-actions-songdata-table-filter.md) を参照してください。
 

@@ -19,6 +19,7 @@ from typing import Any, Mapping, MutableMapping, Sequence
 from urllib.parse import urljoin
 
 from beatoraja_rows import (
+    apply_beatoraja_custom_level_to_level,
     normalize_beatoraja_chart_row,
     row_passes_beatoraja_strict_decoder,
     sanitize_chart_row_for_beatoraja,
@@ -626,6 +627,7 @@ def main() -> None:
     beatoraja_rows: list[dict[str, Any]] = []
     for r in filtered_data:
         clean = sanitize_chart_row_for_beatoraja(r, strip_keys)
+        apply_beatoraja_custom_level_to_level(clean, cfg)
         normalize_beatoraja_chart_row(clean)
         if row_passes_beatoraja_strict_decoder(clean):
             beatoraja_rows.append(clean)
