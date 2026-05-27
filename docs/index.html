@@ -87,9 +87,20 @@
       </table>
     </div>
     <nav class="pagination-bar" id="pagination-bar" aria-label="ページ送り" hidden>
-      <button type="button" class="shadcn-btn" id="page-prev">前のページ</button>
-      <span id="page-indicator" class="page-indicator"></span>
-      <button type="button" class="shadcn-btn" id="page-next">次のページ</button>
+      <div class="pagination-row-primary">
+        <button type="button" class="shadcn-btn" id="page-first">最初へ</button>
+        <button type="button" class="shadcn-btn" id="page-prev">前へ</button>
+        <span id="page-indicator" class="page-indicator"></span>
+        <button type="button" class="shadcn-btn" id="page-next">次へ</button>
+        <button type="button" class="shadcn-btn" id="page-last">最後へ</button>
+      </div>
+      <div class="pagination-row-secondary">
+        <label class="pagination-inline-label" for="page-jump">ページ</label>
+        <input type="number" class="shadcn-input pagination-page-jump" id="page-jump" min="1" step="1" value="1" inputmode="numeric" aria-label="移動先のページ番号" />
+        <button type="button" class="shadcn-btn" id="page-go">移動</button>
+        <label class="pagination-inline-label" for="page-size">表示件数</label>
+        <select id="page-size" class="shadcn-select pagination-page-size" aria-label="1ページの表示件数"></select>
+      </div>
     </nav>
     </main>
     <footer class="site-footer">

@@ -28,6 +28,7 @@
         <a href="./index.html">← K Original難易度表（一覧）</a>
       </p>
       <section id="level-stats-section" class="level-stats" hidden>
+        <div id="merged-table-host" class="merged-table-host" hidden></div>
         <h2>統合難易度表ごとのレベル別件数</h2>
         <div id="level-stats-grid" class="level-stats-grid"></div>
       </section>
@@ -47,6 +48,7 @@
   var reloadBtn = document.getElementById("reload-data");
   var levelSec = document.getElementById("level-stats-section");
   var levelGrid = document.getElementById("level-stats-grid");
+  var mergedHost = document.getElementById("merged-table-host");
   var mainEl = document.getElementById("main-content");
 
   if (mainEl) mainEl.setAttribute("aria-busy", "true");
@@ -61,6 +63,10 @@
       if (reloadBtn) reloadBtn.hidden = true;
       if (mainEl) mainEl.setAttribute("aria-busy", "false");
       metaDl.innerHTML = "";
+      if (mergedHost) {
+        mergedHost.innerHTML = "";
+        mergedHost.hidden = true;
+      }
       if (ld.sql_where) {
         var dt = document.createElement("dt");
         dt.textContent = "SQL 条件";
@@ -83,6 +89,64 @@
         errEl.textContent = "level_stats.json に sources がありません（空の集計）。";
         errEl.hidden = false;
         return;
+      }
+
+      if (ld.merged_table && typeof ld.merged_table === "object" && mergedHost) {
+        var mt = ld.merged_table;
+        var cardM = document.createElement("div");
+        cardM.className = "level-stats-card merged-table-card";
+        var h3m = document.createElement("h3");
+        h3m.textContent = mt.title ? String(mt.title) : "当難易度表（統合・重複除去後）";
+        cardM.appendChild(h3m);
+        var subM = document.createElement("p");
+        subM.className = "level-stats-sub";
+        var rm = mt.row_count_merged != null ? String(mt.row_count_merged) : "—";
+        var rb = mt.row_count_beatoraja != null ? String(mt.row_count_beatoraja) : "—";
+        var partsM = ["Pages 用データ（拡張列あり）: " + rm + " 行", "beatoraja 登録用（厳格デコード通過）: " + rb + " 行"];
+        if (mt.dropped_strict_decode != null && Number(mt.dropped_strict_decode) > 0) {
+          partsM.push("厳格デコードで除外: " + String(mt.dropped_strict_decode) + " 行");
+        }
+        subM.textContent = partsM.join(" / ");
+        cardM.appendChild(subM);
+        var rowsCl = Array.isArray(mt.custom_level_rows) ? mt.custom_level_rows : [];
+        if (rowsCl.length) {
+          var wrapM = document.createElement("div");
+          wrapM.className = "scroll-mini";
+          var tblM = document.createElement("table");
+          var theadM = document.createElement("thead");
+          var trhM = document.createElement("tr");
+          var thLa = document.createElement("th");
+          thLa.textContent = "独自レベル";
+          var thCnt = document.createElement("th");
+          thCnt.textContent = "曲数";
+          trhM.appendChild(thLa);
+          trhM.appendChild(thCnt);
+          theadM.appendChild(trhM);
+          tblM.appendChild(theadM);
+          var tbM = document.createElement("tbody");
+          rowsCl.forEach(function (row) {
+            var tr = document.createElement("tr");
+            var lv = row.level != null && row.level !== "" ? String(row.level) : "";
+            var td1 = document.createElement("td");
+            td1.textContent = lv;
+            var td2 = document.createElement("td");
+            td2.className = "num";
+            td2.textContent = String(row.count != null ? row.count : 0);
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tbM.appendChild(tr);
+          });
+          tblM.appendChild(tbM);
+          wrapM.appendChild(tblM);
+          cardM.appendChild(wrapM);
+        } else if (mt.row_count_merged != null && Number(mt.row_count_merged) > 0) {
+          var pOnly = document.createElement("p");
+          pOnly.className = "level-stats-sub";
+          pOnly.textContent = "独自レベル別の内訳がありません（マッピング未設定の可能性があります）。";
+          cardM.appendChild(pOnly);
+        }
+        mergedHost.appendChild(cardM);
+        mergedHost.hidden = false;
       }
 
       levelGrid.innerHTML = "";

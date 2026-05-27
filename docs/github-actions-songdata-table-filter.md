@@ -112,7 +112,7 @@ beatoraja は多くの場合 **ヘッダー JSON の URL**（`…/table/filtered
 
 **共有用 URL クエリ**（並び替え・絞り込み・列表示など）は **[README.md](../README.md)** の「一覧の URL クエリ」を参照してください。
 
-**統合難易度表別の曲数:** `filter_table.py` が出力する **`level_stats.json`** を **`level-stats.html`** が読みます（トップの `index.html` は一覧のみ）。集計列は `level_stats.json` の `level_field`（既定は設定の `custom_level_source_key`＝`level`）。**SQL 前後**の件数比較がカード内の表に出ます。フィルタがスキップされたビルドでは `level_stats.json` が無く、当該ページはエラー表示になり得ます。
+**統合難易度表別の曲数:** `filter_table.py` が出力する **`level_stats.json`** を **`level-stats.html`** が読みます（トップの `index.html` は一覧のみ）。元表ごとのカードは `level_field`（既定は設定の `custom_level_source_key`＝`level`）で **SQL 前後**の件数比較を表示します。あわせて **`merged_table`** に統合・重複除去後の当難易度表の行数と、**独自レベル**（`custom_level_field`）別の曲数を載せ、`level-stats.html` 冒頭にカードとして表示します。フィルタがスキップされたビルドでは `level_stats.json` が無く、当該ページはエラー表示になり得ます。
 
 ## 独自レベル（`custom_level_mapping`）
 

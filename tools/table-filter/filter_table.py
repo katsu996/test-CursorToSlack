@@ -27,7 +27,12 @@ from beatoraja_rows import (
     validate_json_field_name,
 )
 from http_fetch import fetch_bytes
-from level_stats import level_bucket_for_stats, merge_level_compare_rows, sort_level_stat_keys
+from level_stats import (
+    UNSET_LEVEL_LABEL,
+    level_bucket_for_stats,
+    merge_level_compare_rows,
+    sort_level_stat_keys,
+)
 from source_tables import (
     effective_custom_level_maps,
     extract_source_table_entries,
@@ -632,6 +637,22 @@ def main() -> None:
             file=sys.stderr,
         )
 
+    cl_field_merged = str(cfg.get("custom_level_field") or "custom_level").strip() or "custom_level"
+    merged_by_custom: dict[str, int] = {}
+    for r in filtered_data:
+        if not isinstance(r, dict):
+            continue
+        raw_cl = r.get(cl_field_merged)
+        if raw_cl is None or raw_cl == "":
+            bucket = UNSET_LEVEL_LABEL
+        else:
+            bucket = level_bucket_for_stats(raw_cl)
+        merged_by_custom[bucket] = merged_by_custom.get(bucket, 0) + 1
+    sorted_merged_cl_keys = sort_level_stat_keys(list(merged_by_custom.keys()))
+    merged_custom_level_rows = [
+        {"level": k, "count": merged_by_custom[k]} for k in sorted_merged_cl_keys
+    ]
+
     if not beatoraja_rows:
         print(
             "エラー: beatoraja 向けデータ行が 0 件です。"
@@ -656,6 +677,14 @@ def main() -> None:
         "level_field": level_field,
         "sql_where": sql_where,
         "sources": per_source_level_stats,
+        "merged_table": {
+            "title": "当難易度表（統合・重複除去後）",
+            "row_count_merged": len(filtered_data),
+            "row_count_beatoraja": len(beatoraja_rows),
+            "dropped_strict_decode": dropped,
+            "custom_level_field": cl_field_merged,
+            "custom_level_rows": merged_custom_level_rows,
+        },
     }
     _save_json(stats_path, stats_payload)
     print(f"書き出し: {stats_path}")

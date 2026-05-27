@@ -273,7 +273,8 @@
     return parts;
   }
 
-  var PAGE_SIZE = 150;
+  /** 1ページあたりの行数（一覧のセレクトと URL ?ps= で同期） */
+  var PAGE_SIZE_OPTIONS = [50, 100, 150, 200, 300, 500];
 
   var metaEl = document.getElementById("meta");
   var metaDl = document.getElementById("meta-dl");
@@ -298,6 +299,11 @@
   var paginationBar = document.getElementById("pagination-bar");
   var pagePrev = document.getElementById("page-prev");
   var pageNext = document.getElementById("page-next");
+  var pageFirst = document.getElementById("page-first");
+  var pageLast = document.getElementById("page-last");
+  var pageGo = document.getElementById("page-go");
+  var pageJump = document.getElementById("page-jump");
+  var pageSizeSel = document.getElementById("page-size");
   var pageIndicator = document.getElementById("page-indicator");
   var toolbarToggle = document.getElementById("toolbar-panel-toggle");
   var toolbarPanel = document.getElementById("toolbar-panel");
@@ -480,11 +486,7 @@
         document.title = pt;
       }
       metaDl.innerHTML = "";
-      var pairs = [
-        ["行数", meta.row_count],
-        ["songdata と一致", meta.matched_songdata],
-        ["SQL 条件", meta.sql_where]
-      ];
+      var pairs = [["行数", meta.row_count]];
       var metaShortsForLine = Array.isArray(meta.source_table_short_names) ? meta.source_table_short_names : [];
       var metaDisplaysForLine = Array.isArray(meta.source_table_display_names) ? meta.source_table_display_names : [];
       var srcLineParts = [];
@@ -498,14 +500,6 @@
       }
       if (srcLineParts.length) {
         pairs.push(["難易度表", srcLineParts.join(" · ")]);
-      }
-      if (meta.custom_level_mapping_count) {
-        pairs.push(
-          ["独自レベル列", meta.custom_level_field],
-          ["独自レベル元列", meta.custom_level_source_key],
-          ["独自レベル未マップ時", meta.custom_level_unmapped],
-          ["独自レベル マップ数（配列要素数）", meta.custom_level_mapping_count]
-        );
       }
       pairs.push(["備考", meta.reason]);
       pairs.forEach(function (pair) {
@@ -553,6 +547,39 @@
         leadCl.textContent =
           "独自レベル（チェックした値の行だけ表示。すべてオフのときは行を表示しません）";
         filterCustomLevelBar.appendChild(leadCl);
+        var bulkCl = document.createElement("div");
+        bulkCl.className = "filter-bulk-actions";
+        var bAllCl = document.createElement("button");
+        bAllCl.type = "button";
+        bAllCl.className = "shadcn-btn filter-bulk-btn";
+        bAllCl.textContent = "すべて選択";
+        var bNoneCl = document.createElement("button");
+        bNoneCl.type = "button";
+        bNoneCl.className = "shadcn-btn filter-bulk-btn";
+        bNoneCl.textContent = "すべて解除";
+        bulkCl.appendChild(bAllCl);
+        bulkCl.appendChild(bNoneCl);
+        filterCustomLevelBar.appendChild(bulkCl);
+        bAllCl.addEventListener("click", function () {
+          for (var ai = 0; ai < customLevelOrderedKeys.length; ai++) {
+            customLevelFilterState[customLevelOrderedKeys[ai]] = true;
+          }
+          filterCustomLevelBar.querySelectorAll("input[type=checkbox][data-cl-key]").forEach(function (inp) {
+            inp.checked = true;
+          });
+          currentPage = 1;
+          refresh();
+        });
+        bNoneCl.addEventListener("click", function () {
+          for (var zi = 0; zi < customLevelOrderedKeys.length; zi++) {
+            customLevelFilterState[customLevelOrderedKeys[zi]] = false;
+          }
+          filterCustomLevelBar.querySelectorAll("input[type=checkbox][data-cl-key]").forEach(function (inp) {
+            inp.checked = false;
+          });
+          currentPage = 1;
+          refresh();
+        });
         keys.forEach(function (ck) {
           customLevelFilterState[ck] = true;
           var labCl = document.createElement("label");
@@ -608,6 +635,39 @@
         lead.className = "filter-src-lead";
         lead.textContent = "難易度表（1つ以上チェックした表のみ表示。すべてオフのときは行を表示しません）";
         filterSrcBar.appendChild(lead);
+        var bulkSrc = document.createElement("div");
+        bulkSrc.className = "filter-bulk-actions";
+        var bAllSrc = document.createElement("button");
+        bAllSrc.type = "button";
+        bAllSrc.className = "shadcn-btn filter-bulk-btn";
+        bAllSrc.textContent = "すべて選択";
+        var bNoneSrc = document.createElement("button");
+        bNoneSrc.type = "button";
+        bNoneSrc.className = "shadcn-btn filter-bulk-btn";
+        bNoneSrc.textContent = "すべて解除";
+        bulkSrc.appendChild(bAllSrc);
+        bulkSrc.appendChild(bNoneSrc);
+        filterSrcBar.appendChild(bulkSrc);
+        bAllSrc.addEventListener("click", function () {
+          Object.keys(sourceFilterState).forEach(function (k) {
+            sourceFilterState[k] = true;
+          });
+          filterSrcBar.querySelectorAll("input[type=checkbox][data-short]").forEach(function (inp) {
+            inp.checked = true;
+          });
+          currentPage = 1;
+          refresh();
+        });
+        bNoneSrc.addEventListener("click", function () {
+          Object.keys(sourceFilterState).forEach(function (k) {
+            sourceFilterState[k] = false;
+          });
+          filterSrcBar.querySelectorAll("input[type=checkbox][data-short]").forEach(function (inp) {
+            inp.checked = false;
+          });
+          currentPage = 1;
+          refresh();
+        });
         entries.forEach(function (e) {
           sourceFilterState[e.short] = true;
           var lab = document.createElement("label");
@@ -666,6 +726,50 @@
       buildSourceFilterBar();
       buildCustomLevelFilterBar();
 
+      var currentPage = 1;
+      var pageSize = 150;
+      try {
+        var _storedPs = localStorage.getItem("k-original-page-size");
+        if (_storedPs) {
+          var _nps = parseInt(_storedPs, 10);
+          if (PAGE_SIZE_OPTIONS.indexOf(_nps) >= 0) pageSize = _nps;
+        }
+      } catch (_e_ps) {}
+      var urlTimer = null;
+
+      function syncPageSizeSelect() {
+        if (!pageSizeSel) return;
+        for (var pi = 0; pi < pageSizeSel.options.length; pi++) {
+          if (parseInt(pageSizeSel.options[pi].value, 10) === pageSize) {
+            pageSizeSel.selectedIndex = pi;
+            return;
+          }
+        }
+      }
+
+      if (pageSizeSel) {
+        pageSizeSel.innerHTML = "";
+        for (var psi = 0; psi < PAGE_SIZE_OPTIONS.length; psi++) {
+          var nOpt = PAGE_SIZE_OPTIONS[psi];
+          var optSz = document.createElement("option");
+          optSz.value = String(nOpt);
+          optSz.textContent = String(nOpt);
+          pageSizeSel.appendChild(optSz);
+        }
+        pageSizeSel.addEventListener("change", function () {
+          var v = parseInt(pageSizeSel.value, 10);
+          if (PAGE_SIZE_OPTIONS.indexOf(v) >= 0) {
+            pageSize = v;
+            try {
+              localStorage.setItem("k-original-page-size", String(v));
+            } catch (_ls) {}
+            currentPage = 1;
+            refresh();
+          }
+        });
+        syncPageSizeSelect();
+      }
+
       var visT = {};
       var visD = {};
       allTKeys.forEach(function (k) {
@@ -683,9 +787,6 @@
       allDKeys.forEach(function (k) {
         defaultVisD[k] = visD[k];
       });
-
-      var currentPage = 1;
-      var urlTimer = null;
 
       function visibleKeys(allKeys, vis) {
         return allKeys.filter(function (k) {
@@ -1060,6 +1161,10 @@
         }
         var pgn = parseInt(p.get("pg") || "1", 10);
         if (Number.isFinite(pgn) && pgn >= 1) currentPage = pgn;
+        if (p.has("ps")) {
+          var psn = parseInt(p.get("ps"), 10);
+          if (PAGE_SIZE_OPTIONS.indexOf(psn) >= 0) pageSize = psn;
+        }
         if (p.get("tb") === "1" && toolbarPanel && toolbarToggle) {
           toolbarPanel.hidden = false;
           toolbarToggle.setAttribute("aria-expanded", "true");
@@ -1069,6 +1174,7 @@
       }
 
       applyUrlState();
+      syncPageSizeSelect();
 
       function render(list) {
         var vTKeys = visibleKeys(allTKeys, visT);
@@ -1178,7 +1284,7 @@
           return;
         }
         var p = u.searchParams;
-        ["q", "s1", "d1", "s2", "d2", "s3", "d3", "src", "cl", "tcols", "dcols", "ir", "ch", "pg", "tb"].forEach(function (k) {
+        ["q", "s1", "d1", "s2", "d2", "s3", "d3", "src", "cl", "tcols", "dcols", "ir", "ch", "pg", "ps", "tb"].forEach(function (k) {
           p.delete(k);
         });
         var qv = (q.value || "").trim();
@@ -1238,6 +1344,7 @@
           if (visChart !== defaultVisChart) p.set("ch", visChart ? "1" : "0");
         }
         if (currentPage > 1) p.set("pg", String(currentPage));
+        if (pageSize !== 150) p.set("ps", String(pageSize));
         if (toolbarPanel && toolbarToggle && !toolbarPanel.hidden) p.set("tb", "1");
         var nextSearch = p.toString();
         var next = u.pathname + (nextSearch ? "?" + nextSearch : "") + u.hash;
@@ -1252,7 +1359,7 @@
 
       function updatePaginationUi(totalFiltered, totalPages) {
         if (!paginationBar) return;
-        if (totalFiltered <= PAGE_SIZE) {
+        if (totalFiltered <= pageSize) {
           paginationBar.hidden = true;
           return;
         }
@@ -1260,16 +1367,23 @@
         if (pageIndicator) pageIndicator.textContent = currentPage + " / " + totalPages + " ページ";
         if (pagePrev) pagePrev.disabled = currentPage <= 1;
         if (pageNext) pageNext.disabled = currentPage >= totalPages;
+        if (pageFirst) pageFirst.disabled = currentPage <= 1;
+        if (pageLast) pageLast.disabled = currentPage >= totalPages;
+        if (pageJump) {
+          pageJump.min = "1";
+          pageJump.max = String(totalPages);
+          pageJump.value = String(currentPage);
+        }
       }
 
       function refresh() {
         var list = filteredList();
         var totalFiltered = list.length;
-        var totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE) || 1);
+        var totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize) || 1);
         if (currentPage > totalPages) currentPage = totalPages;
         if (currentPage < 1) currentPage = 1;
-        var start = (currentPage - 1) * PAGE_SIZE;
-        var slice = list.slice(start, start + PAGE_SIZE);
+        var start = (currentPage - 1) * pageSize;
+        var slice = list.slice(start, start + pageSize);
         render(slice);
         if (countEl) {
           countEl.textContent =
@@ -1312,6 +1426,42 @@
           currentPage += 1;
           refresh();
         });
+      function goToJumpPage() {
+        if (!pageJump) return;
+        var listG = filteredList();
+        var tpG = Math.max(1, Math.ceil(listG.length / pageSize) || 1);
+        var want = parseInt(String(pageJump.value || "").trim(), 10);
+        if (!Number.isFinite(want)) return;
+        if (want < 1) want = 1;
+        if (want > tpG) want = tpG;
+        currentPage = want;
+        refresh();
+      }
+      if (pageFirst)
+        pageFirst.addEventListener("click", function () {
+          if (currentPage > 1) {
+            currentPage = 1;
+            refresh();
+          }
+        });
+      if (pageLast)
+        pageLast.addEventListener("click", function () {
+          var listL = filteredList();
+          var tp = Math.max(1, Math.ceil(listL.length / pageSize) || 1);
+          if (currentPage < tp) {
+            currentPage = tp;
+            refresh();
+          }
+        });
+      if (pageGo && pageJump) {
+        pageGo.addEventListener("click", goToJumpPage);
+        pageJump.addEventListener("keydown", function (ev) {
+          if (ev.key === "Enter") {
+            ev.preventDefault();
+            goToJumpPage();
+          }
+        });
+      }
 
       if (toolbarToggle)
         toolbarToggle.addEventListener("click", function () {
