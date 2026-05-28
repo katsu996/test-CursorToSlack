@@ -96,13 +96,12 @@ def source_indices_for_merged_row(
     return found
 
 
-def build_merged_custom_level_rows(
-    rows: list[dict[str, Any]],
-    *,
-    custom_level_field: str,
-    source_stats: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """独自レベル別の曲数と、元難易度表ごとの内訳列を返す。"""
+def _source_columns_from_stats(source_stats: list[dict[str, Any]]) -> tuple[
+    list[dict[str, Any]],
+    dict[str, int],
+    dict[str, int],
+]:
+    """元表の出現順（index 昇順）で source_columns と名前→index マップを作る。"""
     display_name_to_index: dict[str, int] = {}
     short_name_to_index: dict[str, int] = {}
     source_columns: list[dict[str, Any]] = []
@@ -118,10 +117,26 @@ def build_merged_custom_level_rows(
         display_name_to_index[disp] = idx
         if short:
             short_name_to_index[short] = idx
+    source_columns.sort(key=lambda c: int(c["index"]))
+    return source_columns, display_name_to_index, short_name_to_index
 
+
+def _by_source_for_columns(
+    per_src: dict[int, int],
+    source_columns: list[dict[str, Any]],
+) -> dict[str, int]:
+    return {str(col["index"]): per_src.get(int(col["index"]), 0) for col in source_columns}
+
+
+def _accumulate_custom_level_buckets(
+    rows: list[dict[str, Any]],
+    *,
+    custom_level_field: str,
+    display_name_to_index: dict[str, int],
+    short_name_to_index: dict[str, int],
+) -> tuple[dict[str, int], dict[str, dict[int, int]]]:
     merged_by_custom: dict[str, int] = {}
     by_custom_source: dict[str, dict[int, int]] = {}
-
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -138,15 +153,47 @@ def build_merged_custom_level_rows(
             short_name_to_index=short_name_to_index,
         ):
             src_bucket[src_idx] = src_bucket.get(src_idx, 0) + 1
+    return merged_by_custom, by_custom_source
 
+
+def build_merged_custom_level_rows(
+    rows_after_dedup: list[dict[str, Any]],
+    *,
+    custom_level_field: str,
+    source_stats: list[dict[str, Any]],
+    rows_before_dedup: list[dict[str, Any]] | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """独自レベル別の曲数（重複除去前後）と、元難易度表ごとの内訳列を返す。"""
+    source_columns, display_name_to_index, short_name_to_index = _source_columns_from_stats(
+        source_stats
+    )
+
+    merged_after, by_src_after = _accumulate_custom_level_buckets(
+        rows_after_dedup,
+        custom_level_field=custom_level_field,
+        display_name_to_index=display_name_to_index,
+        short_name_to_index=short_name_to_index,
+    )
+    before_rows = rows_before_dedup if rows_before_dedup is not None else rows_after_dedup
+    merged_before, _by_src_before = _accumulate_custom_level_buckets(
+        before_rows,
+        custom_level_field=custom_level_field,
+        display_name_to_index=display_name_to_index,
+        short_name_to_index=short_name_to_index,
+    )
+
+    level_keys = sort_level_stat_keys(
+        list(set(merged_after.keys()) | set(merged_before.keys()))
+    )
     out_rows: list[dict[str, Any]] = []
-    for level_key in sort_level_stat_keys(list(merged_by_custom.keys())):
-        per_src = by_custom_source.get(level_key, {})
+    for level_key in level_keys:
+        per_src = by_src_after.get(level_key, {})
         out_rows.append(
             {
                 "level": level_key,
-                "count": merged_by_custom[level_key],
-                "by_source": {str(k): per_src.get(k, 0) for k in sorted(per_src.keys())},
+                "count": merged_after.get(level_key, 0),
+                "count_before_dedup": merged_before.get(level_key, 0),
+                "by_source": _by_source_for_columns(per_src, source_columns),
             }
         )
     return source_columns, out_rows

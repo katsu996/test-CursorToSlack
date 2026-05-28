@@ -118,9 +118,12 @@
           var trhM = document.createElement("tr");
           var thLa = document.createElement("th");
           thLa.textContent = "独自レベル";
+          var thCntBefore = document.createElement("th");
+          thCntBefore.textContent = "曲数（重複除去前）";
           var thCnt = document.createElement("th");
           thCnt.textContent = "曲数";
           trhM.appendChild(thLa);
+          trhM.appendChild(thCntBefore);
           trhM.appendChild(thCnt);
           srcCols.forEach(function (sc) {
             var thS = document.createElement("th");
@@ -138,10 +141,16 @@
             var lv = row.level != null && row.level !== "" ? String(row.level) : "";
             var td1 = document.createElement("td");
             td1.textContent = lv;
+            var tdBefore = document.createElement("td");
+            tdBefore.className = "num";
+            var beforeCnt =
+              row.count_before_dedup != null ? row.count_before_dedup : row.count != null ? row.count : 0;
+            tdBefore.textContent = String(beforeCnt);
             var td2 = document.createElement("td");
             td2.className = "num";
             td2.textContent = String(row.count != null ? row.count : 0);
             tr.appendChild(td1);
+            tr.appendChild(tdBefore);
             tr.appendChild(td2);
             var bySrc = row.by_source && typeof row.by_source === "object" ? row.by_source : {};
             srcCols.forEach(function (sc) {

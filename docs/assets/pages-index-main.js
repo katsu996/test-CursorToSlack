@@ -702,19 +702,19 @@
           refresh();
         });
         entries.forEach(function (e) {
-          sourceFilterState[e.short] = true;
+          sourceFilterState[e.key] = true;
           var lab = document.createElement("label");
           var inp = document.createElement("input");
           inp.type = "checkbox";
           inp.checked = true;
-          inp.dataset.short = e.short;
+          inp.dataset.short = e.key;
           inp.addEventListener("change", function () {
-            sourceFilterState[e.short] = inp.checked;
+            sourceFilterState[e.key] = inp.checked;
             currentPage = 1;
             refresh();
           });
           lab.appendChild(inp);
-          lab.appendChild(document.createTextNode(e.short + "(" + e.label + ")"));
+          lab.appendChild(document.createTextNode(e.label));
           filterSrcBar.appendChild(lab);
         });
         filterSrcBar.hidden = false;

@@ -39,7 +39,7 @@ class TestLevelStats(unittest.TestCase):
             {"index": 1, "display_name": "通常難易度表", "short_name": "☆"},
             {"index": 2, "display_name": "第2通常難易度表", "short_name": "▽"},
         ]
-        rows = [
+        rows_after = [
             {"custom_level": 1, "source_table_index": 1, "source_table_names": ["通常難易度表"]},
             {
                 "custom_level": 1,
@@ -48,12 +48,25 @@ class TestLevelStats(unittest.TestCase):
                 "source_table_short_names": ["☆", "▽"],
             },
         ]
+        rows_before = rows_after + [
+            {
+                "custom_level": 1,
+                "source_table_index": 1,
+                "source_table_names": ["通常難易度表"],
+                "source_table_short_names": ["☆"],
+            },
+        ]
         cols, cl_rows = build_merged_custom_level_rows(
-            rows, custom_level_field="custom_level", source_stats=sources
+            rows_after,
+            custom_level_field="custom_level",
+            source_stats=sources,
+            rows_before_dedup=rows_before,
         )
         self.assertEqual(len(cols), 2)
+        self.assertEqual([c["index"] for c in cols], [1, 2])
         self.assertEqual(cl_rows[0]["level"], "1")
         self.assertEqual(cl_rows[0]["count"], 2)
+        self.assertEqual(cl_rows[0]["count_before_dedup"], 3)
         self.assertEqual(cl_rows[0]["by_source"], {"1": 2, "2": 1})
 
 

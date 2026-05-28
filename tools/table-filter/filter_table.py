@@ -447,6 +447,7 @@ def main() -> None:
     print(f"許可ハッシュ数: md5={len(md5s)}, sha256={len(sha256s)} (WHERE {sql_where!r})")
 
     merged_rows: list[dict[str, Any]] = []
+    pre_dedup_rows: list[dict[str, Any]] = []
     row_by_key: dict[str, dict[str, Any]] = {}
     base_header: dict[str, Any] | None = None
     course_parts: list[Any] = []
@@ -548,6 +549,12 @@ def main() -> None:
 
             _apply_custom_level(new_row, idx, level_maps, cfg)
 
+            pre_row = dict(new_row)
+            pre_row["source_table_index"] = idx + 1
+            pre_row["source_table_names"] = [display_name]
+            pre_row["source_table_short_names"] = [short_label] if short_label else []
+            pre_dedup_rows.append(pre_row)
+
             if dk is None:
                 new_row["source_table_index"] = idx + 1
                 new_row["source_table_names"] = [display_name]
@@ -644,6 +651,7 @@ def main() -> None:
         filtered_data,
         custom_level_field=cl_field_merged,
         source_stats=per_source_level_stats,
+        rows_before_dedup=pre_dedup_rows,
     )
 
     if not beatoraja_rows:
