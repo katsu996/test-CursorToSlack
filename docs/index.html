@@ -98,8 +98,10 @@
         <label class="pagination-inline-label" for="page-jump">ページ</label>
         <input type="number" class="shadcn-input pagination-page-jump" id="page-jump" min="1" step="1" value="1" inputmode="numeric" aria-label="移動先のページ番号" />
         <button type="button" class="shadcn-btn" id="page-go">移動</button>
-        <label class="pagination-inline-label" for="page-size">表示件数</label>
-        <select id="page-size" class="shadcn-select pagination-page-size" aria-label="1ページの表示件数"></select>
+        <span class="pagination-inline-group">
+          <label class="pagination-inline-label" for="page-size">表示件数</label>
+          <select id="page-size" class="shadcn-select pagination-page-size" aria-label="1ページの表示件数"></select>
+        </span>
       </div>
     </nav>
     </main>

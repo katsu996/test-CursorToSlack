@@ -66,6 +66,32 @@
     return typeof val === "number" && Number.isFinite(val);
   }
 
+  /** DB 列 `bpm` は minbpm / maxbpm から表示用に合成する */
+  var VIRTUAL_DB_KEYS = { bpm: true };
+
+  function bpmNumber(val) {
+    if (val === null || val === undefined || val === "") return null;
+    if (typeof val === "number" && Number.isFinite(val)) return val;
+    var n = Number(val);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatBpmDisplay(minVal, maxVal) {
+    var mi = bpmNumber(minVal);
+    var ma = bpmNumber(maxVal);
+    if (mi === null || ma === null) return "";
+    if (mi === ma) return String(mi);
+    return String(mi) + " - " + String(ma);
+  }
+
+  function dbFieldRaw(db, key) {
+    if (key === "bpm") {
+      var text = formatBpmDisplay(db && db.minbpm, db && db.maxbpm);
+      return text === "" ? null : text;
+    }
+    return db ? db[key] : undefined;
+  }
+
   function tablePriOrderForCollect(runtime) {
     var pri = runtime.table_column_order.slice();
     var tra = Array.isArray(runtime.trailing_table_columns) ? runtime.trailing_table_columns : [];
@@ -113,7 +139,7 @@
     var arr = Object.keys(s);
     var first = [];
     for (var p = 0; p < pri.length; p++) {
-      if (s[pri[p]]) first.push(pri[p]);
+      if (s[pri[p]] || (key === "db" && VIRTUAL_DB_KEYS[pri[p]])) first.push(pri[p]);
     }
     var rest = arr
       .filter(function (k) {
@@ -200,6 +226,13 @@
     if (parts.length < 2) return null;
     var grp = parts[0];
     var col = parts.slice(1).join(":");
+    if (grp === "db" && col === "bpm") {
+      var d = r.db;
+      if (!d || typeof d !== "object") return null;
+      var mi = bpmNumber(d.minbpm);
+      if (mi !== null) return mi;
+      return bpmNumber(d.maxbpm);
+    }
     var o = grp === "table" ? r.table : r.db;
     if (!o || typeof o !== "object") return null;
     return o[col];
@@ -1002,7 +1035,7 @@
           parts.push(fmt(t[k]));
         });
         allDKeys.forEach(function (k) {
-          parts.push(fmt(d ? d[k] : ""));
+          parts.push(fmt(dbFieldRaw(d, k)));
         });
         externalSearchStrings(t, runtime).forEach(function (u) {
           parts.push(u);
@@ -1196,7 +1229,7 @@
           });
           if (!vTMain.length) tr.insertAdjacentHTML("beforeend", '<td class="empty">—</td>');
           vDKeys.forEach(function (k) {
-            tr.insertAdjacentHTML("beforeend", cellHtml(d ? d[k] : "", "db", k, runtime));
+            tr.insertAdjacentHTML("beforeend", cellHtml(dbFieldRaw(d, k), "db", k, runtime));
           });
           if (!vDKeys.length) tr.insertAdjacentHTML("beforeend", '<td class="empty">—</td>');
           if (visIr) tr.insertAdjacentHTML("beforeend", irCellsHtml(t, runtime));

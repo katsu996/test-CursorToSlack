@@ -109,6 +109,7 @@
         subM.textContent = partsM.join(" / ");
         cardM.appendChild(subM);
         var rowsCl = Array.isArray(mt.custom_level_rows) ? mt.custom_level_rows : [];
+        var srcCols = Array.isArray(mt.source_columns) ? mt.source_columns : [];
         if (rowsCl.length) {
           var wrapM = document.createElement("div");
           wrapM.className = "scroll-mini";
@@ -121,6 +122,14 @@
           thCnt.textContent = "曲数";
           trhM.appendChild(thLa);
           trhM.appendChild(thCnt);
+          srcCols.forEach(function (sc) {
+            var thS = document.createElement("th");
+            var disp = sc && sc.display_name ? String(sc.display_name).trim() : "";
+            var shortN = sc && sc.short_name ? String(sc.short_name).trim() : "";
+            thS.textContent = shortN || disp || ("表 " + (sc && sc.index != null ? sc.index : ""));
+            if (disp && thS.textContent !== disp) thS.title = disp;
+            trhM.appendChild(thS);
+          });
           theadM.appendChild(trhM);
           tblM.appendChild(theadM);
           var tbM = document.createElement("tbody");
@@ -134,6 +143,14 @@
             td2.textContent = String(row.count != null ? row.count : 0);
             tr.appendChild(td1);
             tr.appendChild(td2);
+            var bySrc = row.by_source && typeof row.by_source === "object" ? row.by_source : {};
+            srcCols.forEach(function (sc) {
+              var tdS = document.createElement("td");
+              tdS.className = "num";
+              var idx = sc && sc.index != null ? String(sc.index) : "";
+              tdS.textContent = String(bySrc[idx] != null ? bySrc[idx] : 0);
+              tr.appendChild(tdS);
+            });
             tbM.appendChild(tr);
           });
           tblM.appendChild(tbM);

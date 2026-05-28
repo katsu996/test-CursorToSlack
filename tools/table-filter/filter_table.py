@@ -29,7 +29,7 @@ from beatoraja_rows import (
 )
 from http_fetch import fetch_bytes
 from level_stats import (
-    UNSET_LEVEL_LABEL,
+    build_merged_custom_level_rows,
     level_bucket_for_stats,
     merge_level_compare_rows,
     sort_level_stat_keys,
@@ -640,20 +640,11 @@ def main() -> None:
         )
 
     cl_field_merged = str(cfg.get("custom_level_field") or "custom_level").strip() or "custom_level"
-    merged_by_custom: dict[str, int] = {}
-    for r in filtered_data:
-        if not isinstance(r, dict):
-            continue
-        raw_cl = r.get(cl_field_merged)
-        if raw_cl is None or raw_cl == "":
-            bucket = UNSET_LEVEL_LABEL
-        else:
-            bucket = level_bucket_for_stats(raw_cl)
-        merged_by_custom[bucket] = merged_by_custom.get(bucket, 0) + 1
-    sorted_merged_cl_keys = sort_level_stat_keys(list(merged_by_custom.keys()))
-    merged_custom_level_rows = [
-        {"level": k, "count": merged_by_custom[k]} for k in sorted_merged_cl_keys
-    ]
+    merged_source_columns, merged_custom_level_rows = build_merged_custom_level_rows(
+        filtered_data,
+        custom_level_field=cl_field_merged,
+        source_stats=per_source_level_stats,
+    )
 
     if not beatoraja_rows:
         print(
@@ -685,6 +676,7 @@ def main() -> None:
             "row_count_beatoraja": len(beatoraja_rows),
             "dropped_strict_decode": dropped,
             "custom_level_field": cl_field_merged,
+            "source_columns": merged_source_columns,
             "custom_level_rows": merged_custom_level_rows,
         },
     }
